@@ -1,0 +1,50 @@
+Gremlin console instructions powershell:
+
+
+:remote connect tinkerpop.server .\conf\remote.yaml
+:remote
+ import org.janusgraph.core.*;
+
+ graph = org.janusgraph.core.JanusGraphFactory.open('conf/gremlin-server/janusgraph-hbase-es.properties') 
+ g=graph.traversal()
+ mgmt = graph.openManagement()
+ 
+ 
+graph.tx().rollback() 
+ 
+ 
+metadataOwner = mgmt.makePropertyKey("Metadata.Owner").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+metadataLineage = mgmt.makePropertyKey("Metadata.Lineage").dataType(String.class).cardinality(Cardinality.SET).make();
+metadataRedaction = mgmt.makePropertyKey("Metadata.Redaction").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+metadataVersion = mgmt.makePropertyKey("Metadata.Version").dataType(Integer.class).cardinality(Cardinality.SINGLE).make();
+metadataCreateDate = mgmt.makePropertyKey("Metadata.CreateDate").dataType(Date.class).cardinality(Cardinality.SINGLE).make();
+metadataUpdateDate = mgmt.makePropertyKey("Metadata.UpdateDate").dataType(Date.class).cardinality(Cardinality.SINGLE).make();
+metadataStatus = mgmt.makePropertyKey("Metadata.Status").dataType(String.class).cardinality(Cardinality.SET).make();
+metadataOrigId = mgmt.makePropertyKey("Metadata.OrigId").dataType(UUID.class).cardinality(Cardinality.SINGLE).make();
+metadataGDPRStatus = mgmt.makePropertyKey("Metadata.GDPRStatus").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyPersonLabel = mgmt.makeVertexLabel("Party.Person").make();
+partyPersonDateOfBirth = mgmt.makePropertyKey("Party.Person.DateOfBirth").dataType(Date.class).cardinality(Cardinality.SINGLE).make();
+partyPersonFullName = mgmt.makePropertyKey("Party.Person.FullName").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyPersonEmailAddress = mgmt.makePropertyKey("Party.Person.EmailAddress").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyPersonGender = mgmt.makePropertyKey("Party.Person.Gender").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyPersonNationality = mgmt.makePropertyKey("Party.Person.Nationality").dataType(String.class).cardinality(Cardinality.SET).make();
+partyPersonPlaceOfBirth = mgmt.makePropertyKey("Party.Person.PlaceOfBirth").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyPersonReligion = mgmt.makePropertyKey("Party.Person.Religion").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyPersonEthnicity = mgmt.makePropertyKey("Party.Person.Ethnicity").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyPersonMaritalStatus = mgmt.makePropertyKey("Party.Person.MaritalStatus").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyPersonHeight = mgmt.makePropertyKey("Party.Person.Height").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyPersonNameQualifier = mgmt.makePropertyKey("Party.Person.NameQualifier").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyPersonTitle = mgmt.makePropertyKey("Party.Person.Title").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyOrgRegNumber = mgmt.makePropertyKey("Party.Org.RegNumber").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyOrgType = mgmt.makePropertyKey("Party.Org.Type").dataType(String.class).cardinality(Cardinality.SET).make();
+partyOrgName = mgmt.makePropertyKey("Party.Org.Name").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyOrgShortName = mgmt.makePropertyKey("Party.Org.ShortName").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyOrgTaxId = mgmt.makePropertyKey("Party.Org.TaxId").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+partyOrgSector = mgmt.makePropertyKey("Party.Org.Sector").dataType(String.class).cardinality(Cardinality.SET).make();
+ 
+graph.tx().commit();
+
+ 
+ 
+ g.V().count()
+ 
