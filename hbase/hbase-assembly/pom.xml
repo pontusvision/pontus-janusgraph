@@ -121,7 +121,7 @@
           </execution>
         </executions>
       </plugin>
-      <!--plugin>
+      <!-- plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <version>1.4.0</version>
@@ -147,7 +147,6 @@
           </execution>
         </executions>
       </plugin -->
-      <!-- /end building aggregation of NOTICE files -->
     </plugins>
   </build>
   <dependencies>
