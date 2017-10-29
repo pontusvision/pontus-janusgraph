@@ -424,7 +424,7 @@ public class IndexSerializer {
             return Iterables.transform(this, new Function<RecordEntry[], Object[]>() {
                 @Nullable
                 @Override
-                public Object[] apply(@Nullable RecordEntry[] record) {
+                public Object[] apply(final RecordEntry[] record) {
                     return getValues(record);
                 }
             });
@@ -562,7 +562,7 @@ public class IndexSerializer {
                 new Function<Condition<JanusGraphElement>, Condition<JanusGraphElement>>() {
                     @Nullable
                     @Override
-                    public Condition<JanusGraphElement> apply(@Nullable Condition<JanusGraphElement> condition) {
+                    public Condition<JanusGraphElement> apply(final Condition<JanusGraphElement> condition) {
                         Preconditions.checkArgument(condition instanceof PredicateCondition);
                         PredicateCondition pc = (PredicateCondition) condition;
                         PropertyKey key = (PropertyKey) pc.getKey();

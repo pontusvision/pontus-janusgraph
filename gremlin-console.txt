@@ -1,11 +1,8 @@
 Gremlin console instructions powershell:
 
+cd  C:\work\pontus-git\pontusvision-x\tech\janusgraph
+.\bin\gremlin.bat
 
-:remote connect tinkerpop.server .\conf\remote.yaml
-:remote
- import org.janusgraph.core.*;
- import org.janusgraph.core.schema.*;
-import static org.janusgraph.core.attribute.Text.*
 
  graph = org.janusgraph.core.JanusGraphFactory.open('conf/gremlin-server/janusgraph-hbase-es.properties') 
  g=graph.traversal()
@@ -14,6 +11,14 @@ import static org.janusgraph.core.attribute.Text.*
  
 graph.tx().rollback() 
  
+
+:remote connect tinkerpop.server .\conf\remote.yaml
+:remote console
+ import org.janusgraph.core.*;
+ import org.janusgraph.core.schema.*;
+import static org.janusgraph.core.attribute.Text.*
+
+
  
 metadataController = mgmt.makePropertyKey("Metadata.Controller").dataType(String.class).cardinality(Cardinality.SET).make();
 metadataProcessor = mgmt.makePropertyKey("Metadata.Processor").dataType(String.class).cardinality(Cardinality.SET).make();
@@ -72,18 +77,28 @@ orgTaxId = mgmt.makePropertyKey("Org.TaxId").dataType(String.class).cardinality(
 orgSector = mgmt.makePropertyKey("Org.Sector").dataType(String.class).cardinality(Cardinality.SET).make();
  
  
-mgmt.buildIndex('personNameAndEmailMixedIdx', Vertex.class).addKey(personFullName).addKey(personEmailAddress).addKey(personLastName).indexOnly(personLabel).buildMixedIndex("search")
-mgmt.buildIndex('personEmailAddressIdx', Vertex.class).addKey(personEmailAddress).indexOnly(personLabel).buildCompositeIndex()
-mgmt.buildIndex('personDateOfBirthIdx',Vertex.class).addKey(personDateOfBirth).indexOnly(personLabel).buildCompositeIndex()
+mgmt.buildIndex('personNameAndEmailMixedIdx', Vertex.class).addKey(personFullName).addKey(personEmailAddress).addKey(personLastName).buildMixedIndex("search")
+mgmt.buildIndex('personEmailAddressIdx', Vertex.class).addKey(personEmailAddress).buildCompositeIndex()
+mgmt.buildIndex('personDateOfBirthIdx',Vertex.class).addKey(personDateOfBirth).buildCompositeIndex()
 
-mgmt.buildIndex('orgNameMixedIdx', Vertex.class).addKey(orgName).addKey(orgShortName).addKey(personLastName).indexOnly(orgLabel).buildMixedIndex("search")
-mgmt.buildIndex('orgRegNumberIdx', Vertex.class).addKey(orgRegNumber).indexOnly(orgLabel).buildCompositeIndex()
+mgmt.buildIndex('orgNameMixedIdx', Vertex.class).addKey(orgName).addKey(orgShortName).addKey(personLastName).buildMixedIndex("search")
+mgmt.buildIndex('orgRegNumberIdx', Vertex.class).addKey(orgRegNumber).buildCompositeIndex()
+
+
+mgmt.buildIndex('personFullAndLastNameIdx', Vertex.class).addKey(personFullName).addKey(personLastName).buildCompositeIndex()
+mgmt.buildIndex('personLastNameIdx', Vertex.class).addKey(personLastName).buildCompositeIndex()
+mgmt.buildIndex('personFullNameIdx', Vertex.class).addKey(personFullName).buildCompositeIndex()
+
+
 
 mgmt.commit();
 
 
 mgmt.awaitGraphIndexStatus(graph, 'personNameAndEmailMixedIdx').call()
 mgmt.awaitGraphIndexStatus(graph, 'personEmailAddressIdx').call()
+mgmt.awaitGraphIndexStatus(graph, 'personFullAndLastNameIdx').call()
+mgmt.awaitGraphIndexStatus(graph, 'personLastNameIdx').call()
+mgmt.awaitGraphIndexStatus(graph, 'personFullNameIdx').call()
 mgmt.awaitGraphIndexStatus(graph, 'personDateOfBirthIdx').call()
 mgmt.awaitGraphIndexStatus(graph, 'orgNameMixedIdx').call()
 mgmt.awaitGraphIndexStatus(graph, 'orgRegNumberIdx').call()
@@ -97,7 +112,43 @@ mgmt.awaitGraphIndexStatus(graph, 'metadataGDPRStatusIdx').call()
  
  
  
+		mgmt = graph.openManagement()
+
+
+//	mgmt.buildIndex('personFullAndLastNameIdx', Vertex.class).addKey(personFullName).addKey(personLastName).buildCompositeIndex()
+//	mgmt.buildIndex('personLastNameIdx', Vertex.class).addKey(personLastName).buildCompositeIndex()
+//	mgmt.buildIndex('personFullNameIdx', Vertex.class).addKey(personFullName).buildCompositeIndex()
+//
+//	mgmt.awaitGraphIndexStatus(graph, 'personFullAndLastNameIdx').status(SchemaStatus.REGISTERED).call()
+//	mgmt.awaitGraphIndexStatus(graph, 'personLastNameIdx').status(SchemaStatus.REGISTERED).call()
+//
+//	mgmt.updateIndex(mgmt.getGraphIndex('personFullAndLastNameIdx'), SchemaAction.REINDEX).get()
+//	mgmt.updateIndex(mgmt.getGraphIndex('personLastNameIdx'), SchemaAction.REINDEX).get()
+//	mgmt.updateIndex(mgmt.getGraphIndex('personFullNameIdx'), SchemaAction.REINDEX).get()
+//
+//
+//	mgmt.updateIndex(mgmt.getGraphIndex('personNameAndEmailMixedIdx'), SchemaAction.REINDEX).get()
+//
+//
+//	mgmt.awaitGraphIndexStatus(graph, 'personFullAndLastNameIdx').call()
+//	mgmt.awaitGraphIndexStatus(graph, 'personLastNameIdx').call()
+//	mgmt.awaitGraphIndexStatus(graph, 'personFullNameIdx').call()
+
+
+
+
+mdLabel = mgmt.makeVertexLabel("md").make();
+mdProps = mgmt.makePropertyKey("md.Properties").dataType(String.class).cardinality(Cardinality.SET).make();
+mdIndex = mgmt.buildIndex("mdIndex", Vertex.class).addKey(mdProps).buildCompositeIndex()
+
 mgmt = graph.openManagement()
+mgmt.updateIndex(mgmt.getGraphIndex("mdIndex"), SchemaAction.ENABLE_INDEX).get()
+mgmt.commit()
+
+
+mgmt.commit();
+
+
 
  
 mgmt.commit();

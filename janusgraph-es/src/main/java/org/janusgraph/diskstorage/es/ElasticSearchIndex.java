@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
+import org.janusgraph.diskstorage.es.compat.ES6Compat;
 import org.locationtech.spatial4j.shape.Rectangle;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
@@ -106,30 +107,13 @@ public class ElasticSearchIndex implements IndexProvider {
     public static final ConfigNamespace ELASTICSEARCH_NS =
             new ConfigNamespace(INDEX_NS, "elasticsearch", "Elasticsearch index configuration");
 
-    public static final ConfigOption<String> CLUSTER_NAME =
-            new ConfigOption<>(ELASTICSEARCH_NS, "cluster-name",
-            "The name of the Elasticsearch cluster.  This should match the \"cluster.name\" setting " +
-            "in the Elasticsearch nodes' configuration.", ConfigOption.Type.GLOBAL_OFFLINE, "elasticsearch");
-
-    public static final ConfigOption<Boolean> CLIENT_SNIFF =
-            new ConfigOption<>(ELASTICSEARCH_NS, "sniff",
-            "Whether to enable cluster sniffing.  This option only applies to the TransportClient.  " +
-            "Enabling this option makes the TransportClient attempt to discover other cluster nodes " +
-            "besides those in the initial host list provided at startup.", ConfigOption.Type.MASKABLE, true);
-
     public static final ConfigOption<String> INTERFACE =
             new ConfigOption<>(ELASTICSEARCH_NS, "interface",
-            "Whether to connect to ES using the Node or Transport client (see the \"Talking to Elasticsearch\" " +
-            "section of the ES manual for discussion of the difference).  Setting this option enables the " +
-            "interface config track (see manual for more information about ES config tracks).",
+            "Interface for connecting to Elasticsearch. " +
+            "TRANSPORT_CLIENT and NODE were previously supported, but now are required to migrate to REST_CLIENT. " +
+            "See the JanusGraph upgrade instructions for more details.",
             ConfigOption.Type.MASKABLE, String.class, ElasticSearchSetup.REST_CLIENT.toString(),
             disallowEmpty(String.class));
-
-    public static final ConfigOption<Boolean> IGNORE_CLUSTER_NAME =
-            new ConfigOption<>(ELASTICSEARCH_NS, "ignore-cluster-name",
-            "Whether to bypass validation of the cluster name of connected nodes.  " +
-            "This option is only used on the interface configuration track (see manual for " +
-            "information about ES config tracks).", ConfigOption.Type.MASKABLE, true);
 
     public static final ConfigOption<String> HEALTH_REQUEST_TIMEOUT =
             new ConfigOption<>(ELASTICSEARCH_NS, "health-request-timeout",
@@ -142,9 +126,6 @@ public class ElasticSearchIndex implements IndexProvider {
             new ConfigOption<>(ELASTICSEARCH_NS, "bulk-refresh",
             "Elasticsearch bulk API refresh setting used to control when changes made by this request are made " +
             "visible to search", ConfigOption.Type.MASKABLE, "false");
-
-    public static final ConfigNamespace ES_EXTRAS_NS =
-            new ConfigNamespace(ELASTICSEARCH_NS, "ext", "Overrides for arbitrary elasticsearch.yaml settings", true);
 
     public static final ConfigNamespace ES_CREATE_NS =
             new ConfigNamespace(ELASTICSEARCH_NS, "create", "Settings related to index creation");
@@ -163,13 +144,23 @@ public class ElasticSearchIndex implements IndexProvider {
             new ConfigOption<>(ES_CREATE_NS, "use-external-mappings",
             "Whether JanusGraph should make use of an external mapping when registering an index.", ConfigOption.Type.MASKABLE, false);
 
+    public static final ConfigOption<Boolean> USE_ALL_FIELD =
+        new ConfigOption<>(ELASTICSEARCH_NS, "use-all-field",
+            "Whether JanusGraph should add an \"all\" field mapping. When enabled field mappings will " +
+            "include a \"copy_to\" parameter referencing the \"all\" field. This is supported since Elasticsearch 6.x " +
+            " and is required when using wildcard fields starting in Elasticsearch 6.x.", ConfigOption.Type.GLOBAL_OFFLINE, true);
+
     public static final ConfigOption<Boolean> USE_DEPRECATED_MULTITYPE_INDEX =
             new ConfigOption<>(ELASTICSEARCH_NS, "use-deprecated-multitype-index",
-            "Whether JanusGraph should group these indices into a single Elasticsearch index.", ConfigOption.Type.GLOBAL_OFFLINE, false);
+            "Whether JanusGraph should group these indices into a single Elasticsearch index " +
+            "(requires Elasticsearch 5.x or earlier).", ConfigOption.Type.GLOBAL_OFFLINE, false);
 
     public static final ConfigOption<Integer> ES_SCROLL_KEEP_ALIVE =
             new ConfigOption<>(ELASTICSEARCH_NS, "scroll-keep-alive",
             "How long (in secondes) elasticsearch should keep alive the scroll context.", ConfigOption.Type.GLOBAL_OFFLINE, 60);
+
+    public static final ConfigNamespace ES_INGEST_PIPELINES =
+            new ConfigNamespace(ELASTICSEARCH_NS, "ingest-pipeline", "Ingest pipeline applicable to a store of an index.");
 
     public static final int HOST_PORT_DEFAULT = 9200;
 
@@ -197,16 +188,18 @@ public class ElasticSearchIndex implements IndexProvider {
     private final String indexName;
     private final int batchSize;
     private final boolean useExternalMappings;
-    private final Map<String,Object> indexSetting;
+    private final Map<String, Object> indexSetting;
     private final long createSleep;
+    private final boolean useAllField;
     private final boolean useMultitypeIndex;
+    private final Map<String, Object> ingestPipelines;
 
     public ElasticSearchIndex(Configuration config) throws BackendException {
         indexName = config.get(INDEX_NAME);
+        useAllField = config.get(USE_ALL_FIELD);
         useExternalMappings = config.get(USE_EXTERNAL_MAPPINGS);
         createSleep = config.get(CREATE_SLEEP);
-        useMultitypeIndex = config.get(USE_DEPRECATED_MULTITYPE_INDEX);
-
+        ingestPipelines = config.getSubset(ES_INGEST_PIPELINES);
         final ElasticSearchSetup.Connection c = interfaceConfiguration(config);
         client = c.getClient();
 
@@ -216,12 +209,17 @@ public class ElasticSearchIndex implements IndexProvider {
         switch (client.getMajorVersion()) {
             case ONE:
                 compat = new ES1Compat();
+                Preconditions.checkArgument(ingestPipelines.isEmpty(), "Ingest pipelines are not supported by Elasticsearch 1.x.");
                 break;
             case TWO:
                 compat = new ES2Compat();
+                Preconditions.checkArgument(ingestPipelines.isEmpty(), "Ingest pipelines are not supported by Elasticsearch 2.x.");
                 break;
             case FIVE:
                 compat = new ES5Compat();
+                break;
+            case SIX:
+                compat = new ES6Compat();
                 break;
             default:
                 throw new PermanentBackendException("Unsupported Elasticsearch version: " + client.getMajorVersion());
@@ -232,8 +230,14 @@ public class ElasticSearchIndex implements IndexProvider {
         } catch (final IOException e) {
             throw new PermanentBackendException(e.getMessage(), e);
         }
-        Preconditions.checkArgument(!useMultitypeIndex || !client.isAlias(indexName), "The key '" + USE_DEPRECATED_MULTITYPE_INDEX + "' cannot be true when existing index is split.");
-        Preconditions.checkArgument(useMultitypeIndex || !client.isIndex(indexName), "The key '" + USE_DEPRECATED_MULTITYPE_INDEX + "' cannot be false when existing index contains multiple types.");
+        if (!config.has(USE_DEPRECATED_MULTITYPE_INDEX) && client.isIndex(indexName)) {
+            // upgrade scenario where multitype index was the default behavior
+            useMultitypeIndex = true;
+        } else {
+            useMultitypeIndex = config.get(USE_DEPRECATED_MULTITYPE_INDEX);
+            Preconditions.checkArgument(!useMultitypeIndex || !client.isAlias(indexName), "The key '" + USE_DEPRECATED_MULTITYPE_INDEX + "' cannot be true when existing index is split.");
+            Preconditions.checkArgument(useMultitypeIndex || !client.isIndex(indexName), "The key '" + USE_DEPRECATED_MULTITYPE_INDEX + "' cannot be false when existing index contains multiple types.");
+        }
         indexSetting = new HashMap<>();
 
         ElasticSearchSetup.applySettingsFromJanusGraphConf(indexSetting, config, ES_CREATE_EXTRAS_NS);
@@ -318,7 +322,7 @@ public class ElasticSearchIndex implements IndexProvider {
             try {
                 //We check if the externalMapping have the property 'key'
                 final Map mappings = client.getMapping(indexStoreName, store);
-                if (!mappings.containsKey(key)) {
+                if (mappings == null || !mappings.containsKey(key)) {
                     throw new PermanentBackendException("The external mapping for index '"+ indexStoreName +"' and type '"+store+"' do not have property '"+key+"'");
                 }
             } catch (final IOException e) {
@@ -406,6 +410,19 @@ public class ElasticSearchIndex implements IndexProvider {
         } else if (dataType == UUID.class) {
             log.debug("Registering uuid type for {}", key);
             properties.put(key, compat.createKeywordMapping());
+        }
+
+        if (useAllField && client.getMajorVersion().getValue() >= 6) {
+            // add custom all field mapping if it doesn't exist
+            properties.put(ElasticSearchConstants.CUSTOM_ALL_FIELD, compat.createTextMapping(null));
+
+            // add copy_to for custom all field mapping
+            if (properties.containsKey(key) && dataType != Geoshape.class) {
+                final Map<String,Object> mapping = new HashMap<>();
+                mapping.putAll(((Map<String,Object>) properties.get(key)));
+                mapping.put("copy_to", ElasticSearchConstants.CUSTOM_ALL_FIELD);
+                properties.put(key, mapping);
+            }
         }
 
         final Map<String,Object> mapping = ImmutableMap.of("properties", properties);
@@ -523,7 +540,9 @@ public class ElasticSearchIndex implements IndexProvider {
         final List<ElasticSearchMutation> requests = new ArrayList<>();
         try {
             for (final Map.Entry<String, Map<String, IndexMutation>> stores : mutations.entrySet()) {
+                final List<ElasticSearchMutation> requestByStore = new ArrayList<>();
                 final String storename = stores.getKey();
+                final String indexStoreName = getIndexStoreName(storename);
                 for (final Map.Entry<String, IndexMutation> entry : stores.getValue().entrySet()) {
                     final String docid = entry.getKey();
                     final IndexMutation mutation = entry.getValue();
@@ -532,15 +551,14 @@ public class ElasticSearchIndex implements IndexProvider {
                     Preconditions.checkArgument(!mutation.isNew() || !mutation.hasDeletions());
                     Preconditions.checkArgument(!mutation.isDeleted() || !mutation.hasAdditions());
                     //Deletions first
-                    final String indexStoreName = getIndexStoreName(storename);
                     if (mutation.hasDeletions()) {
                         if (mutation.isDeleted()) {
                             log.trace("Deleting entire document {}", docid);
-                            requests.add(ElasticSearchMutation.createDeleteRequest(indexStoreName, storename, docid));
+                            requestByStore.add(ElasticSearchMutation.createDeleteRequest(indexStoreName, storename, docid));
                         } else {
                             final String script = getDeletionScript(informations, storename, mutation);
                             final Map<String,Object> doc = compat.prepareScript(script).build();
-                            requests.add(ElasticSearchMutation.createUpdateRequest(indexStoreName, storename, docid, doc));
+                            requestByStore.add(ElasticSearchMutation.createUpdateRequest(indexStoreName, storename, docid, doc));
                             log.trace("Adding script {}", script);
                         }
                     }
@@ -548,7 +566,7 @@ public class ElasticSearchIndex implements IndexProvider {
                         if (mutation.isNew()) { //Index
                             log.trace("Adding entire document {}", docid);
                             final Map<String, Object> source = getNewDocument(mutation.getAdditions(), informations.get(storename));
-                            requests.add(ElasticSearchMutation.createIndexRequest(indexStoreName, storename, docid, source));
+                            requestByStore.add(ElasticSearchMutation.createIndexRequest(indexStoreName, storename, docid, source));
                         } else {
                             final Map upsert;
                             if (!mutation.hasDeletions()) {
@@ -560,23 +578,27 @@ public class ElasticSearchIndex implements IndexProvider {
                             final String inline = getAdditionScript(informations, storename, mutation);
                             if (!inline.isEmpty()) {
                                 final ImmutableMap.Builder builder = compat.prepareScript(inline);
-                                requests.add(ElasticSearchMutation.createUpdateRequest(indexStoreName, storename, docid, builder, upsert));
+                                requestByStore.add(ElasticSearchMutation.createUpdateRequest(indexStoreName, storename, docid, builder, upsert));
                                 log.trace("Adding script {}", inline);
                             }
 
                             final Map<String, Object> doc = getAdditionDoc(informations, storename, mutation);
                             if (!doc.isEmpty()) {
                                 final ImmutableMap.Builder builder = ImmutableMap.builder().put(ES_DOC_KEY, doc);
-                                requests.add(ElasticSearchMutation.createUpdateRequest(indexStoreName, storename, docid, builder, upsert));
+                                requestByStore.add(ElasticSearchMutation.createUpdateRequest(indexStoreName, storename, docid, builder, upsert));
                                 log.trace("Adding update {}", doc);
                             }
                         }
                     }
-
+                }
+                if (!requestByStore.isEmpty() && ingestPipelines.containsKey(storename)) {
+                    client.bulkRequest(requestByStore, String.valueOf(ingestPipelines.get(storename)));
+                } else if (!requestByStore.isEmpty()) {
+                    requests.addAll(requestByStore);
                 }
             }
             if (!requests.isEmpty()) {
-                client.bulkRequest(requests);
+                client.bulkRequest(requests, null);
             }
         } catch (final Exception e) {
             log.error("Failed to execute bulk Elasticsearch mutation", e);
@@ -665,29 +687,34 @@ public class ElasticSearchIndex implements IndexProvider {
         final List<ElasticSearchMutation> requests = new ArrayList<>();
         try {
             for (final Map.Entry<String, Map<String, List<IndexEntry>>> stores : documents.entrySet()) {
+                final List<ElasticSearchMutation> requestByStore = new ArrayList<>();
                 final String store = stores.getKey();
+                final String indexStoreName = getIndexStoreName(store);
                 for (final Map.Entry<String, List<IndexEntry>> entry : stores.getValue().entrySet()) {
                     final String docID = entry.getKey();
                     final List<IndexEntry> content = entry.getValue();
-                    final String indexStoreName = getIndexStoreName(store);
                     if (content == null || content.size() == 0) {
                         // delete
                         if (log.isTraceEnabled())
                             log.trace("Deleting entire document {}", docID);
 
-                        requests.add(ElasticSearchMutation.createDeleteRequest(indexStoreName, store, docID));
+                        requestByStore.add(ElasticSearchMutation.createDeleteRequest(indexStoreName, store, docID));
                     } else {
                         // Add
                         if (log.isTraceEnabled())
                             log.trace("Adding entire document {}", docID);
                         final Map<String, Object> source = getNewDocument(content, informations.get(store));
-                        requests.add(ElasticSearchMutation.createIndexRequest(indexStoreName, store, docID, source));
+                        requestByStore.add(ElasticSearchMutation.createIndexRequest(indexStoreName, store, docID, source));
                     }
                 }
+                if (!requestByStore.isEmpty() && ingestPipelines.containsKey(store)) {
+                    client.bulkRequest(requestByStore, String.valueOf(ingestPipelines.get(store)));
+                } else if (!requestByStore.isEmpty()) {
+                    requests.addAll(requestByStore);
+                }
             }
-
             if (!requests.isEmpty())
-                client.bulkRequest(requests);
+                client.bulkRequest(requests, null);
         } catch (final Exception e) {
             throw convert(e);
         }
@@ -702,7 +729,6 @@ public class ElasticSearchIndex implements IndexProvider {
             if (value instanceof Number) {
                 Preconditions.checkArgument(janusgraphPredicate instanceof Cmp, "Relation not supported on numeric types: " + janusgraphPredicate);
                 final Cmp numRel = (Cmp) janusgraphPredicate;
-                Preconditions.checkArgument(value instanceof Number);
 
                 switch (numRel) {
                     case EQUAL:
@@ -1067,4 +1093,7 @@ public class ElasticSearchIndex implements IndexProvider {
         }
     }
 
+    ElasticMajorVersion getVersion() {
+        return client.getMajorVersion();
+    }
 }
