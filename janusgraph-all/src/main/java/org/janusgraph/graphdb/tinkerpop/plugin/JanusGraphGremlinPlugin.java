@@ -21,12 +21,11 @@ import org.janusgraph.core.attribute.Geo;
 import org.janusgraph.core.attribute.Text;
 import org.janusgraph.example.GraphOfTheGodsFactory;
 import org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry;
-<<<<<<< HEAD
-=======
+//=======
 import org.janusgraph.graphdb.management.ConfigurationManagementGraph;
-import org.apache.tinkerpop.gremlin.groovy.plugin.GremlinPlugin;
-import org.apache.tinkerpop.gremlin.groovy.plugin.PluginAcceptor;
->>>>>>> b75fc6ce32f1184b99efa01a8768285bd83ce62d
+//import org.apache.tinkerpop.gremlin.groovy.plugin.GremlinPlugin;
+//import org.apache.tinkerpop.gremlin.groovy.plugin.PluginAcceptor;
+//>>>>>>> b75fc6ce32f1184b99efa01a8768285bd83ce62d
 
 //import org.apache.tinkerpop.gremlin.groovy.plugin.GremlinPlugin;
 //import org.apache.tinkerpop.gremlin.groovy.plugin.PluginAcceptor;
@@ -48,7 +47,7 @@ public class JanusGraphGremlinPlugin extends AbstractGremlinPlugin {
 
     private static final String IMPORT = "import ";
     private static final String IMPORT_STATIC = IMPORT + "static ";
-<<<<<<< HEAD
+//<<<<<<< HEAD
     private static final String DOT_STAR = ""; //".*";
     private static final String NAME = "janusgraph.imports";
     private static final Set<String> IMPORTS = new HashSet<String>() {
@@ -59,22 +58,23 @@ public class JanusGraphGremlinPlugin extends AbstractGremlinPlugin {
             add(IMPORT + "org.janusgraph.hadoop.MapReduceIndexManagement");
             add(IMPORT + "java.time" + DOT_STAR);
             add(IMPORT + JanusGraphIoRegistry.class.getName());
+            add(IMPORT + ConfigurationManagementGraph.class.getName());
             add(IMPORT + GraphOfTheGodsFactory.class.getName());
         }};
     private static final Set<Class> STATIC_IMPORTS = new HashSet<Class>() {{
-=======
-    private static final String DOT_STAR = ".*";
-
-    private static final Set<String> IMPORTS = new HashSet<String>() {{
-        add(IMPORT + "org.janusgraph.core" + DOT_STAR);
-        add(IMPORT + "org.janusgraph.core.attribute" + DOT_STAR);
-        add(IMPORT + "org.janusgraph.core.schema" + DOT_STAR);
-        add(IMPORT + GraphOfTheGodsFactory.class.getName());
-        add(IMPORT + "org.janusgraph.hadoop.MapReduceIndexManagement");
-        add(IMPORT + "java.time" + DOT_STAR);
-        add(IMPORT + JanusGraphIoRegistry.class.getName());
-        add(IMPORT + ConfigurationManagementGraph.class.getName());
->>>>>>> b75fc6ce32f1184b99efa01a8768285bd83ce62d
+//=======
+    //private static final String DOT_STAR = ".*";
+//
+    //private static final Set<String> IMPORTS = new HashSet<String>() {{
+        //add(IMPORT + "org.janusgraph.core" + DOT_STAR);
+        //add(IMPORT + "org.janusgraph.core.attribute" + DOT_STAR);
+        //add(IMPORT + "org.janusgraph.core.schema" + DOT_STAR);
+        //add(IMPORT + GraphOfTheGodsFactory.class.getName());
+        //add(IMPORT + "org.janusgraph.hadoop.MapReduceIndexManagement");
+        //add(IMPORT + "java.time" + DOT_STAR);
+        //add(IMPORT + JanusGraphIoRegistry.class.getName());
+        //add(IMPORT + ConfigurationManagementGraph.class.getName());
+//>>>>>>> b75fc6ce32f1184b99efa01a8768285bd83ce62d
 
         // Static imports on enum values used in query constraint expressions
         add(Geo.class);

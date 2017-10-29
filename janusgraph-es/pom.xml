@@ -3,11 +3,7 @@
     <parent>
         <groupId>org.janusgraph</groupId>
         <artifactId>janusgraph</artifactId>
-<<<<<<< HEAD
         <version>100.2.0-SNAPSHOT</version>
-=======
-        <version>0.3.0-SNAPSHOT</version>
->>>>>>> b75fc6ce32f1184b99efa01a8768285bd83ce62d
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>janusgraph-es</artifactId>
@@ -66,11 +62,7 @@
         </dependency>
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
-<<<<<<< HEAD
             <artifactId>elasticsearch-rest-client-sniffer</artifactId>
-=======
-            <artifactId>elasticsearch-rest-client</artifactId>
->>>>>>> b75fc6ce32f1184b99efa01a8768285bd83ce62d
             <version>${elasticsearch.version}</version>
         </dependency>
         <dependency>
