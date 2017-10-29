@@ -7,7 +7,11 @@
     </parent>
     <groupId>org.janusgraph</groupId>
     <artifactId>janusgraph</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+<<<<<<< HEAD
+    <version>100.2.0-SNAPSHOT</version>
+=======
+    <version>0.3.0-SNAPSHOT</version>
+>>>>>>> b75fc6ce32f1184b99efa01a8768285bd83ce62d
     <packaging>pom</packaging>
     <prerequisites>
         <maven>2.2.1</maven>
@@ -63,7 +67,7 @@
         <tag>HEAD</tag>
     </scm>
     <properties>
-        <janusgraph.compatible.versions>0.1.0,0.1.1</janusgraph.compatible.versions>
+        <janusgraph.compatible.versions>0.1.0,0.1.1,0.2.0</janusgraph.compatible.versions>
         <titan.compatible-versions>1.0.0,1.1.0-SNAPSHOT</titan.compatible-versions>
         <tinkerpop.version>3.3.0</tinkerpop.version>
         <junit.version>4.12</junit.version>
@@ -71,21 +75,32 @@
         <cassandra.version>2.1.18</cassandra.version>
         <jamm.version>0.3.0</jamm.version>
         <metrics2.version>2.1.2</metrics2.version>
-        <metrics3.version>3.0.1</metrics3.version>
+        <metrics3.version>3.0.2</metrics3.version>
         <sesame.version>2.7.10</sesame.version>
-        <slf4j.version>1.7.12</slf4j.version>
+        <slf4j.version>1.7.21</slf4j.version>
         <httpcomponents.version>4.4.1</httpcomponents.version>
         <hadoop2.version>2.7.2</hadoop2.version>
         <hbase098.core.version>0.98.24</hbase098.core.version>
         <hbase098.version>${hbase098.core.version}-hadoop2</hbase098.version>
-        <hbase100.core.version>1.2.4</hbase100.core.version>
+<<<<<<< HEAD
+        <hbase100.core.version>1.3.1</hbase100.core.version>
+=======
+        <hbase100.core.version>1.2.6</hbase100.core.version>
+>>>>>>> b75fc6ce32f1184b99efa01a8768285bd83ce62d
         <hbase100.version>${hbase100.core.version}</hbase100.version>
+        <bigtable.version>1.0.0-pre3</bigtable.version>
         <scylladb.version>1.7.1</scylladb.version>
         <!-- align with org.apache.hbase:hbase -->
         <jackson1.version>1.9.13</jackson1.version>
-        <jackson2.version>2.6.6</jackson2.version>
+<<<<<<< HEAD
+        <jackson2.version>2.8.6</jackson2.version>
         <lucene-solr.version>6.6.0</lucene-solr.version>
-        <elasticsearch.version>5.4.2</elasticsearch.version>
+        <elasticsearch.version>5.6.1</elasticsearch.version>
+=======
+        <jackson2.version>2.6.6</jackson2.version>
+        <lucene-solr.version>7.0.0</lucene-solr.version>
+        <elasticsearch.version>5.6.2</elasticsearch.version>
+>>>>>>> b75fc6ce32f1184b99efa01a8768285bd83ce62d
         <commons.beanutils.version>1.7.0</commons.beanutils.version>
         <commons.collections.version>3.2.2</commons.collections.version>
         <joda.version>2.8.2</joda.version>
@@ -96,6 +111,8 @@
         <asm4.version>4.0</asm4.version>
         <zookeeper.version>3.4.6</zookeeper.version>
         <jersey.version>1.9</jersey.version>
+        <!-- align with org.apache.tinkerpop:tinkerpop -->
+        <netty4.version>4.0.50.Final</netty4.version>
         <jna.version>4.0.0</jna.version>
         <kuali.s3.wagon.version>1.1.20</kuali.s3.wagon.version>
         <jasper.version>5.5.23</jasper.version>
@@ -128,12 +145,18 @@
         <module>janusgraph-cassandra</module>
         <module>janusgraph-hadoop-parent</module>
         <module>janusgraph-hbase-parent</module>
+        <module>janusgraph-bigtable</module>
         <module>janusgraph-es</module>
         <module>janusgraph-lucene</module>
         <module>janusgraph-all</module>
         <module>janusgraph-dist</module>
         <module>janusgraph-doc</module>
         <module>janusgraph-solr</module>
+<<<<<<< HEAD
+        <module>hbase</module>
+=======
+        <module>janusgraph-examples</module>
+>>>>>>> b75fc6ce32f1184b99efa01a8768285bd83ce62d
     </modules>
     <repositories>
         <repository>
@@ -498,7 +521,7 @@
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.module</groupId>
-                <artifactId>jackson-module-scala_2.10</artifactId>
+                <artifactId>jackson-module-scala_2.11</artifactId>
                 <version>${jackson2.version}</version>
             </dependency>
             <dependency>
@@ -591,7 +614,7 @@
             <dependency>
                 <groupId>commons-logging</groupId>
                 <artifactId>commons-logging</artifactId>
-                <version>1.1.1</version>
+                <version>1.1.3</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -612,6 +635,12 @@
                 <groupId>org.reflections</groupId>
                 <artifactId>reflections</artifactId>
                 <version>0.9.9-RC1</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.guava</groupId>
+                        <artifactId>guava</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>xml-apis</groupId>
@@ -646,7 +675,7 @@
             <dependency>
                 <groupId>log4j</groupId>
                 <artifactId>log4j</artifactId>
-                <version>1.2.16</version>
+                <version>1.2.17</version>
             </dependency>
             <dependency>
                 <groupId>ch.qos.logback</groupId>
@@ -729,10 +758,14 @@
             </dependency>
 
             <dependency>
-                <!-- align with org.apache.tinkerpop:tinkerpop -->
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
-                <version>4.0.42.Final</version>
+                <version>${netty4.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-handler</artifactId>
+                <version>${netty4.version}</version>
             </dependency>
 
             <dependency>
@@ -842,7 +875,7 @@
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
-                <version>1.7</version>
+                <version>1.10</version>
             </dependency>
             <dependency>
                 <groupId>commons-cli</groupId>
@@ -937,7 +970,7 @@
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
-                <version>2.3</version>
+                <version>2.4</version>
             </dependency>
             <dependency>
                 <groupId>org.jacoco</groupId>

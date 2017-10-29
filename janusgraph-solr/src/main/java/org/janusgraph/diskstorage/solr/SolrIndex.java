@@ -241,7 +241,10 @@ public class SolrIndex implements IndexProvider {
 
         if (mode==Mode.CLOUD) {
             final String zookeeperUrl = config.get(SolrIndex.ZOOKEEPER_URL);
-            final CloudSolrClient cloudServer = new CloudSolrClient(zookeeperUrl, true);
+            final CloudSolrClient cloudServer = new CloudSolrClient.Builder()
+                .withZkHost(zookeeperUrl)
+                .sendUpdatesOnlyToShardLeaders()
+                .build();
             cloudServer.connect();
             solrClient = cloudServer;
         } else if (mode==Mode.HTTP) {
@@ -252,7 +255,10 @@ public class SolrIndex implements IndexProvider {
                 add(HttpClientUtil.PROP_MAX_CONNECTIONS, config.get(HTTP_GLOBAL_MAX_CONNECTIONS).toString());
             }});
 
-            solrClient = new LBHttpSolrClient(clientParams, config.get(HTTP_URLS));
+            solrClient = new LBHttpSolrClient.Builder()
+                .withHttpClient(clientParams)
+                .withBaseSolrUrls(config.get(HTTP_URLS))
+                .build();
 
 
         } else {
@@ -510,7 +516,7 @@ public class SolrIndex implements IndexProvider {
             for (final SolrInputDocument d : documents) {
                 final Collection<String> fieldNames = d.getFieldNames();
                 for (final String name : fieldNames) {
-                    logger.error(name + ":" + d.getFieldValue(name).toString());
+                    logger.error(name + ":" + d.getFieldValue(name));
                 }
             }
 
@@ -854,15 +860,20 @@ public class SolrIndex implements IndexProvider {
     @Override
     public void clearStorage() throws BackendException {
         try {
-            if (mode!=Mode.CLOUD) throw new UnsupportedOperationException("Operation only supported for SolrCloud");
+            if (mode!=Mode.CLOUD) {
+                logger.error("Operation only supported for SolrCloud. Cores must be deleted manually through the Solr API when using HTTP mode.");
+                return;
+            }
             logger.debug("Clearing storage from Solr: {}", solrClient);
             final ZkStateReader zkStateReader = ((CloudSolrClient) solrClient).getZkStateReader();
-            zkStateReader.updateClusterState();
+            zkStateReader.forciblyRefreshAllClusterStateSlow();
             final ClusterState clusterState = zkStateReader.getClusterState();
-            for (final String collection : clusterState.getCollections()) {
+            for (final String collection : clusterState.getCollectionsMap().keySet()) {
                 logger.debug("Clearing collection [{}] in Solr",collection);
-                final CollectionAdminRequest.Delete request = CollectionAdminRequest.deleteCollection(collection);
-                solrClient.request(request, collection);
+                // Collection is not dropped because it may have been created externally
+                final UpdateRequest deleteAll = newUpdateRequest();
+                deleteAll.deleteByQuery("*:*");
+                solrClient.request(deleteAll, collection);
             }
 
         } catch (final SolrServerException e) {
@@ -973,7 +984,7 @@ public class SolrIndex implements IndexProvider {
         final CloudSolrClient server = (CloudSolrClient) solrClient;
         try {
             final ZkStateReader zkStateReader = server.getZkStateReader();
-            zkStateReader.updateClusterState();
+            zkStateReader.forciblyRefreshAllClusterStateSlow();
             final ClusterState clusterState = zkStateReader.getClusterState();
             final Map<String, DocCollection> collections = clusterState.getCollectionsMap();
             return collections != null && !collections.isEmpty();
@@ -1028,13 +1039,8 @@ public class SolrIndex implements IndexProvider {
             // This was the default behavior before a default configSet could be specified
             final String  genericConfigSet = config.has(SOLR_DEFAULT_CONFIG) ? config.get(SOLR_DEFAULT_CONFIG):collection;
 
-            final CollectionAdminRequest.Create createRequest = new CollectionAdminRequest.Create();
-
-            createRequest.setConfigName(genericConfigSet);
-            createRequest.setCollectionName(collection);
-            createRequest.setNumShards(numShards);
+            final CollectionAdminRequest.Create createRequest = CollectionAdminRequest.createCollection(collection, genericConfigSet, numShards, replicationFactor);
             createRequest.setMaxShardsPerNode(maxShardsPerNode);
-            createRequest.setReplicationFactor(replicationFactor);
 
             final CollectionAdminResponse createResponse = createRequest.process(client);
             if (createResponse.isSuccess()) {
@@ -1052,7 +1058,7 @@ public class SolrIndex implements IndexProvider {
      */
     private static boolean checkIfCollectionExists(CloudSolrClient server, String collection) throws KeeperException, InterruptedException {
         final ZkStateReader zkStateReader = server.getZkStateReader();
-        zkStateReader.updateClusterState();
+        zkStateReader.forceUpdateCollection(collection);
         final ClusterState clusterState = zkStateReader.getClusterState();
         return clusterState.getCollectionOrNull(collection) != null;
     }
@@ -1067,10 +1073,10 @@ public class SolrIndex implements IndexProvider {
 
             while (cont) {
                 boolean sawLiveRecovering = false;
-                zkStateReader.updateClusterState();
+                zkStateReader.forceUpdateCollection(collection);
                 final ClusterState clusterState = zkStateReader.getClusterState();
-                final Map<String, Slice> slices = clusterState.getSlicesMap(collection);
-                Preconditions.checkNotNull("Could not find collection:" + collection, slices);
+                final Map<String, Slice> slices = clusterState.getCollection(collection).getSlicesMap();
+                Preconditions.checkNotNull(slices, "Could not find collection:" + collection);
 
                // change paths for Replica.State per Solr refactoring
                // remove SYNC state per: http://tinyurl.com/pag6rwt

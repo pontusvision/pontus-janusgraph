@@ -1,0 +1,164 @@
+Gremlin console instructions powershell:
+
+cd  C:\work\pontus-git\pontusvision-x\tech\janusgraph
+.\bin\gremlin.bat
+
+
+ graph = org.janusgraph.core.JanusGraphFactory.open('conf/gremlin-server/janusgraph-hbase-es.properties') 
+ g=graph.traversal()
+ mgmt = graph.openManagement()
+ 
+ 
+graph.tx().rollback() 
+ 
+
+:remote connect tinkerpop.server .\conf\remote.yaml
+:remote console
+ import org.janusgraph.core.*;
+ import org.janusgraph.core.schema.*;
+import static org.janusgraph.core.attribute.Text.*
+
+
+ 
+metadataController = mgmt.makePropertyKey("Metadata.Controller").dataType(String.class).cardinality(Cardinality.SET).make();
+metadataProcessor = mgmt.makePropertyKey("Metadata.Processor").dataType(String.class).cardinality(Cardinality.SET).make();
+metadataLineage = mgmt.makePropertyKey("Metadata.Lineage").dataType(String.class).cardinality(Cardinality.SET).make();
+metadataRedaction = mgmt.makePropertyKey("Metadata.Redaction").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+metadataVersion = mgmt.makePropertyKey("Metadata.Version").dataType(Integer.class).cardinality(Cardinality.SINGLE).make();
+metadataCreateDate = mgmt.makePropertyKey("Metadata.CreateDate").dataType(Date.class).cardinality(Cardinality.SINGLE).make();
+metadataUpdateDate = mgmt.makePropertyKey("Metadata.UpdateDate").dataType(Date.class).cardinality(Cardinality.SINGLE).make();
+metadataStatus = mgmt.makePropertyKey("Metadata.Status").dataType(String.class).cardinality(Cardinality.SET).make();
+metadataOrigId = mgmt.makePropertyKey("Metadata.OrigId").dataType(UUID.class).cardinality(Cardinality.SINGLE).make();
+metadataGDPRStatus = mgmt.makePropertyKey("Metadata.GDPRStatus").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+metadataLineageServerTag = mgmt.makePropertyKey("Metadata.LineageServerTag").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+metadataLineageLocationTag = mgmt.makePropertyKey("Metadata.LineageLocationTag").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+metadataType = mgmt.makePropertyKey("Metadata.Type").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+
+metadataLineageServerTagIdxBuilder = mgmt.buildIndex("metadataLineageServerTagIdx",Vertex.class)
+metadataLineageServerTagIdxBuilder.addKey(metadataLineageServerTag)
+metadataLineageServerTagIdx = metadataLineageServerTagIdxBuilder.buildCompositeIndex()
+ 
+metadataTypeIdxBuilder = mgmt.buildIndex("metadataTypeIdx",Vertex.class)
+metadataTypeIdxBuilder.addKey(metadataType)
+metadataTypeIdx = metadataTypeIdxBuilder.buildCompositeIndex()
+
+metadataLineageLocationTagIdxBuilder = mgmt.buildIndex("metadataLineageLocationTagIdx",Vertex.class)
+metadataLineageLocationTagIdxBuilder.addKey(metadataLineageLocationTag)
+metadataLineageLocationTagIdx = metadataLineageLocationTagIdxBuilder.buildCompositeIndex()
+
+metadataGDPRStatusIdxBuilder = mgmt.buildIndex("metadataGDPRStatusIdx",Vertex.class)
+metadataGDPRStatusIdxBuilder.addKey(metadataGDPRStatus)
+metadataGDPRStatusIdx = metadataGDPRStatusIdxBuilder.buildCompositeIndex()
+
+
+
+
+personLabel = mgmt.makeVertexLabel("Person").make();
+personDateOfBirth = mgmt.makePropertyKey("Person.DateOfBirth").dataType(Date.class).cardinality(Cardinality.SINGLE).make();
+personFullName = mgmt.makePropertyKey("Person.FullName").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+personLastName = mgmt.makePropertyKey("Person.LastName").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+personEmailAddress = mgmt.makePropertyKey("Person.EmailAddress").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+personGender = mgmt.makePropertyKey("Person.Gender").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+personNationality = mgmt.makePropertyKey("Person.Nationality").dataType(String.class).cardinality(Cardinality.SET).make();
+personPlaceOfBirth = mgmt.makePropertyKey("Person.PlaceOfBirth").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+personReligion = mgmt.makePropertyKey("Person.Religion").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+personEthnicity = mgmt.makePropertyKey("Person.Ethnicity").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+personMaritalStatus = mgmt.makePropertyKey("Person.MaritalStatus").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+personHeight = mgmt.makePropertyKey("Person.Height").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+personNameQualifier = mgmt.makePropertyKey("Person.NameQualifier").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+personTitle = mgmt.makePropertyKey("Person.Title").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+
+orgLabel = mgmt.makeVertexLabel("Organisation").make();
+orgRegNumber = mgmt.makePropertyKey("Org.RegNumber").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+orgType = mgmt.makePropertyKey("Org.Type").dataType(String.class).cardinality(Cardinality.SET).make();
+orgName = mgmt.makePropertyKey("Org.Name").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+orgShortName = mgmt.makePropertyKey("Org.ShortName").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+orgTaxId = mgmt.makePropertyKey("Org.TaxId").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+orgSector = mgmt.makePropertyKey("Org.Sector").dataType(String.class).cardinality(Cardinality.SET).make();
+ 
+ 
+mgmt.buildIndex('personNameAndEmailMixedIdx', Vertex.class).addKey(personFullName).addKey(personEmailAddress).addKey(personLastName).buildMixedIndex("search")
+mgmt.buildIndex('personEmailAddressIdx', Vertex.class).addKey(personEmailAddress).buildCompositeIndex()
+mgmt.buildIndex('personDateOfBirthIdx',Vertex.class).addKey(personDateOfBirth).buildCompositeIndex()
+
+mgmt.buildIndex('orgNameMixedIdx', Vertex.class).addKey(orgName).addKey(orgShortName).addKey(personLastName).buildMixedIndex("search")
+mgmt.buildIndex('orgRegNumberIdx', Vertex.class).addKey(orgRegNumber).buildCompositeIndex()
+
+
+mgmt.buildIndex('personFullAndLastNameIdx', Vertex.class).addKey(personFullName).addKey(personLastName).buildCompositeIndex()
+mgmt.buildIndex('personLastNameIdx', Vertex.class).addKey(personLastName).buildCompositeIndex()
+mgmt.buildIndex('personFullNameIdx', Vertex.class).addKey(personFullName).buildCompositeIndex()
+
+
+
+mgmt.commit();
+
+
+mgmt.awaitGraphIndexStatus(graph, 'personNameAndEmailMixedIdx').call()
+mgmt.awaitGraphIndexStatus(graph, 'personEmailAddressIdx').call()
+mgmt.awaitGraphIndexStatus(graph, 'personFullAndLastNameIdx').call()
+mgmt.awaitGraphIndexStatus(graph, 'personLastNameIdx').call()
+mgmt.awaitGraphIndexStatus(graph, 'personFullNameIdx').call()
+mgmt.awaitGraphIndexStatus(graph, 'personDateOfBirthIdx').call()
+mgmt.awaitGraphIndexStatus(graph, 'orgNameMixedIdx').call()
+mgmt.awaitGraphIndexStatus(graph, 'orgRegNumberIdx').call()
+
+mgmt.awaitGraphIndexStatus(graph, 'metadataLineageServerTagIdx').call()
+mgmt.awaitGraphIndexStatus(graph, 'metadataTypeIdx').call()
+mgmt.awaitGraphIndexStatus(graph, 'metadataLineageLocationTagIdx').call()
+mgmt.awaitGraphIndexStatus(graph, 'metadataGDPRStatusIdx').call()
+
+
+ 
+ 
+ 
+		mgmt = graph.openManagement()
+
+
+//	mgmt.buildIndex('personFullAndLastNameIdx', Vertex.class).addKey(personFullName).addKey(personLastName).buildCompositeIndex()
+//	mgmt.buildIndex('personLastNameIdx', Vertex.class).addKey(personLastName).buildCompositeIndex()
+//	mgmt.buildIndex('personFullNameIdx', Vertex.class).addKey(personFullName).buildCompositeIndex()
+//
+//	mgmt.awaitGraphIndexStatus(graph, 'personFullAndLastNameIdx').status(SchemaStatus.REGISTERED).call()
+//	mgmt.awaitGraphIndexStatus(graph, 'personLastNameIdx').status(SchemaStatus.REGISTERED).call()
+//
+//	mgmt.updateIndex(mgmt.getGraphIndex('personFullAndLastNameIdx'), SchemaAction.REINDEX).get()
+//	mgmt.updateIndex(mgmt.getGraphIndex('personLastNameIdx'), SchemaAction.REINDEX).get()
+//	mgmt.updateIndex(mgmt.getGraphIndex('personFullNameIdx'), SchemaAction.REINDEX).get()
+//
+//
+//	mgmt.updateIndex(mgmt.getGraphIndex('personNameAndEmailMixedIdx'), SchemaAction.REINDEX).get()
+//
+//
+//	mgmt.awaitGraphIndexStatus(graph, 'personFullAndLastNameIdx').call()
+//	mgmt.awaitGraphIndexStatus(graph, 'personLastNameIdx').call()
+//	mgmt.awaitGraphIndexStatus(graph, 'personFullNameIdx').call()
+
+
+
+
+mdLabel = mgmt.makeVertexLabel("md").make();
+mdProps = mgmt.makePropertyKey("md.Properties").dataType(String.class).cardinality(Cardinality.SET).make();
+mdIndex = mgmt.buildIndex("mdIndex", Vertex.class).addKey(mdProps).buildCompositeIndex()
+
+mgmt = graph.openManagement()
+mgmt.updateIndex(mgmt.getGraphIndex("mdIndex"), SchemaAction.ENABLE_INDEX).get()
+mgmt.commit()
+
+
+mgmt.commit();
+
+
+
+ 
+mgmt.commit();
+ 
+graph.tx().commit();
+
+ 
+// graph.close()
+// org.janusgraph.core.util.JanusGraphCleanup.clear(graph)
+ 
+ 
+ g.V().count()
+ 
