@@ -443,11 +443,11 @@
   <build>
     <pluginManagement>
       <plugins>
-        <plugin>
+        <!--plugin>
           <groupId>org.apache.maven.plugins</groupId>
            <artifactId>maven-javadoc-plugin</artifactId>
            <version>${javadoc.version}</version>
-        </plugin>
+        </plugin-->
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-remote-resources-plugin</artifactId>
@@ -710,8 +710,7 @@
             </lifecycleMappingMetadata>
           </configuration>
         </plugin>
-        <plugin>
-          <!-- excludes are inherited -->
+        <!--plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
           <version>0.11</version>
@@ -730,25 +729,17 @@
               <exclude>**/CHANGES.txt</exclude>
               <exclude>**/generated/**</exclude>
               <exclude>**/gen-*/**</exclude>
-              <!-- No material contents -->
               <exclude>conf/regionservers</exclude>
               <exclude>**/*.avpr</exclude>
               <exclude>**/*.svg</exclude>
-              <!-- non-standard notice file from jruby included by reference -->
               <exclude>**/src/main/resources/META-INF/LEGAL</exclude>
-              <!-- MIT: https://github.com/asciidoctor/asciidoctor/blob/master/LICENSE.adoc -->
               <exclude>**/src/main/asciidoc/hbase.css</exclude>
-              <!-- MIT http://jquery.org/license -->
               <exclude>**/jquery.min.js</exclude>
-              <!-- vector graphics -->
               <exclude>**/*.vm</exclude>
-              <!-- apache doxia generated -->
               <exclude>**/control</exclude>
               <exclude>**/conffile</exclude>
-              <!-- auto-gen docs -->
               <exclude>docs/*</exclude>
               <exclude>logs/*</exclude>
-              <!--  exclude source control files -->
               <exclude>.git/**</exclude>
               <exclude>.svn/**</exclude>
               <exclude>**/.settings/**</exclude>
@@ -758,7 +749,7 @@
               <exclude>**/rat.txt</exclude>
             </excludes>
           </configuration>
-        </plugin>
+        </plugin -->
         <plugin>
           <artifactId>maven-assembly-plugin</artifactId>
           <version>${maven.assembly.version}</version>
