@@ -60,7 +60,7 @@ public interface HasStepFolder<S, E> extends Step<S, E> {
     static boolean validJanusGraphHas(HasContainer has) {
         if (has.getPredicate() instanceof AndP) {
             final List<? extends P<?>> predicates = ((AndP<?>) has.getPredicate()).getPredicates();
-            return !predicates.stream().filter(p->!validJanusGraphHas(new HasContainer(has.getKey(), p))).findAny().isPresent();
+            return predicates.stream().allMatch(p-> validJanusGraphHas(new HasContainer(has.getKey(), p)));
         } else {
             return JanusGraphPredicate.Converter.supports(has.getBiPredicate());
         }
@@ -73,18 +73,18 @@ public interface HasStepFolder<S, E> extends Step<S, E> {
         return true;
     }
 
-    static boolean validJanusGraphOrder(OrderGlobalStep ostep, Traversal rootTraversal,
+    static boolean validJanusGraphOrder(OrderGlobalStep orderGlobalStep, Traversal rootTraversal,
                                           boolean isVertexOrder) {
-        for (Pair<Traversal.Admin<Object, Comparable>, Comparator<Comparable>> comp : (List<Pair<Traversal.Admin<Object, Comparable>, Comparator<Comparable>>>) ostep.getComparators()) {
+        for (Pair<Traversal.Admin<Object, Comparable>, Comparator<Comparable>> comp : (List<Pair<Traversal.Admin<Object, Comparable>, Comparator<Comparable>>>) orderGlobalStep.getComparators()) {
             if (!(comp.getValue1() instanceof ElementValueComparator)) return false;
             ElementValueComparator evc = (ElementValueComparator) comp.getValue1();
             if (!(evc.getValueComparator() instanceof Order)) return false;
 
             JanusGraphTransaction tx = JanusGraphTraversalUtil.getTx(rootTraversal.asAdmin());
             String key = evc.getPropertyKey();
-            PropertyKey pkey = tx.getPropertyKey(key);
-            if (pkey == null || !(Comparable.class.isAssignableFrom(pkey.dataType()))) return false;
-            if (isVertexOrder && pkey.cardinality() != Cardinality.SINGLE) return false;
+            PropertyKey propertyKey = tx.getPropertyKey(key);
+            if (propertyKey == null || !(Comparable.class.isAssignableFrom(propertyKey.dataType()))) return false;
+            if (isVertexOrder && propertyKey.cardinality() != Cardinality.SINGLE) return false;
         }
         return true;
     }
@@ -104,7 +104,7 @@ public interface HasStepFolder<S, E> extends Step<S, E> {
                                 .collect(Collectors.toSet()).forEach(ids::remove);
                             if (ids.isEmpty()) break;
                         } else {
-                            Arrays.stream(graphStep.getIds()).forEach(ids::add);
+                            ids.addAll(Arrays.asList(graphStep.getIds()));
                         }
                     }
                     // clear ids to allow folding in ids from next HasContainer if relevant

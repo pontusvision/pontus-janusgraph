@@ -38,12 +38,7 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
 
     private static final Logger log = LoggerFactory.getLogger(BerkeleyJEKeyValueStore.class);
 
-    private static final StaticBuffer.Factory<DatabaseEntry> ENTRY_FACTORY = new StaticBuffer.Factory<DatabaseEntry>() {
-        @Override
-        public DatabaseEntry get(byte[] array, int offset, int limit) {
-            return new DatabaseEntry(array,offset,limit-offset);
-        }
-    };
+    private static final StaticBuffer.Factory<DatabaseEntry> ENTRY_FACTORY = (array, offset, limit) -> new DatabaseEntry(array,offset,limit-offset);
 
 
     private final Database db;
@@ -71,7 +66,7 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
         return name;
     }
 
-    private static final Transaction getTransaction(StoreTransaction txh) {
+    private static Transaction getTransaction(StoreTransaction txh) {
         Preconditions.checkArgument(txh!=null);
         return ((BerkeleyJETx) txh).getTransaction();
     }
@@ -91,12 +86,12 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
     public StaticBuffer get(StaticBuffer key, StoreTransaction txh) throws BackendException {
         Transaction tx = getTransaction(txh);
         try {
-            DatabaseEntry dbkey = key.as(ENTRY_FACTORY);
+            DatabaseEntry databaseKey = key.as(ENTRY_FACTORY);
             DatabaseEntry data = new DatabaseEntry();
 
             log.trace("db={}, op=get, tx={}", name, txh);
 
-            OperationStatus status = db.get(tx, dbkey, data, getLockMode(txh));
+            OperationStatus status = db.get(tx, databaseKey, data, getLockMode(txh));
 
             if (status == OperationStatus.SUCCESS) {
                 return getBuffer(data);
@@ -128,7 +123,7 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
         final StaticBuffer keyStart = query.getStart();
         final StaticBuffer keyEnd = query.getEnd();
         final KeySelector selector = query.getKeySelector();
-        final List<KeyValueEntry> result = new ArrayList<KeyValueEntry>();
+        final List<KeyValueEntry> result = new ArrayList<>();
         try {
             DatabaseEntry foundKey = keyStart.as(ENTRY_FACTORY);
             DatabaseEntry foundData = new DatabaseEntry();
