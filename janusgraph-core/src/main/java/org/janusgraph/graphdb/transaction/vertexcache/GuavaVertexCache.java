@@ -17,6 +17,7 @@ package org.janusgraph.graphdb.transaction.vertexcache;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.*;
 import org.janusgraph.graphdb.internal.InternalVertex;
+import org.janusgraph.graphdb.vertices.AbstractVertex;
 import org.janusgraph.util.datastructures.Retriever;
 
 import java.util.ArrayList;
@@ -37,23 +38,20 @@ public class GuavaVertexCache implements VertexCache {
     private final Cache<Long, InternalVertex> cache;
 
     public GuavaVertexCache(final long maxCacheSize, final int concurrencyLevel, final int initialDirtySize) {
-        volatileVertices = new NonBlockingHashMapLong<InternalVertex>(initialDirtySize);
+        volatileVertices = new NonBlockingHashMapLong<>(initialDirtySize);
         log.debug("Created dirty vertex map with initial size {}", initialDirtySize);
 
         cache = CacheBuilder.newBuilder().maximumSize(maxCacheSize).concurrencyLevel(concurrencyLevel)
-                .removalListener(new RemovalListener<Long, InternalVertex>() {
-                    @Override
-                    public void onRemoval(RemovalNotification<Long, InternalVertex> notification) {
-                        if (notification.getCause() == RemovalCause.EXPLICIT) { //Due to invalidation at the end
-                            assert volatileVertices.isEmpty();
-                            return;
-                        }
-                        //Should only get evicted based on size constraint or replaced through add
-                        assert (notification.getCause() == RemovalCause.SIZE || notification.getCause() == RemovalCause.REPLACED) : "Cause: " + notification.getCause();
-                        InternalVertex v = notification.getValue();
-                        if (v.isModified()) {
-                            volatileVertices.putIfAbsent(notification.getKey(), v);
-                        }
+                .removalListener((RemovalListener<Long, InternalVertex>) notification -> {
+                    if (notification.getCause() == RemovalCause.EXPLICIT) { //Due to invalidation at the end
+                        assert volatileVertices.isEmpty();
+                        return;
+                    }
+                    //Should only get evicted based on size constraint or replaced through add
+                    assert (notification.getCause() == RemovalCause.SIZE || notification.getCause() == RemovalCause.REPLACED) : "Cause: " + notification.getCause();
+                    final InternalVertex v = notification.getValue();
+                    if (((AbstractVertex) v).isTxOpen() && v.isModified()) {
+                        volatileVertices.putIfAbsent(notification.getKey(), v);
                     }
                 })
                 .build();
@@ -101,7 +99,7 @@ public class GuavaVertexCache implements VertexCache {
 
     @Override
     public List<InternalVertex> getAllNew() {
-        List<InternalVertex> vertices = new ArrayList<InternalVertex>(10);
+        final List<InternalVertex> vertices = new ArrayList<>(10);
         for (InternalVertex v : volatileVertices.values()) {
             if (v.isNew()) vertices.add(v);
         }

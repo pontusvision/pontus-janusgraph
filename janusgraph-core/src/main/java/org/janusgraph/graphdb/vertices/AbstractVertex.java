@@ -60,6 +60,10 @@ public abstract class AbstractVertex extends AbstractElement implements Internal
         return tx.isOpen() ? tx : tx.getNextTx();
     }
 
+    public final boolean isTxOpen() {
+        return tx.isOpen();
+    }
+
     @Override
     public long getCompareId() {
         if (tx.isPartitionedVertex(this)) return tx.getIdInspector().getCanonicalVertexId(longId());
@@ -96,10 +100,10 @@ public abstract class AbstractVertex extends AbstractElement implements Internal
     public synchronized void remove() {
         verifyAccess();
 //        if (isRemoved()) return; //Remove() is idempotent
-        Iterator<JanusGraphRelation> iter = it().query().noPartitionRestriction().relations().iterator();
-        while (iter.hasNext()) {
-            iter.next();
-            iter.remove();
+        Iterator<JanusGraphRelation> iterator = it().query().noPartitionRestriction().relations().iterator();
+        while (iterator.hasNext()) {
+            iterator.next();
+            iterator.remove();
         }
         //Remove all system types on the vertex
         for (JanusGraphRelation r : it().query().noPartitionRestriction().system().relations()) {

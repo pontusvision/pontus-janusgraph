@@ -14,229 +14,227 @@
 
 package org.janusgraph.graphdb.tinkerpop.plugin;
 
-import org.apache.tinkerpop.gremlin.jsr223.*;
+import org.apache.tinkerpop.gremlin.jsr223.AbstractGremlinPlugin;
+import org.apache.tinkerpop.gremlin.jsr223.Customizer;
+import org.apache.tinkerpop.gremlin.jsr223.DefaultImportCustomizer;
+import org.apache.tinkerpop.gremlin.jsr223.ImportCustomizer;
+import org.janusgraph.core.BaseVertexQuery;
 import org.janusgraph.core.Cardinality;
+import org.janusgraph.core.EdgeLabel;
+import org.janusgraph.core.Idfiable;
+import org.janusgraph.core.JanusGraph;
+import org.janusgraph.core.JanusGraphComputer;
+import org.janusgraph.core.JanusGraphEdge;
+import org.janusgraph.core.JanusGraphElement;
+import org.janusgraph.core.JanusGraphFactory;
+import org.janusgraph.core.JanusGraphIndexQuery;
+import org.janusgraph.core.JanusGraphMultiVertexQuery;
+import org.janusgraph.core.JanusGraphProperty;
+import org.janusgraph.core.JanusGraphQuery;
+import org.janusgraph.core.JanusGraphRelation;
+import org.janusgraph.core.JanusGraphTransaction;
+import org.janusgraph.core.JanusGraphVertex;
+import org.janusgraph.core.JanusGraphVertexProperty;
+import org.janusgraph.core.JanusGraphVertexQuery;
 import org.janusgraph.core.Multiplicity;
+import org.janusgraph.core.Namifiable;
+import org.janusgraph.core.PropertyKey;
+import org.janusgraph.core.QueryDescription;
+import org.janusgraph.core.RelationType;
+import org.janusgraph.core.Transaction;
+import org.janusgraph.core.TransactionBuilder;
+import org.janusgraph.core.VertexLabel;
+import org.janusgraph.core.VertexList;
+import org.janusgraph.core.attribute.AttributeSerializer;
+import org.janusgraph.core.attribute.Cmp;
+import org.janusgraph.core.attribute.Contain;
 import org.janusgraph.core.attribute.Geo;
+import org.janusgraph.core.attribute.Geoshape;
+import org.janusgraph.core.attribute.GeoshapeHelper;
+import org.janusgraph.core.attribute.JtsGeoshapeHelper;
 import org.janusgraph.core.attribute.Text;
+import org.janusgraph.core.schema.ConsistencyModifier;
+import org.janusgraph.core.schema.DefaultSchemaMaker;
+import org.janusgraph.core.schema.EdgeLabelMaker;
+import org.janusgraph.core.schema.Index;
+import org.janusgraph.core.schema.JanusGraphConfiguration;
+import org.janusgraph.core.schema.JanusGraphIndex;
+import org.janusgraph.core.schema.JanusGraphManagement;
+import org.janusgraph.core.schema.JanusGraphSchemaElement;
+import org.janusgraph.core.schema.JanusGraphSchemaType;
+import org.janusgraph.core.schema.JobStatus;
+import org.janusgraph.core.schema.Mapping;
+import org.janusgraph.core.schema.Parameter;
+import org.janusgraph.core.schema.PropertyKeyMaker;
+import org.janusgraph.core.schema.RelationTypeIndex;
+import org.janusgraph.core.schema.RelationTypeMaker;
+import org.janusgraph.core.schema.SchemaAction;
+import org.janusgraph.core.schema.SchemaInspector;
+import org.janusgraph.core.schema.SchemaManager;
+import org.janusgraph.core.schema.SchemaStatus;
+import org.janusgraph.core.schema.VertexLabelMaker;
 import org.janusgraph.example.GraphOfTheGodsFactory;
-import org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry;
-//=======
 import org.janusgraph.graphdb.management.ConfigurationManagementGraph;
-//import org.apache.tinkerpop.gremlin.groovy.plugin.GremlinPlugin;
-//import org.apache.tinkerpop.gremlin.groovy.plugin.PluginAcceptor;
-//>>>>>>> b75fc6ce32f1184b99efa01a8768285bd83ce62d
+import org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry;
 
-//import org.apache.tinkerpop.gremlin.groovy.plugin.GremlinPlugin;
-//import org.apache.tinkerpop.gremlin.groovy.plugin.PluginAcceptor;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.net.URL;
-import java.net.URLDecoder;
+import java.time.Clock;
+import java.time.DayOfWeek;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.Month;
+import java.time.MonthDay;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.time.Period;
+import java.time.Year;
+import java.time.YearMonth;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * @author Marko A. Rodriguez (http://markorodriguez.com)
  */
 public class JanusGraphGremlinPlugin extends AbstractGremlinPlugin {
 
-    private static final String IMPORT = "import ";
-    private static final String IMPORT_STATIC = IMPORT + "static ";
-//<<<<<<< HEAD
-    private static final String DOT_STAR = ""; //".*";
     private static final String NAME = "janusgraph.imports";
-    private static final Set<String> IMPORTS = new HashSet<String>() {
-        {
-            add(IMPORT + "org.janusgraph.core" + DOT_STAR);
-            add(IMPORT + "org.janusgraph.core.attribute" + DOT_STAR);
-            add(IMPORT + "org.janusgraph.core.schema" + DOT_STAR);
-            add(IMPORT + "org.janusgraph.hadoop.MapReduceIndexManagement");
-            add(IMPORT + "java.time" + DOT_STAR);
-            add(IMPORT + JanusGraphIoRegistry.class.getName());
-            add(IMPORT + ConfigurationManagementGraph.class.getName());
-            add(IMPORT + GraphOfTheGodsFactory.class.getName());
-        }};
-    private static final Set<Class> STATIC_IMPORTS = new HashSet<Class>() {{
-//=======
-    //private static final String DOT_STAR = ".*";
-//
-    //private static final Set<String> IMPORTS = new HashSet<String>() {{
-        //add(IMPORT + "org.janusgraph.core" + DOT_STAR);
-        //add(IMPORT + "org.janusgraph.core.attribute" + DOT_STAR);
-        //add(IMPORT + "org.janusgraph.core.schema" + DOT_STAR);
-        //add(IMPORT + GraphOfTheGodsFactory.class.getName());
-        //add(IMPORT + "org.janusgraph.hadoop.MapReduceIndexManagement");
-        //add(IMPORT + "java.time" + DOT_STAR);
-        //add(IMPORT + JanusGraphIoRegistry.class.getName());
-        //add(IMPORT + ConfigurationManagementGraph.class.getName());
-//>>>>>>> b75fc6ce32f1184b99efa01a8768285bd83ce62d
 
-        // Static imports on enum values used in query constraint expressions
-        add(Geo.class);
-        add(Text.class);
-        add(Multiplicity.class);
-        add(Cardinality.class);
-        add(ChronoUnit.class);
-
-    }};
-
-//    private static final BindingsCustomizer bindings;
-
-    private static  ImportCustomizer imports = null;
-
-    private static final Set<String> appliesTo = Collections.emptySet();
-
-    private static List<Class> getClassesForPackage(String pckgname) throws ClassNotFoundException {
-        // This will hold a list of directories matching the pckgname. There may be more than one if a package is split over multiple jars/paths
-        ArrayList<File> directories = new ArrayList<File>();
-        String packageToPath = pckgname.replace('.', '/');
-        try {
-            ClassLoader cld = Thread.currentThread().getContextClassLoader();
-            if (cld == null) {
-                throw new ClassNotFoundException("Can't get class loader.");
-            }
-
-            // Ask for all resources for the packageToPath
-            Enumeration<URL> resources = cld.getResources(packageToPath);
-            while (resources.hasMoreElements()) {
-                directories.add(new File(URLDecoder.decode(resources.nextElement().getPath(), "UTF-8")));
-            }
-        } catch (NullPointerException x) {
-            throw new ClassNotFoundException(pckgname + " does not appear to be a valid package (Null pointer exception)");
-        } catch (UnsupportedEncodingException encex) {
-            throw new ClassNotFoundException(pckgname + " does not appear to be a valid package (Unsupported encoding)");
-        } catch (IOException ioex) {
-            throw new ClassNotFoundException("IOException was thrown when trying to get all resources for " + pckgname);
-        }
-
-        ArrayList<Class> classes = new ArrayList<Class>();
-        // For every directoryFile identified capture all the .class files
-        while (!directories.isEmpty()){
-            File directoryFile  = directories.remove(0);
-            if (directoryFile.exists()) {
-                // Get the list of the files contained in the package
-                File[] files = directoryFile.listFiles();
-
-                for (File file : files) {
-                    // we are only interested in .class files
-                    if ((file.getName().endsWith(".class")) && (!file.getName().contains("$"))) {
-                        // removes the .class extension
-                        int index = directoryFile.getPath().indexOf(packageToPath);
-                        String packagePrefix = directoryFile.getPath().substring(index).replace('/', '.');;
-                        try {
-                            String className = packagePrefix + '.' + file.getName().substring(0, file.getName().length() - 6);
-                            classes.add(Class.forName(className));
-                        } catch (NoClassDefFoundError e)
-                        {
-                            // do nothing. this class hasn't been found by the loader, and we don't care.
-                        }
-                    } else if (file.isDirectory()){ // If we got to a subdirectory
-                        directories.add(new File(file.getPath()));
-                    }
-                }
-            } else {
-                throw new ClassNotFoundException(pckgname + " (" + directoryFile.getPath() + ") does not appear to be a valid package");
-            }
-        }
-        return classes;
-    }
-
-    private static List<Method> getStaticMethods(Class<?> clazz) {
-        List<Method> methods = new ArrayList<>();
-        for (Method method : clazz.getMethods()) {
-            if (Modifier.isStatic(method.getModifiers())) {
-                methods.add(method);
-            }
-        }
-        return Collections.unmodifiableList(methods);
-    }
-
-
-    private static Customizer[] customizers = null;
+    private final static Set<Class> CLASS_IMPORTS = new LinkedHashSet<>();
+    private final static Set<Enum> ENUM_IMPORTS = new LinkedHashSet<>();
+    private final static Set<Method> METHOD_IMPORTS = new LinkedHashSet<>();
 
     static {
-        try {
-            DefaultImportCustomizer.Builder importBuilder = DefaultImportCustomizer.build();
+        /////////////
+        // CLASSES //
+        /////////////
 
-            for (String pkgStr: IMPORTS){
-                List<Class> classes = getClassesForPackage(pkgStr);
-                importBuilder.addClassImports(classes);
-            }
+        CLASS_IMPORTS.add(BaseVertexQuery.class);
+        CLASS_IMPORTS.add(Cardinality.class);
+        CLASS_IMPORTS.add(EdgeLabel.class);
+        CLASS_IMPORTS.add(Idfiable.class);
+        CLASS_IMPORTS.add(JanusGraph.class);
+        CLASS_IMPORTS.add(JanusGraphComputer.class);
+        CLASS_IMPORTS.add(JanusGraphEdge.class);
+        CLASS_IMPORTS.add(JanusGraphElement.class);
+        CLASS_IMPORTS.add(JanusGraphFactory.class);
+        CLASS_IMPORTS.add(JanusGraphIndexQuery.class);
+        CLASS_IMPORTS.add(JanusGraphMultiVertexQuery.class);
+        CLASS_IMPORTS.add(JanusGraphProperty.class);
+        CLASS_IMPORTS.add(JanusGraphQuery.class);
+        CLASS_IMPORTS.add(JanusGraphRelation.class);
+        CLASS_IMPORTS.add(JanusGraphTransaction.class);
+        CLASS_IMPORTS.add(JanusGraphVertex.class);
+        CLASS_IMPORTS.add(JanusGraphVertexProperty.class);
+        CLASS_IMPORTS.add(JanusGraphVertexQuery.class);
+        CLASS_IMPORTS.add(Multiplicity.class);
+        CLASS_IMPORTS.add(Namifiable.class);
+        CLASS_IMPORTS.add(PropertyKey.class);
+        CLASS_IMPORTS.add(QueryDescription.class);
+        CLASS_IMPORTS.add(RelationType.class);
+        CLASS_IMPORTS.add(Transaction.class);
+        CLASS_IMPORTS.add(TransactionBuilder.class);
+        CLASS_IMPORTS.add(VertexLabel.class);
+        CLASS_IMPORTS.add(VertexList.class);
 
-            for (Class cls : STATIC_IMPORTS){
-                List <Method> methods = getStaticMethods(cls);
-                importBuilder.addMethodImports(methods);
-            }
+        CLASS_IMPORTS.add(AttributeSerializer.class);
+        CLASS_IMPORTS.add(Cmp.class);
+        CLASS_IMPORTS.add(Contain.class);
+        CLASS_IMPORTS.add(Geo.class);
+        CLASS_IMPORTS.add(Geoshape.class);
+        CLASS_IMPORTS.add(GeoshapeHelper.class);
+        CLASS_IMPORTS.add(JtsGeoshapeHelper.class);
+        CLASS_IMPORTS.add(Text.class);
 
+        CLASS_IMPORTS.add(ConsistencyModifier.class);
+        CLASS_IMPORTS.add(DefaultSchemaMaker.class);
+        CLASS_IMPORTS.add(EdgeLabelMaker.class);
+        CLASS_IMPORTS.add(Index.class);
+        CLASS_IMPORTS.add(JanusGraphConfiguration.class);
+        CLASS_IMPORTS.add(JanusGraphIndex.class);
+        CLASS_IMPORTS.add(JanusGraphManagement.class);
+        CLASS_IMPORTS.add(JanusGraphSchemaElement.class);
+        CLASS_IMPORTS.add(JanusGraphSchemaType.class);
+        CLASS_IMPORTS.add(JobStatus.class);
+        CLASS_IMPORTS.add(Mapping.class);
+        CLASS_IMPORTS.add(Parameter.class);
+        CLASS_IMPORTS.add(PropertyKeyMaker.class);
+        CLASS_IMPORTS.add(RelationTypeIndex.class);
+        CLASS_IMPORTS.add(RelationTypeMaker.class);
+        CLASS_IMPORTS.add(SchemaAction.class);
+        CLASS_IMPORTS.add(SchemaInspector.class);
+        CLASS_IMPORTS.add(SchemaManager.class);
+        CLASS_IMPORTS.add(SchemaStatus.class);
+        CLASS_IMPORTS.add(VertexLabelMaker.class);
 
-            imports = importBuilder.create();
+        CLASS_IMPORTS.add(GraphOfTheGodsFactory.class);
+        CLASS_IMPORTS.add(JanusGraphIoRegistry.class);
+        CLASS_IMPORTS.add(ConfigurationManagementGraph.class);
 
-//                .addClassImports(
-//                    org.janusgraph.core.Multiplicity.class,
-//                    org.janusgraph.core.Cardinality.class,
-//                    org.janusgraph.core.JanusGraph.class,
-//                    org.janusgraph.core.Multiplicity.class,
-//                    org.janusgraph.core.JanusGraphVertex.class,
-//                    org.janusgraph.core.PropertyKey.class,
-//                    org.janusgraph.core.JanusGraphElement.class,
-//                    org.janusgraph.core.JanusGraphRelation.class,
-//                    org.janusgraph.core.JanusGraphEdge.class,
-//                    org.janusgraph.core.RelationType.class,
-//                    org.janusgraph.core.JanusGraphVertexProperty.class,
-//                    org.janusgraph.core.JanusGraphTransaction.class,
-//                    org.janusgraph.core.JanusGraphException.class,
-//                    org.janusgraph.core.EdgeLabel.class,
-//                    org.janusgraph.core.VertexLabel.class,
-//                    org.janusgraph.core.JanusGraphFactory.class,
-//                    org.janusgraph.core.SchemaViolationException.class,
-//                    org.janusgraph.core.VertexList.class,
-//                    org.janusgraph.core.Transaction.class,
-//                    org.janusgraph.core.TransactionBuilder.class,
-//                    org.janusgraph.core.JanusGraphComputer.class,
-//                    org.janusgraph.core.JanusGraphMultiVertexQuery.class,
-//                    org.janusgraph.core.JanusGraphQuery.class,
-//                    org.janusgraph.core.JanusGraphVertexQuery.class,
-//                    org.janusgraph.core.JanusGraphIndexQuery.class,
-//                    org.janusgraph.core.BaseVertexQuery.class,
-//                    org.janusgraph.core.JanusGraphConfigurationException.class,
-//                    org.janusgraph.core.JanusGraphProperty.class,
-//                    org.janusgraph.core.Namifiable.class,
-//                    org.janusgraph.core.Idfiable.class,
-//                    org.janusgraph.core.InvalidElementException.class,
-//                    org.janusgraph.core.ReadOnlyTransactionException.class,
-//                    org.janusgraph.core.InvalidIDException.class,
-//                    org.janusgraph.core.QueryException.class,
-//                    org.janusgraph.core.QueryDescription.class,
-//                    org.janusgraph.core.attribute.Geoshape.class,
-//                    org.janusgraph.core.attribute.AttributeSerializer.class,
-//                    org.janusgraph.core.attribute.JtsGeoshapeHelper.class,
-//                    org.janusgraph.core.attribute.GeoshapeHelper.class,
-//                    org.janusgraph.core.attribute.Geo.class,
-//                    org.janusgraph.core.attribute.Text.class,
-//                    org.janusgraph.core.attribute.Cmp.class,
-//                    org.janusgraph.core.attribute.Contain.class).create();
+        CLASS_IMPORTS.add(Instant.class);
+        CLASS_IMPORTS.add(Clock.class);
+        CLASS_IMPORTS.add(DayOfWeek.class);
+        CLASS_IMPORTS.add(Duration.class);
+        CLASS_IMPORTS.add(LocalDate.class);
+        CLASS_IMPORTS.add(LocalTime.class);
+        CLASS_IMPORTS.add(LocalDateTime.class);
+        CLASS_IMPORTS.add(Month.class);
+        CLASS_IMPORTS.add(MonthDay.class);
+        CLASS_IMPORTS.add(OffsetDateTime.class);
+        CLASS_IMPORTS.add(OffsetTime.class);
+        CLASS_IMPORTS.add(Period.class);
+        CLASS_IMPORTS.add(Year.class);
+        CLASS_IMPORTS.add(YearMonth.class);
+        CLASS_IMPORTS.add(ZonedDateTime.class);
+        CLASS_IMPORTS.add(ZoneId.class);
+        CLASS_IMPORTS.add(ZoneOffset.class);
 
+        ///////////
+        // ENUMS //
+        ///////////
 
-            customizers = new Customizer[]{imports};
+        Collections.addAll(ENUM_IMPORTS, Geo.values());
+        Collections.addAll(ENUM_IMPORTS, Text.values());
+        Collections.addAll(ENUM_IMPORTS, Multiplicity.values());
+        Collections.addAll(ENUM_IMPORTS, Cardinality.values());
+        Collections.addAll(ENUM_IMPORTS, ChronoUnit.values());
 
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
-        }
+        /////////////
+        // METHODS //
+        /////////////
+
+        Stream.concat(Stream.of(Geo.class.getMethods()), Stream.of(Text.class.getMethods()))
+            .filter(JanusGraphGremlinPlugin::isMethodStatic)
+            .forEach(METHOD_IMPORTS::add);
     }
+
+    private static final ImportCustomizer IMPORTS = DefaultImportCustomizer.build()
+        .addClassImports(CLASS_IMPORTS)
+        .addEnumImports(ENUM_IMPORTS)
+        .addMethodImports(METHOD_IMPORTS)
+        .create();
+
+    private static final JanusGraphGremlinPlugin instance = new JanusGraphGremlinPlugin();
 
     public JanusGraphGremlinPlugin() {
-        super(NAME, imports);
+        super(NAME, IMPORTS);
     }
 
+    public static JanusGraphGremlinPlugin instance() {
+        return instance;
+    }
 
-    @Override
-    public String getName() {
-        return NAME;
+    public JanusGraphGremlinPlugin(String moduleName, Customizer... customizers) {
+        super(moduleName, customizers);
     }
 
 //    @Override
@@ -249,11 +247,8 @@ public class JanusGraphGremlinPlugin extends AbstractGremlinPlugin {
         return true;
     }
 
-    @Override
-    public Optional<Customizer[]> getCustomizers(final String scriptEngineName) {
-        return null == scriptEngineName || appliesTo.isEmpty() || appliesTo.contains(scriptEngineName) ?
-            Optional.of(customizers) : Optional.empty();
+    private static boolean isMethodStatic(final Method method) {
+        return Modifier.isStatic(method.getModifiers());
     }
-
 
 }

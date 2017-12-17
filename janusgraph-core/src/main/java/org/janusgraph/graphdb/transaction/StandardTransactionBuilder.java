@@ -45,7 +45,7 @@ public class StandardTransactionBuilder implements TransactionConfiguration, Tra
 
     private boolean preloadedData = false;
 
-    private DefaultSchemaMaker defaultSchemaMaker;
+    private final DefaultSchemaMaker defaultSchemaMaker;
 
     private boolean verifyExternalVertexExistence = true;
 
@@ -191,7 +191,7 @@ public class StandardTransactionBuilder implements TransactionConfiguration, Tra
 
     @Override
     public void setCommitTime(Instant time) {
-        throw new UnsupportedOperationException("Use setCommitTime(lnog,TimeUnit)");
+        throw new UnsupportedOperationException("Use setCommitTime(long,TimeUnit)");
     }
 
     @Override
