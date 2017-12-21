@@ -40,7 +40,7 @@ public abstract class AbstractTypedRelation extends AbstractElement implements I
     @Override
     public InternalRelation it() {
         InternalVertex v = getVertex(0);
-        if (v == v.it())
+        if (v.equals(v.it()))
             return this;
 
         InternalRelation next = (InternalRelation) RelationIdentifier.get(this).findRelation(tx());
