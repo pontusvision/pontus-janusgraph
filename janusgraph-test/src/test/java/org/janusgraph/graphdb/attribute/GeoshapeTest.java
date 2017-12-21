@@ -59,7 +59,7 @@ public class GeoshapeTest {
         for (int i=0;i<50;i++) {
             Geoshape point = Geoshape.point(i,i);
             Geoshape line = Geoshape.line(Arrays.asList(new double[][] {{i-1,i-1},{i,i},{i+1,i+1}}));
-            Geoshape polygon = Geoshape.polygon(Arrays.asList(new double[][] {{i-1,i-1},{i,i-1},{i+1,i-i},{i+1,i+1},{i-1,i+1},{i-1,i-1}}));
+            Geoshape polygon = Geoshape.polygon(Arrays.asList(new double[][] {{i-1,i-1},{i,i-1},{i+1,0},{i+1,i+1},{i-1,i+1},{i-1,i-1}}));
             Geoshape circle = Geoshape.circle(i,i,point.getPoint().distance(Geoshape.point(i,i).getPoint())+10);
             assertTrue(circle.intersect(point));
             assertTrue(point.intersect(circle));
@@ -133,7 +133,7 @@ public class GeoshapeTest {
 
 
     @Test(expected = IllegalArgumentException.class)
-    public void testGeoJsonPointUnparseable() throws IOException {
+    public void testGeoJsonPointNotParseable() throws IOException {
         Geoshape.GeoshapeSerializer s = new Geoshape.GeoshapeSerializer();
         Map json = new ObjectMapper().readValue("{\n" +
                 "  \"type\": \"Feature\",\n" +
@@ -330,11 +330,10 @@ public class GeoshapeTest {
         assertEquals(Geoshape.point(10.5, 20.5), s.convert(json));
     }
 
-
     @Test
     public void testGeoJsonSerialization() throws IOException {
         SimpleModule module = new SimpleModule();
-        module.addSerializer(new Geoshape.GeoshapeGsonSerializerV1d0());
+        module.addSerializer(new Geoshape.GeoshapeGsonSerializerV2d0());
         final ObjectMapper om = new ObjectMapper();
         om.registerModule(module);
         JtsSpatialContext context = (JtsSpatialContext) Geoshape.getSpatialContext();

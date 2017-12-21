@@ -68,6 +68,7 @@
         <tinkerpop.version>3.3.0</tinkerpop.version>
         <junit.version>4.12</junit.version>
         <mrunit.version>1.1.0</mrunit.version>
+        <mockito.version>1.10.19</mockito.version>
         <cassandra.version>2.1.18</cassandra.version>
         <jamm.version>0.3.0</jamm.version>
         <metrics2.version>2.1.2</metrics2.version>
@@ -98,7 +99,7 @@
         <zookeeper.version>3.4.6</zookeeper.version>
         <jersey.version>1.9</jersey.version>
         <!-- align with org.apache.tinkerpop:tinkerpop -->
-        <netty4.version>4.0.50.Final</netty4.version>
+        <netty4.version>4.0.53.Final</netty4.version>
         <jna.version>4.0.0</jna.version>
         <kuali.s3.wagon.version>1.1.20</kuali.s3.wagon.version>
         <jasper.version>5.5.23</jasper.version>
@@ -541,6 +542,11 @@
                 <artifactId>jsr305</artifactId>
                 <version>3.0.0</version>
             </dependency>
+            <dependency>
+                <groupId>javax.validation</groupId>
+                <artifactId>validation-api</artifactId>
+                <version>1.1.0.Final</version>
+            </dependency>
 
             <!-- Jackson 1.x -->
             <dependency>
@@ -732,6 +738,11 @@
                 <artifactId>compress-lzf</artifactId>
                 <version>1.0.0</version>
             </dependency>
+            <dependency>
+                <groupId>net.jpountz.lz4</groupId>
+                <artifactId>lz4</artifactId>
+                <version>1.3.0</version>
+            </dependency>
 
             <dependency>
                 <groupId>net.java.dev.jets3t</groupId>
@@ -818,7 +829,12 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-all</artifactId>
-                <version>1.8.5</version>
+                <version>${mockito.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.h2database</groupId>
@@ -1549,7 +1565,7 @@
                                 <inherited>false</inherited>
                                 <configuration>
                                     <sourceDirectory>${asciidoc.input.dir}</sourceDirectory>
-                                    <sourceDocumentName>index.txt</sourceDocumentName>
+                                    <sourceDocumentName>index.adoc</sourceDocumentName>
                                     <outputDirectory>${docbook.output.dir}</outputDirectory>
                                     <backend>docbook5</backend>
                                     <doctype>book</doctype>

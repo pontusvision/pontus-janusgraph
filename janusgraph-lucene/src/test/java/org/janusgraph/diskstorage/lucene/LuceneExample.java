@@ -33,7 +33,6 @@ import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,8 +54,8 @@ public abstract class LuceneExample {
 
     private static final int MAX_RESULT = 10000;
 
-    private Map<String,SpatialStrategy> spatial=new HashMap<String,SpatialStrategy>();
-    private SpatialContext ctx = SpatialContext.GEO;
+    final private Map<String,SpatialStrategy> spatial= new HashMap<>();
+    final private SpatialContext ctx = SpatialContext.GEO;
 
     @Before
     public void setup() {
@@ -138,11 +137,11 @@ public abstract class LuceneExample {
         return found;
     }
 
-    void indexDocs(IndexWriter writer, String docid, Map<String,Object> docMap) throws IOException {
+    void indexDocs(IndexWriter writer, String documentId, Map<String,Object> docMap) throws IOException {
         Document doc = new Document();
 
-        Field docidField = new StringField("docid", docid, Field.Store.YES);
-        doc.add(docidField);
+        Field documentIdField = new StringField("docid", documentId, Field.Store.YES);
+        doc.add(documentIdField);
 
         for (Map.Entry<String,Object> kv : docMap.entrySet()) {
             String key = kv.getKey();
@@ -171,7 +170,7 @@ public abstract class LuceneExample {
             } else throw new IllegalArgumentException("Unsupported type: " + value);
         }
 
-        writer.updateDocument(new Term("docid", docid), doc);
+        writer.updateDocument(new Term("docid", documentId), doc);
 
     }
 

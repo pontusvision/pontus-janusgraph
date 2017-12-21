@@ -192,7 +192,7 @@ public abstract class LogTest {
         final int rounds = 32;
 
         StoringReader reader = new StoringReader(rounds);
-        List<StaticBuffer> expected = new ArrayList<StaticBuffer>(rounds);
+        final List<StaticBuffer> expected = new ArrayList<>(rounds);
 
         Log l = manager.openLog("fuzz");
         l.registerReader(ReadMarker.fromNow(),reader);
@@ -211,7 +211,7 @@ public abstract class LogTest {
         }
         reader.await(TIMEOUT_MS);
         assertEquals(rounds, reader.msgCount);
-        assertEquals(expected, reader.msgs);
+        assertEquals(expected, reader.messages);
     }
 
     @Test
@@ -359,7 +359,7 @@ public abstract class LogTest {
 
     protected static class StoringReader extends LatchMessageReader {
 
-        private List<StaticBuffer> msgs = new ArrayList<>(64);
+        private final List<StaticBuffer> messages = new ArrayList<>(64);
         private volatile int msgCount = 0;
 
         StoringReader(int expectedMessageCount) {
@@ -369,7 +369,7 @@ public abstract class LogTest {
         @Override
         public void processMessage(Message message) {
             StaticBuffer content = message.getContent();
-            msgs.add(content);
+            messages.add(content);
             msgCount++;
         }
     }
