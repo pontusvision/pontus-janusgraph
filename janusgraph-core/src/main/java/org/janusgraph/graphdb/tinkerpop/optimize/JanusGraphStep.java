@@ -53,7 +53,10 @@ public class JanusGraphStep<S, E extends Element> extends GraphStep<S, E> implem
         super(originalStep.getTraversal(), originalStep.getReturnClass(), originalStep.isStartStep(), originalStep.getIds());
         originalStep.getLabels().forEach(this::addLabel);
         this.setIteratorSupplier(() -> {
-            if (this.ids != null && this.ids.length > 0) {
+            if (this.ids == null) {
+                return Collections.emptyIterator();
+            }
+            else if (this.ids.length > 0) {
                 final Graph graph = (Graph)traversal.asAdmin().getGraph().get();
                 return iteratorList((Iterator)graph.vertices(this.ids));
             }
@@ -72,7 +75,7 @@ public class JanusGraphStep<S, E extends Element> extends GraphStep<S, E> implem
     @Override
     public String toString() {
         return this.hasContainers.isEmpty() ?
-                super.toString() : StringFactory.stepString(this, Arrays.toString(this.ids), this.hasContainers);
+                super.toString() : StringFactory.stepString(this, Arrays.toString(this.ids), this.hasContainers, this.orders);
     }
 
     @Override
@@ -110,14 +113,23 @@ public class JanusGraphStep<S, E extends Element> extends GraphStep<S, E> implem
         this.addAll(Collections.singleton(hasContainer));
     }
 
-    private <E extends Element> Iterator<E> iteratorList(final Iterator<E> iterator) {
-        final List<E> list = new ArrayList<>();
+    private <A extends Element> Iterator<A> iteratorList(final Iterator<A> iterator) {
+        final List<A> list = new ArrayList<>();
         while (iterator.hasNext()) {
-            final E e = iterator.next();
+            final A e = iterator.next();
             if (HasContainer.testAll(e, this.hasContainers))
                 list.add(e);
         }
         return list.iterator();
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (hasContainers != null ? hasContainers.hashCode() : 0);
+        result = 31 * result + limit;
+        result = 31 * result + (orders != null ? orders.hashCode() : 0);
+        return result;
     }
 }
 

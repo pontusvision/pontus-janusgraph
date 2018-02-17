@@ -40,7 +40,7 @@ public abstract class AbstractTypedRelation extends AbstractElement implements I
     @Override
     public InternalRelation it() {
         InternalVertex v = getVertex(0);
-        if (v.equals( v.it()))
+        if (v.equals(v.it()))
             return this;
 
         InternalRelation next = (InternalRelation) RelationIdentifier.get(this).findRelation(tx());
@@ -59,12 +59,7 @@ public abstract class AbstractTypedRelation extends AbstractElement implements I
      * Cannot currently throw exception when removed since internal logic relies on access to the edge
      * beyond its removal. TODO: reconcile with access validation logic
      */
-    protected final void verifyAccess() {
-        return;
-//        if (isRemoved()) {
-//            throw InvalidElementException.removedException(this);
-//        }
-    }
+    protected final void verifyAccess() { }
 
 	/* ---------------------------------------------------------------
 	 * Immutable Aspects of Relation
