@@ -200,11 +200,13 @@
                 </exclusion>
             </exclusions>
         </dependency>
+      <!-- LPPM - disabled SOLR 
         <dependency>
             <groupId>org.janusgraph</groupId>
             <artifactId>janusgraph-solr</artifactId>
             <version>${project.version}</version>
         </dependency>
+      -->
         <dependency>
             <groupId>org.janusgraph</groupId>
             <artifactId>janusgraph-lucene</artifactId>
