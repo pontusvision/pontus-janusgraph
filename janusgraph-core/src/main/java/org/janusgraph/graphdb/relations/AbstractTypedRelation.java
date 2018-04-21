@@ -40,6 +40,7 @@ public abstract class AbstractTypedRelation extends AbstractElement implements I
     @Override
     public InternalRelation it() {
         InternalVertex v = getVertex(0);
+// LPPM - changed this to avoid recursion issues
         if (v.equals(v.it()))
             return this;
 
