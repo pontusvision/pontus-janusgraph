@@ -306,7 +306,7 @@ public class GraphDatabaseConfiguration {
             "is set to 'true' and 'schema.default' is set to 'none', then an 'IllegalArgumentException' is thrown for schema constraint violations. " +
             "If 'schema.constraints' is set to 'true' and 'schema.default' is not set 'none', schema constraints are automatically created "+
             "as described in the config option 'schema.default'. If 'schema.constraints' is set to 'false' which is the default, then no schema constraints are applied.",
-            ConfigOption.Type.MASKABLE, false);
+            ConfigOption.Type.GLOBAL_OFFLINE, false);
 
     // ################ CACHE #######################
     // ################################################
@@ -1242,8 +1242,8 @@ public class GraphDatabaseConfiguration {
         BasicConfiguration localBasicConfiguration = new BasicConfiguration(ROOT_NS,localConfig, BasicConfiguration.Restriction.NONE);
         ModifiableConfiguration overwrite = new ModifiableConfiguration(ROOT_NS,new CommonsConfiguration(), BasicConfiguration.Restriction.NONE);
 
-//        KeyColumnValueStoreManager storeManager=null;
         final KeyColumnValueStoreManager storeManager = Backend.getStorageManager(localBasicConfiguration);
+
         final StoreFeatures storeFeatures = storeManager.getFeatures();
         KCVSConfiguration keyColumnValueStoreConfiguration=Backend.getStandaloneGlobalConfiguration(storeManager,localBasicConfiguration);
         final ReadConfiguration globalConfig;
@@ -1280,10 +1280,11 @@ public class GraphDatabaseConfiguration {
                         globalWrite.set(TIMESTAMP_PROVIDER, backendPreference);
                         log.info("Set timestamps to {} according to storage backend preference",
                             LoggerUtil.sanitizeAndLaunder(globalWrite.get(TIMESTAMP_PROVIDER)));
+                    } else {
+                        globalWrite.set(TIMESTAMP_PROVIDER, TIMESTAMP_PROVIDER.getDefaultValue());
+                        log.info("Set default timestamp provider {}",
+                            LoggerUtil.sanitizeAndLaunder(globalWrite.get(TIMESTAMP_PROVIDER)));
                     }
-                    globalWrite.set(TIMESTAMP_PROVIDER, TIMESTAMP_PROVIDER.getDefaultValue());
-                    log.info("Set default timestamp provider {}",
-                        LoggerUtil.sanitizeAndLaunder(globalWrite.get(TIMESTAMP_PROVIDER)));
                 } else {
                     log.info("Using configured timestamp provider {}", localBasicConfiguration.get(TIMESTAMP_PROVIDER));
                 }
