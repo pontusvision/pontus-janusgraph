@@ -92,6 +92,7 @@ public class LuceneIndex implements IndexProvider {
         .supportsCustomAnalyzer()
         .supportsNanoseconds()
         .supportsGeoContains()
+        .supportNotQueryNormalForm()
         .build();
 
     /**
@@ -809,8 +810,8 @@ public class LuceneIndex implements IndexProvider {
 
     @Override
     public String mapKey2Field(String key, KeyInformation information) {
-        Preconditions.checkArgument(!StringUtils.containsAny(key, new char[]{' '}), "Invalid key name provided: %s", key);
-        return key;
+        IndexProvider.checkKeyValidity(key);
+        return key.replace(' ', REPLACEMENT_CHAR);
     }
 
     @Override
@@ -821,8 +822,8 @@ public class LuceneIndex implements IndexProvider {
     @Override
     public void close() throws BackendException {
         try {
-            for (IndexWriter w : writers.values()) w.close();
-        } catch (IOException e) {
+            for (final IndexWriter w : writers.values()) w.close();
+        } catch (final IOException e) {
             throw new PermanentBackendException("Could not close writers", e);
         }
     }
