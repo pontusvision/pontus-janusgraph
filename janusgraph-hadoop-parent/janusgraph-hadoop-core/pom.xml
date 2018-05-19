@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.janusgraph</groupId>
         <artifactId>janusgraph-hadoop-parent</artifactId>
-        <version>0.2.0-SNAPSHOT</version>
+        <version>100.2.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>janusgraph-hadoop-core</artifactId>
@@ -27,13 +27,23 @@
             <version>${mrunit.version}</version>
             <classifier>hadoop2</classifier>
             <optional>true</optional>
-            <!-- <scope>test</scope> -->
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>janusgraph-cassandra</artifactId>
             <version>${project.version}</version>
-            <!-- TODO this should be scoped test -->
+            <!--<scope>test</scope>-->
+            <exclusions>
+                <exclusion>
+                    <groupId>com.lmax</groupId>
+                    <artifactId>disruptor</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.validation</groupId>
+                    <artifactId>validation-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -45,7 +55,17 @@
             <artifactId>janusgraph-cassandra</artifactId>
             <version>${project.version}</version>
             <classifier>tests</classifier>
-            <!-- TODO this should be scoped test -->
+            <exclusions>
+                <exclusion>
+                    <groupId>com.lmax</groupId>
+                    <artifactId>disruptor</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.validation</groupId>
+                    <artifactId>validation-api</artifactId>
+                </exclusion>
+            </exclusions>
+
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

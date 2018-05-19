@@ -22,7 +22,7 @@ public class HBaseCompatLoader {
 
     private static final Logger log = LoggerFactory.getLogger(HBaseCompatLoader.class);
 
-    private static final String DEFAULT_HBASE_COMPAT_VERSION = "1.2";
+    private static final String DEFAULT_HBASE_COMPAT_VERSION = "1.3.1";
 
     private static final String HBASE_VERSION_1_STRING = "1.";
 
@@ -30,7 +30,7 @@ public class HBaseCompatLoader {
         "org.janusgraph.diskstorage.hbase.HBaseCompat1_0";
 
     private static final String[] HBASE_SUPPORTED_VERSIONS =
-        new String[] { "0.98", "1.0", "1.1", "1.2" };
+        new String[] { "0.98", "1.0", "1.1", "1.2", "1.3" };
 
     private static HBaseCompat cachedCompat;
 
