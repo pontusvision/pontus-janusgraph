@@ -129,7 +129,7 @@ To kick off the regular and TinkerPop tests. Use `export PIPELINE_CONFIGURATION=
 and `export PIPELINE_CONFIGURATION=tp-pipe.yml` for TinkerPop tests.
 
 ```bash
-java -jar target/janusgraph-codepipelines-ci-100.2.0-SNAPSHOT.jar \
+java -jar target/janusgraph-codepipelines-ci-100-2.1.jar \
 --region ${AWS_REGION_NAME} \
 --bucket ${AWS_S3_BUCKET_NAME} \
 --github-owner ${GITHUB_USERNAME} \

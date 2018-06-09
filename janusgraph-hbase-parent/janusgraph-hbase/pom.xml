@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.janusgraph</groupId>
         <artifactId>janusgraph-hbase-parent</artifactId>
-        <version>100.2.0-SNAPSHOT</version>
+        <version>100-2.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>janusgraph-hbase</artifactId>
@@ -18,12 +18,6 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>janusgraph-hbase-core</artifactId>
-            <version>${project.version}</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>janusgraph-hbase-098</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
         </dependency>
@@ -53,13 +47,6 @@
                     <artifactId>janusgraph-hbase-core</artifactId>
                     <version>${project.version}</version>
                     <classifier>javadoc</classifier>
-                    <optional>true</optional>
-                </dependency>
-                <dependency>
-                    <groupId>${project.groupId}</groupId>
-                    <artifactId>janusgraph-hbase-098</artifactId>
-                    <version>${project.version}</version>
-                    <classifier>sources</classifier>
                     <optional>true</optional>
                 </dependency>
                 <dependency>
