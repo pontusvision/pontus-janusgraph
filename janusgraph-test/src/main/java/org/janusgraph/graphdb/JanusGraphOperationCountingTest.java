@@ -236,6 +236,8 @@ public abstract class JanusGraphOperationCountingTest extends JanusGraphBaseTest
         mgmt.makePropertyKey("foo").dataType(String.class).cardinality(Cardinality.SINGLE).make();
         finishSchema();
 
+        clopen(option(SCHEMA_CONSTRAINTS), true);
+
         JanusGraphVertex v = tx.addVertex();
         v.property("foo","bar");
         tx.commit();
@@ -468,7 +470,8 @@ public abstract class JanusGraphOperationCountingTest extends JanusGraphBaseTest
                 option(GraphDatabaseConfiguration.DB_CACHE_SIZE),0.25,
                 option(GraphDatabaseConfiguration.BASIC_METRICS),true,
                 option(GraphDatabaseConfiguration.METRICS_MERGE_STORES),false,
-                option(GraphDatabaseConfiguration.METRICS_PREFIX),metricsPrefix};
+                option(GraphDatabaseConfiguration.METRICS_PREFIX),metricsPrefix,
+                option(GraphDatabaseConfiguration.SCHEMA_CONSTRAINTS),true};
         clopen(newConfig);
         final String prop = "someProp";
         makeKey(prop,Integer.class);
