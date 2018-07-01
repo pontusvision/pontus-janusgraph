@@ -13,6 +13,7 @@
     
     <modules>
         <module>janusgraph-hbase-core</module>
+        <module>janusgraph-hbase-server</module>
         <module>janusgraph-hbase-10</module>
         <module>janusgraph-hbase</module>
     </modules>
@@ -115,7 +116,10 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <configuration>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <test.hbase.parentdir>${top.level.basedir}/janusgraph-hbase-parent</test.hbase.parentdir>
+                            </systemPropertyVariables>
                         <excludedGroups>${test.excluded.groups},org.janusgraph.testcategory.UnorderedKeyStoreTests</excludedGroups>
                     </configuration>
                 </plugin>
