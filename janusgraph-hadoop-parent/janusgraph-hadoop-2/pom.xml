@@ -40,8 +40,6 @@
             <scope>test</scope>
             <optional>true</optional>
         </dependency>
-        <!-- Include janusgraph-hbase-core to resolve Guava StopWatch error in HBase tests.
-             Can be removed when Guava version is updated in HBase -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>janusgraph-hbase-core</artifactId>
@@ -57,7 +55,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
-            <artifactId>hbase-server</artifactId>
+            <artifactId>hbase-shaded-server</artifactId>
             <version>${hbase100.version}</version>
             <optional>true</optional>
             <scope>test</scope>
@@ -74,7 +72,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
-            <artifactId>hbase-client</artifactId>
+            <artifactId>hbase-shaded-client</artifactId>
             <version>${hbase100.version}</version>
             <optional>true</optional>
             <scope>test</scope>
