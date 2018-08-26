@@ -239,6 +239,11 @@ public class JanusGraphGremlinPlugin extends AbstractGremlinPlugin {
         super(moduleName, customizers);
     }
 
+//    @Override
+//    public void pluginTo(final PluginAcceptor pluginAcceptor) {
+//        pluginAcceptor.addImports(IMPORTS);
+//    }
+
     @Override
     public boolean requireRestart() {
         return true;
