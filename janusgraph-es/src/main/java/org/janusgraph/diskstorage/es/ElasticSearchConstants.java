@@ -32,4 +32,9 @@ public class ElasticSearchConstants {
     public static final String ES_GEO_COORDS_KEY = "coordinates";
     public static final String CUSTOM_ALL_FIELD = "all";
 
+    // LPPM - add these keys so we can pass parameters to scripts
+    public static final String ES_SOURCE_KEY = "source";
+    public static final String ES_PARAMS_KEY = "params";
+
+
 }
