@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.janusgraph</groupId>
     <artifactId>janusgraph</artifactId>
-        <version>100-3.0</version>
+    <version>100-3.1</version>
     <packaging>pom</packaging>
     <prerequisites>
         <maven>2.2.1</maven>
@@ -51,6 +51,12 @@
             <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
         </license>
     </licenses>
+    <scm>
+        <connection>scm:git:git@github.com:JanusGraph/janusgraph.git</connection>
+        <developerConnection>scm:git:git@github.com:JanusGraph/janusgraph.git</developerConnection>
+        <url>git@github.com:JanusGraph/janusgraph.git</url>
+        <tag>HEAD</tag>
+    </scm>
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -62,13 +68,13 @@
         </repository>
     </distributionManagement>
     <properties>
-        <janusgraph.compatible.versions>0.1.0,0.1.1,0.2.0,100-3.0,100-2.1</janusgraph.compatible.versions>
+        <janusgraph.compatible.versions>0.1.0,0.1.1,0.2.0</janusgraph.compatible.versions>
         <titan.compatible-versions>1.0.0,1.1.0-SNAPSHOT</titan.compatible-versions>
         <tinkerpop.version>3.3.3</tinkerpop.version>
         <junit.version>4.12</junit.version>
         <mrunit.version>1.1.0</mrunit.version>
         <mockito.version>1.10.19</mockito.version>
-        <cassandra.version>2.1.20</cassandra.version>
+        <cassandra.version>2.1.18</cassandra.version>
         <jamm.version>0.3.0</jamm.version>
         <metrics2.version>2.1.2</metrics2.version>
         <metrics3.version>3.0.2</metrics3.version>
@@ -1273,7 +1279,7 @@
                 </dependencies>
             </dependencyManagement>
         </profile>
-
+	
         <profile>
             <id>coverage</id>
             <properties>
