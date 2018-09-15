@@ -782,10 +782,13 @@ public class ElasticSearchIndex implements IndexProvider {
                     {
                         parameters = ImmutableMap.of("e_field", e_field, "e_value", e_value);
                     }
+                    final Map<String, Object> scriptMap = ImmutableMap.of(
+                        ES_SOURCE_KEY, script.toString(),
+                        ES_LANG_KEY, compat.scriptLang(),
+                        ES_PARAMS_KEY, parameters);
 
-                    builder.put(ES_SCRIPT_KEY,script.toString());
-                    builder.put(ES_LANG_KEY, compat.scriptLang());
-                    builder.put(ES_PARAMS_KEY, parameters);
+
+                    builder.put(ES_SCRIPT_KEY,scriptMap);
 
 
 
