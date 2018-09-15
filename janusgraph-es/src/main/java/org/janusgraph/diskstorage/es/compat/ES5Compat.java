@@ -28,4 +28,11 @@ public class ES5Compat extends AbstractESCompat {
         return FEATURES;
     }
 
+    // LPPM added new entries to check whether a script with parameters can be sent (this reduces the burden on Elastic as new updates don't have to be compiled each time)
+    @Override
+    public boolean scriptWithParameters()
+    {
+        return true;
+    }
+
 }
