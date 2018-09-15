@@ -14,9 +14,8 @@
 
 package org.janusgraph.diskstorage.es;
 
-import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_DOC_KEY;
-import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_GEO_COORDS_KEY;
-import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_TYPE_KEY;
+import static org.janusgraph.diskstorage.es.ElasticSearchConstants.*;
+import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_LANG_KEY;
 import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.INDEX_MAX_RESULT_SET_SIZE;
 import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.INDEX_NAME;
 import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.INDEX_NS;
@@ -27,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
+import org.apache.commons.lang3.tuple.Pair;
 import org.janusgraph.diskstorage.es.compat.ES6Compat;
 import org.janusgraph.diskstorage.es.rest.util.HttpAuthTypes;
 import org.locationtech.spatial4j.shape.Rectangle;
@@ -697,12 +697,27 @@ public class ElasticSearchIndex implements IndexProvider {
                                 upsert = null;
                             }
 
-                            final String inline = getAdditionScript(information, storeName, mutation);
-                            if (!inline.isEmpty()) {
-                                final ImmutableMap.Builder builder = compat.prepareScript(inline);
-                                requestByStore.add(ElasticSearchMutation.createUpdateRequest(indexStoreName, storeName,
-                                        documentId, builder, upsert));
-                                log.trace("Adding script {}", inline);
+                            // LPPM - use parameters to improve compilation time in elastic.
+                            if (compat.scriptWithParameters())
+                            {
+                                Pair< Boolean, ImmutableMap.Builder > builderPair = getAdditionScriptWithParameters(information, storeName, mutation);
+                                if (builderPair.getLeft()){
+                                    requestByStore.add(ElasticSearchMutation
+                                        .createUpdateRequest(indexStoreName, storeName, documentId, builderPair.getRight(), upsert));
+
+                                }
+
+                            }
+                            else
+                            {
+                                final String inline = getAdditionScript(information, storeName, mutation);
+                                if (!inline.isEmpty())
+                                {
+                                    final ImmutableMap.Builder builder = compat.prepareScript(inline);
+                                    requestByStore.add(ElasticSearchMutation
+                                        .createUpdateRequest(indexStoreName, storeName, documentId, builder, upsert));
+                                    log.trace("Adding script {}", inline);
+                                }
                             }
 
                             final Map<String, Object> doc = getAdditionDoc(information, storeName, mutation);
@@ -728,6 +743,67 @@ public class ElasticSearchIndex implements IndexProvider {
             log.error("Failed to execute bulk Elasticsearch mutation", e);
             throw convert(e);
         }
+    }
+
+    // LPPM - added a method to prepare addition scripts with parameters
+    private Pair<Boolean, ImmutableMap.Builder> getAdditionScriptWithParameters(KeyInformation.IndexRetriever information, String storeName, IndexMutation mutation)
+        throws PermanentBackendException
+    {
+
+        Boolean hasScript = false;
+
+        ImmutableMap.Builder builder = null;
+        final StringBuilder script = new StringBuilder();
+
+        for (final IndexEntry e : mutation.getAdditions()) {
+            final KeyInformation keyInformation = information.get(storeName).get(e.field);
+            switch (keyInformation.getCardinality()) {
+                case SET:
+                case LIST:
+
+                    hasScript = true;
+                    builder = ImmutableMap.builder();
+
+                    Map<String,String> parameters ;
+
+
+                    String e_field = e.field;
+                    String e_value= convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation));
+
+                    script.append("if(ctx._source[e_field] == null) ctx._source[e_field] = [];ctx._source[e_field].add(e_value);");
+                    if (hasDualStringMapping(keyInformation)) {
+                        String e_fieldDualMapping = getDualMappingName(e.field);
+                        script.append("if(ctx._source[e_fieldDualMapping] == null) ctx._source[e_fieldDualMapping] = [];ctx._source[e_fieldDualMapping].add(e_value);");
+
+                        parameters = ImmutableMap.of("e_field", e_field, "e_value", e_value, "e_fieldDualMapping", e_fieldDualMapping );
+
+                    }
+                    else
+                    {
+                        parameters = ImmutableMap.of("e_field", e_field, "e_value", e_value);
+                    }
+                    final Map<String, Object> scriptMap = ImmutableMap.of(
+                        ES_SOURCE_KEY, script.toString(),
+                        ES_LANG_KEY, compat.scriptLang(),
+                        ES_PARAMS_KEY, parameters);
+
+
+                    builder.put(ES_SCRIPT_KEY,scriptMap);
+
+
+
+                    break;
+                default:
+                    break;
+
+            }
+
+        }
+
+        return Pair.of(hasScript, builder);
+
+
+
     }
 
     private String getDeletionScript(KeyInformation.IndexRetriever information, String storeName,
@@ -782,11 +858,13 @@ public class ElasticSearchIndex implements IndexProvider {
     private String getAdditionScript(KeyInformation.IndexRetriever information, String storeName,
                                      IndexMutation mutation) throws PermanentBackendException {
         final StringBuilder script = new StringBuilder();
+
         for (final IndexEntry e : mutation.getAdditions()) {
             final KeyInformation keyInformation = information.get(storeName).get(e.field);
             switch (keyInformation.getCardinality()) {
                 case SET:
                 case LIST:
+
                     script.append("if(ctx._source[\"").append(e.field).append("\"] == null) ctx._source[\"").append(e.field).append("\"] = [];");
                     script.append("ctx._source[\"").append(e.field).append("\"].add(").append(convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation))).append(");");
                     if (hasDualStringMapping(keyInformation)) {
