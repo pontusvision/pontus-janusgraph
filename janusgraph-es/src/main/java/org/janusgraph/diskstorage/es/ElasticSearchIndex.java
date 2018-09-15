@@ -767,12 +767,15 @@ public class ElasticSearchIndex implements IndexProvider {
                     Map<String,String> parameters ;
 
 
-                    String e_field = e.field;
+                    StringBuilder sb = new StringBuilder("\"").append(e.field).append("\"");
+                    String e_field = sb.toString();
                     String e_value= convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation));
 
                     script.append("if(ctx._source[e_field] == null) ctx._source[e_field] = [];ctx._source[e_field].add(e_value);");
                     if (hasDualStringMapping(keyInformation)) {
-                        String e_fieldDualMapping = getDualMappingName(e.field);
+                        sb.setLength(0);
+                        sb.append("\"").append(getDualMappingName(e.field)).append("\"");
+                        String e_fieldDualMapping =  sb.toString();
                         script.append("if(ctx._source[e_fieldDualMapping] == null) ctx._source[e_fieldDualMapping] = [];ctx._source[e_fieldDualMapping].add(e_value);");
 
                         parameters = ImmutableMap.of("e_field", e_field, "e_value", e_value, "e_fieldDualMapping", e_fieldDualMapping );
@@ -789,7 +792,7 @@ public class ElasticSearchIndex implements IndexProvider {
 
 
                     builder.put(ES_SCRIPT_KEY,scriptMap);
-
+                    log.trace("Adding script {}", scriptMap.toString());
 
 
                     break;
