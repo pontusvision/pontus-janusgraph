@@ -20,7 +20,7 @@ import com.google.common.hash.Hashing;
 /**
  * @author Matthias Broecheler (me@matthiasb.com)
  */
-public enum HashUtility {
+public enum     HashUtility {
 
     SHORT {
         @Override
