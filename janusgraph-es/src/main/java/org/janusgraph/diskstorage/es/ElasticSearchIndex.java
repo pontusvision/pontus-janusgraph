@@ -850,7 +850,6 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
 
                     counter ++;
                     hasScript = true;
-                    builder = ImmutableMap.builder();
 
 
 //                    StringBuilder sb = new StringBuilder("\"").append(e.field).append("\"");
@@ -881,13 +880,17 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
             }
 
         }
-        final Map<String, Object> scriptMap = ImmutableMap
-            .of(ES_SOURCE_KEY, script.toString(), ES_LANG_KEY, compat.scriptLang(), ES_PARAMS_KEY,
-                parameters);
 
-        builder.put(ES_SCRIPT_KEY, scriptMap);
-        log.trace("Adding script {}", scriptMap.toString());
+        if (hasScript)
+        {
+            builder = ImmutableMap.builder();
 
+            final Map<String, Object> scriptMap = ImmutableMap
+                .of(ES_SOURCE_KEY, script.toString(), ES_LANG_KEY, compat.scriptLang(), ES_PARAMS_KEY, parameters);
+
+            builder.put(ES_SCRIPT_KEY, scriptMap);
+            log.trace("Adding script {}", scriptMap.toString());
+        }
         return Pair.of(hasScript, builder);
 
     }
