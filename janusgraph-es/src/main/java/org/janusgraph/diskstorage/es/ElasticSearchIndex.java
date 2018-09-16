@@ -861,13 +861,13 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                     parameters.put("e_value"+counter, e_value);
 
                     script.append(
-                        "if(ctx._source[e_field").append(counter).append("] == null) ctx._source[e_field").append(counter).append("] = [];ctx._source[e_field").append(counter).append("].add(e_value").append(counter).append(");");
+                        "if(ctx._source[params.e_field").append(counter).append("] == null) ctx._source[params.e_field").append(counter).append("] = [];ctx._source[params.e_field").append(counter).append("].add(params.e_value").append(counter).append(");");
                     if (hasDualStringMapping(keyInformation))
                     {
 
                         String e_fieldDualMapping = getDualMappingName(e.field);
                         script.append(
-                            "if(ctx._source[e_fieldDualMapping").append(counter).append("] == null) ctx._source[e_fieldDualMapping").append(counter).append("] = [];ctx._source[e_fieldDualMapping").append(counter).append("].add(e_value").append(counter).append(");");
+                            "if(ctx._source[params.e_fieldDualMapping").append(counter).append("] == null) ctx._source[params.e_fieldDualMapping").append(counter).append("] = [];ctx._source[params.e_fieldDualMapping").append(counter).append("].add(params.e_value").append(counter).append(");");
 
                         parameters.put("e_fieldDualMapping"+counter, e_fieldDualMapping);
 
