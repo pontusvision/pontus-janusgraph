@@ -14,14 +14,18 @@
 
 package org.janusgraph.diskstorage.es.compat;
 
+import com.google.common.collect.ImmutableMap;
 import org.janusgraph.diskstorage.indexing.IndexFeatures;
 
-import static org.janusgraph.diskstorage.es.ElasticSearchConstants.CUSTOM_ALL_FIELD;
+import java.util.Map;
+
+import static org.janusgraph.diskstorage.es.ElasticSearchConstants.*;
 
 /**
  * Mapping and query object builder for Elasticsearch 6.x.
  */
-public class ES6Compat extends AbstractESCompat {
+// LPPM - changed inheritance from AbsbractESCompat to ES5 compat, as many of the 5.x changes are also relevant to 6.x.
+public class ES6Compat extends ES5Compat {
 
     private static final IndexFeatures FEATURES = coreFeatures().setWildcardField(CUSTOM_ALL_FIELD).supportsGeoContains().build();
 
@@ -29,5 +33,6 @@ public class ES6Compat extends AbstractESCompat {
     public IndexFeatures getIndexFeatures() {
         return FEATURES;
     }
+
 
 }
