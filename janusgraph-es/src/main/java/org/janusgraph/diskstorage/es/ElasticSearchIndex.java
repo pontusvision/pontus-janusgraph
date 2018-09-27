@@ -14,9 +14,18 @@
 
 package org.janusgraph.diskstorage.es;
 
+import static org.janusgraph.diskstorage.es.ElasticSearchConstants.*;
+import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_LANG_KEY;
+import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.INDEX_MAX_RESULT_SET_SIZE;
+import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.INDEX_NAME;
+import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.INDEX_NS;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import org.apache.commons.lang3.tuple.Pair;
+import org.janusgraph.diskstorage.es.compat.ES6Compat;
+import org.janusgraph.diskstorage.es.rest.util.HttpAuthTypes;
+import org.locationtech.spatial4j.shape.Rectangle;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectWriter;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializationFeature;
@@ -771,13 +780,10 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                             // LPPM - use parameters to improve compilation time in elastic.
                             if (compat.scriptWithParameters())
                             {
-                                Pair<Boolean, ImmutableMap.Builder> builderPair = getAdditionScriptWithParameters(
-                                    information, storeName, mutation);
-                                if (builderPair.getLeft())
-                                {
+                                Pair< Boolean, ImmutableMap.Builder > builderPair = getAdditionScriptWithParameters(information, storeName, mutation);
+                                if (builderPair.getLeft()){
                                     requestByStore.add(ElasticSearchMutation
-                                        .createUpdateRequest(indexStoreName, storeName, documentId,
-                                            builderPair.getRight(), upsert));
+                                        .createUpdateRequest(indexStoreName, storeName, documentId, builderPair.getRight(), upsert));
 
                                 }
 
@@ -827,15 +833,14 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
     }
 
     // LPPM - added a method to prepare addition scripts with parameters
-    private Pair<Boolean, ImmutableMap.Builder> getAdditionScriptWithParameters(
-        KeyInformation.IndexRetriever information, String storeName, IndexMutation mutation)
-        throws PermanentBackendException
+    private Pair<Boolean, ImmutableMap.Builder> getAdditionScriptWithParameters(KeyInformation.IndexRetriever information, String storeName, IndexMutation mutation)
     {
 
         Boolean hasScript = false;
 
         ImmutableMap.Builder builder = null;
         final StringBuilder script = new StringBuilder();
+
 
         int counter = 0;
         Map<String, Object> parameters = new HashMap<>();
@@ -880,6 +885,7 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
             }
 
         }
+
 
         if (hasScript)
         {

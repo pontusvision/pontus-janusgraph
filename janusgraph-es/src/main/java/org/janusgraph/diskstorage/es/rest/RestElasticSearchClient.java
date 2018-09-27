@@ -257,6 +257,8 @@ public class RestElasticSearchClient implements ElasticSearchClient {
         }
         if (bulkRefresh != null && !bulkRefresh.toLowerCase().equals("false")) {
             APPEND_OP.apply(builder).append("refresh=").append(bulkRefresh);
+            // LPPM - setting retry on conflict to 5 to avoid elastic complaining.
+            APPEND_OP.apply(builder).append("retry_on_conflict=").append(5);
         }
         builder.insert(0, REQUEST_SEPARATOR + "_bulk");
 
