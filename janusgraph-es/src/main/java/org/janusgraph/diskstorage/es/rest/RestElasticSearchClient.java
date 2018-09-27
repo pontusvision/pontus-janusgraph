@@ -242,7 +242,9 @@ public class RestElasticSearchClient implements ElasticSearchClient {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         for (final ElasticSearchMutation request : requests) {
             final Map actionData = ImmutableMap.of(request.getRequestType().name().toLowerCase(),
-                    ImmutableMap.of("_index", request.getIndex(), "_type", request.getType(), "_id", request.getId()));
+                    ImmutableMap.of("_index", request.getIndex(), "_type", request.getType(), "_id", request.getId()
+                        // LPPM - added retry_on_conflict
+                        , "retry_on_conflict" , 5));
                 outputStream.write(mapWriter.writeValueAsBytes(actionData));
             outputStream.write("\n".getBytes(UTF8_CHARSET));
             if (request.getSource() != null) {
