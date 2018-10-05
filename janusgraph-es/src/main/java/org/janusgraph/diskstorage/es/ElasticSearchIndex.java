@@ -858,22 +858,22 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
 
 
 //                    StringBuilder sb = new StringBuilder("\"").append(e.field).append("\"");
-                    String e_field = e.field;
-                    Object e_value = convertToEsType(e.value, Mapping.getMapping(keyInformation)); // convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation));
+                    String f = e.field;
+                    Object v = convertToEsType(e.value, Mapping.getMapping(keyInformation)); // convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation));
 
-                    parameters.put("e_field"+counter, e_field);
-                    parameters.put("e_value"+counter, e_value);
+                    parameters.put("f"+counter, f);
+                    parameters.put("v"+counter, v);
 
                     script.append(
-                        "if(ctx._source[params.e_field").append(counter).append("] == null) ctx._source[params.e_field").append(counter).append("] = [];ctx._source[params.e_field").append(counter).append("].add(params.e_value").append(counter).append(");");
+                        "if(ctx._source[params.f").append(counter).append("]==null)ctx._source[params.f").append(counter).append("]=[];ctx._source[params.f").append(counter).append("].add(params.v").append(counter).append(");");
                     if (hasDualStringMapping(keyInformation))
                     {
 
-                        String e_fieldDualMapping = getDualMappingName(e.field);
+                        String fdm = getDualMappingName(e.field);
                         script.append(
-                            "if(ctx._source[params.e_fieldDualMapping").append(counter).append("] == null) ctx._source[params.e_fieldDualMapping").append(counter).append("] = [];ctx._source[params.e_fieldDualMapping").append(counter).append("].add(params.e_value").append(counter).append(");");
+                            "if(ctx._source[params.fdm").append(counter).append("]==null) ctx._source[params.fdm").append(counter).append("]=[];ctx._source[params.fdm").append(counter).append("].add(params.v").append(counter).append(");");
 
-                        parameters.put("e_fieldDualMapping"+counter, e_fieldDualMapping);
+                        parameters.put("fdm"+counter, fdm);
 
                     }
 
