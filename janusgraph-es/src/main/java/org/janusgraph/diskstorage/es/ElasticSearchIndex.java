@@ -14,18 +14,9 @@
 
 package org.janusgraph.diskstorage.es;
 
-import static org.janusgraph.diskstorage.es.ElasticSearchConstants.*;
-import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_LANG_KEY;
-import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.INDEX_MAX_RESULT_SET_SIZE;
-import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.INDEX_NAME;
-import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.INDEX_NS;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import org.apache.commons.lang3.tuple.Pair;
-import org.janusgraph.diskstorage.es.compat.ES6Compat;
-import org.janusgraph.diskstorage.es.rest.util.HttpAuthTypes;
-import org.locationtech.spatial4j.shape.Rectangle;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectWriter;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializationFeature;
@@ -780,10 +771,13 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                             // LPPM - use parameters to improve compilation time in elastic.
                             if (compat.scriptWithParameters())
                             {
-                                Pair< Boolean, ImmutableMap.Builder > builderPair = getAdditionScriptWithParameters(information, storeName, mutation);
-                                if (builderPair.getLeft()){
+                                Pair<Boolean, ImmutableMap.Builder> builderPair = getAdditionScriptWithParameters(
+                                    information, storeName, mutation);
+                                if (builderPair.getLeft())
+                                {
                                     requestByStore.add(ElasticSearchMutation
-                                        .createUpdateRequest(indexStoreName, storeName, documentId, builderPair.getRight(), upsert));
+                                        .createUpdateRequest(indexStoreName, storeName, documentId,
+                                            builderPair.getRight(), upsert));
 
                                 }
 
@@ -833,7 +827,8 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
     }
 
     // LPPM - added a method to prepare addition scripts with parameters
-    private Pair<Boolean, ImmutableMap.Builder> getAdditionScriptWithParameters(KeyInformation.IndexRetriever information, String storeName, IndexMutation mutation)
+    private Pair<Boolean, ImmutableMap.Builder> getAdditionScriptWithParameters(
+        KeyInformation.IndexRetriever information, String storeName, IndexMutation mutation)
     {
 
         Boolean hasScript = false;
@@ -841,14 +836,11 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
         ImmutableMap.Builder builder = null;
         final StringBuilder script = new StringBuilder();
 
-
-        int counter = 0;
-        int dualMappingCounter = 0;
         Map<String, Object> parameters = new HashMap<>();
-        StringBuilder fieldArray = new StringBuilder("[");
-        StringBuilder valueArray = new StringBuilder("[");
-        StringBuilder fieldDualMappingArray = new StringBuilder("[");
-        StringBuilder valueDualMappingArray = new StringBuilder("[");
+        ArrayList fieldArray = new ArrayList();
+        ArrayList valueArray = new ArrayList();
+        ArrayList fieldDualMappingArray = new ArrayList();
+        ArrayList valueDualMappingArray = new ArrayList();
 
         for (final IndexEntry e : mutation.getAdditions())
         {
@@ -858,46 +850,31 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                 case SET:
                 case LIST:
 
-                    if (counter != 0)
-                    {
-                        fieldArray.append(",");
-                        valueArray.append(",");
-                    }
-                    counter ++;
                     hasScript = true;
 
-
-//                    StringBuilder sb = new StringBuilder("\"").append(e.field).append("\"");
+                    //                    StringBuilder sb = new StringBuilder("\"").append(e.field).append("\"");
                     String f = e.field;
-                    Object v = convertToEsType(e.value, Mapping.getMapping(keyInformation)); // convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation));
+                    Object v = convertToEsType(e.value, Mapping.getMapping(
+                        keyInformation)); // convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation));
 
-                    fieldArray.append("'").append(f).append("'");
-                    valueArray.append("'").append(v).append("'");
+                    fieldArray.add(f);
+                    valueArray.add(v);
 
-//
-//                    parameters.put("f"+counter, f);
-//                    parameters.put("v"+counter, v);
+                    //
+                    //                    parameters.put("f"+counter, f);
+                    //                    parameters.put("v"+counter, v);
 
-//                    script.append(
-//                        "if(ctx._source[params.f").append(counter).append("]==null)ctx._source[params.f").append(counter).append("]=[];ctx._source[params.f").append(counter).append("].add(params.v").append(counter).append(");");
+                    //                    script.append(
+                    //                        "if(ctx._source[params.f").append(counter).append("]==null)ctx._source[params.f").append(counter).append("]=[];ctx._source[params.f").append(counter).append("].add(params.v").append(counter).append(");");
                     if (hasDualStringMapping(keyInformation))
                     {
-                        if (dualMappingCounter != 0)
-                        {
-                            fieldDualMappingArray.append(",");
-                            valueDualMappingArray.append(",");
-                        }
-                        dualMappingCounter ++;
 
                         String fdm = getDualMappingName(e.field);
 
-                        fieldDualMappingArray.append("'").append(fdm).append("'");
-                        valueDualMappingArray.append("'").append(v).append("'");
-
-
+                        fieldDualMappingArray.add(fdm);
+                        valueDualMappingArray.add(v);
 
                     }
-
 
                     break;
                 default:
@@ -907,24 +884,17 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
 
         }
 
-        fieldArray.append("]");
-        valueArray.append("]");
-        fieldDualMappingArray.append("]");
-        valueDualMappingArray.append("]");
-
-
         if (hasScript)
         {
-            parameters.put("values", valueArray.toString());
-            parameters.put("fields", fieldArray.toString());
-            parameters.put("valuesDM", valueDualMappingArray.toString());
-            parameters.put("fieldsDM", fieldDualMappingArray.toString());
+            parameters.put("values", valueArray);
+            parameters.put("fields", fieldArray);
+            parameters.put("valuesDM", valueDualMappingArray);
+            parameters.put("fieldsDM", fieldDualMappingArray);
 
-//            script.append(
-//                "if(ctx._source[params.fdm").append(counter).append("]==null) ctx._source[params.fdm").append(counter).append("]=[];ctx._source[params.fdm").append(counter).append("].add(params.v").append(counter).append(");");
+            //            script.append(
+            //                "if(ctx._source[params.fdm").append(counter).append("]==null) ctx._source[params.fdm").append(counter).append("]=[];ctx._source[params.fdm").append(counter).append("].add(params.v").append(counter).append(");");
 
-
-            script.append("int totalValues = params.values.size();\n")
+            script.append("int totalValues = params.values.length;\n")
                   .append("int totalValuesDM = params.valuesDM.size();\n")
                   .append("for (int i = 0; i < totalValues; i++) {\n")
                   .append("    if(ctx._source[params.fields[i]] == null){\n")
@@ -938,7 +908,6 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                   .append("    }\n")
                   .append("    ctx._source[params.fieldsDM[i]].add(params.valuesDM.values[i]);\n")
                   .append("}\n");
-
 
             builder = ImmutableMap.builder();
 
