@@ -924,8 +924,8 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
 //                "if(ctx._source[params.fdm").append(counter).append("]==null) ctx._source[params.fdm").append(counter).append("]=[];ctx._source[params.fdm").append(counter).append("].add(params.v").append(counter).append(");");
 
 
-            script.append("int totalValues = params.values.length;\n")
-                  .append("int totalValuesDM = params.valuesDM.length;\n")
+            script.append("int totalValues = params.values.size();\n")
+                  .append("int totalValuesDM = params.valuesDM.size();\n")
                   .append("for (int i = 0; i < totalValues; i++) {\n")
                   .append("    if(ctx._source[params.fields[i]] == null){\n")
                   .append("        ctx._source[params.fields[i]] = [];\n")
@@ -936,7 +936,7 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                   .append("    if(ctx._source[params.fieldsDM[i]] == null){\n")
                   .append("        ctx._source[params.fieldsDM[i]] = [];\n")
                   .append("    }\n")
-                  .append("    ctx._source[params.fieldsDM[i]].add(valuesDM.values[i]);\n")
+                  .append("    ctx._source[params.fieldsDM[i]].add(params.valuesDM.values[i]);\n")
                   .append("}\n");
 
 
