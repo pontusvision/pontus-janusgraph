@@ -936,7 +936,7 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                   .append("    if(ctx._source[params.fieldsDM[i]] == null){\n")
                   .append("        ctx._source[params.fieldsDM[i]] = [];\n")
                   .append("    }\n")
-                  .append("    ctx._source[params.fieldsDM[i]].add(valuesDM.values[i]);\n")
+                  .append("    ctx._source[params.fieldsDM[i]].add(params.valuesDM.values[i]);\n")
                   .append("}\n");
 
 
