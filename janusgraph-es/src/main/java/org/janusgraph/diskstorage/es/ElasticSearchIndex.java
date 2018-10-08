@@ -843,7 +843,12 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
 
 
         int counter = 0;
+        int dualMappingCounter = 0;
         Map<String, Object> parameters = new HashMap<>();
+        StringBuilder fieldArray = new StringBuilder("[");
+        StringBuilder valueArray = new StringBuilder("[");
+        StringBuilder fieldDualMappingArray = new StringBuilder("[");
+        StringBuilder valueDualMappingArray = new StringBuilder("[");
 
         for (final IndexEntry e : mutation.getAdditions())
         {
@@ -853,6 +858,11 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                 case SET:
                 case LIST:
 
+                    if (counter != 0)
+                    {
+                        fieldArray.append(",");
+                        valueArray.append(",");
+                    }
                     counter ++;
                     hasScript = true;
 
@@ -861,19 +871,30 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                     String f = e.field;
                     Object v = convertToEsType(e.value, Mapping.getMapping(keyInformation)); // convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation));
 
-                    parameters.put("f"+counter, f);
-                    parameters.put("v"+counter, v);
+                    fieldArray.append("'").append(f).append("'");
+                    valueArray.append("'").append(v).append("'");
 
-                    script.append(
-                        "if(ctx._source[params.f").append(counter).append("]==null)ctx._source[params.f").append(counter).append("]=[];ctx._source[params.f").append(counter).append("].add(params.v").append(counter).append(");");
+//
+//                    parameters.put("f"+counter, f);
+//                    parameters.put("v"+counter, v);
+
+//                    script.append(
+//                        "if(ctx._source[params.f").append(counter).append("]==null)ctx._source[params.f").append(counter).append("]=[];ctx._source[params.f").append(counter).append("].add(params.v").append(counter).append(");");
                     if (hasDualStringMapping(keyInformation))
                     {
+                        if (dualMappingCounter != 0)
+                        {
+                            fieldDualMappingArray.append(",");
+                            valueDualMappingArray.append(",");
+                        }
+                        dualMappingCounter ++;
 
                         String fdm = getDualMappingName(e.field);
-                        script.append(
-                            "if(ctx._source[params.fdm").append(counter).append("]==null) ctx._source[params.fdm").append(counter).append("]=[];ctx._source[params.fdm").append(counter).append("].add(params.v").append(counter).append(");");
 
-                        parameters.put("fdm"+counter, fdm);
+                        fieldDualMappingArray.append("'").append(fdm).append("'");
+                        valueDualMappingArray.append("'").append(v).append("'");
+
+
 
                     }
 
@@ -886,9 +907,39 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
 
         }
 
+        fieldArray.append("]");
+        valueArray.append("]");
+        fieldDualMappingArray.append("]");
+        valueDualMappingArray.append("]");
+
 
         if (hasScript)
         {
+            parameters.put("values", valueArray.toString());
+            parameters.put("fields", fieldArray.toString());
+            parameters.put("valuesDM", valueDualMappingArray.toString());
+            parameters.put("fieldsDM", fieldDualMappingArray.toString());
+
+//            script.append(
+//                "if(ctx._source[params.fdm").append(counter).append("]==null) ctx._source[params.fdm").append(counter).append("]=[];ctx._source[params.fdm").append(counter).append("].add(params.v").append(counter).append(");");
+
+
+            script.append("int totalValues = params.values.length;\n")
+                  .append("int totalValuesDM = params.valuesDM.length;\n")
+                  .append("for (int i = 0; i < totalValues; i++) {\n")
+                  .append("    if(ctx._source[params.fields[i]] == null){\n")
+                  .append("        ctx._source[params.fields[i]] = [];\n")
+                  .append("    }\n")
+                  .append("    ctx._source[params.fields[i]].add(params.values[i]);\n")
+                  .append("}\n")
+                  .append("for (int i = 0; i < totalValuesDM; i++) {\n")
+                  .append("    if(ctx._source[params.fieldsDM[i]] == null){\n")
+                  .append("        ctx._source[params.fieldsDM[i]] = [];\n")
+                  .append("    }\n")
+                  .append("    ctx._source[params.fieldsDM[i]].add(valuesDM.values[i]);\n")
+                  .append("}\n");
+
+
             builder = ImmutableMap.builder();
 
             final Map<String, Object> scriptMap = ImmutableMap
