@@ -91,6 +91,15 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
         "Sets the maximum timeout (in milliseconds) to honour in case of multiple retries of the same request "
             + "sent using the ElasticSearch Rest Client by JanusGraph.", ConfigOption.Type.MASKABLE, Integer.class);
 
+    // LPPM - attempt to set the CONNECTION_REQUEST_TIMEOUT_MILLIS
+    public static final ConfigOption<Integer> CONNECTION_REQUEST_TIMEOUT_MILLIS = new ConfigOption<>(ELASTICSEARCH_NS,
+        "connection-request-timeout-millis",
+        "Sets the ElasticSearch connection request timeout in milliseconds; this is the time that we wait for"
+            + " the ElasticSearch connection to return; if this is set to de default value of 500ms during bulk loads, "
+            + "it may cause issues.", ConfigOption.Type.MASKABLE, Integer.class);
+
+
+
     public static final ConfigOption<String> BULK_REFRESH = new ConfigOption<>(ELASTICSEARCH_NS, "bulk-refresh",
         "Elasticsearch bulk API refresh setting used to control when changes made by this request are made "
             + "visible to search", ConfigOption.Type.MASKABLE, "false");
