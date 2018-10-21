@@ -14,18 +14,9 @@
 
 package org.janusgraph.diskstorage.es;
 
-import static org.janusgraph.diskstorage.es.ElasticSearchConstants.*;
-import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_LANG_KEY;
-import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.INDEX_MAX_RESULT_SET_SIZE;
-import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.INDEX_NAME;
-import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.INDEX_NS;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import org.apache.commons.lang3.tuple.Pair;
-import org.janusgraph.diskstorage.es.compat.ES6Compat;
-import org.janusgraph.diskstorage.es.rest.util.HttpAuthTypes;
-import org.locationtech.spatial4j.shape.Rectangle;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectWriter;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializationFeature;
@@ -99,6 +90,15 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
         "max-retry-timeout",
         "Sets the maximum timeout (in milliseconds) to honour in case of multiple retries of the same request "
             + "sent using the ElasticSearch Rest Client by JanusGraph.", ConfigOption.Type.MASKABLE, Integer.class);
+
+    // LPPM - attempt to set the CONNECTION_REQUEST_TIMEOUT_MILLIS
+    public static final ConfigOption<Integer> CONNECTION_REQUEST_TIMEOUT_MILLIS = new ConfigOption<>(ELASTICSEARCH_NS,
+        "connection-request-timeout-millis",
+        "Sets the ElasticSearch connection request timeout in milliseconds; this is the time that we wait for"
+            + " the ElasticSearch connection to return; if this is set to de default value of 500ms during bulk loads, "
+            + "it may cause issues.", ConfigOption.Type.MASKABLE, Integer.class);
+
+
 
     public static final ConfigOption<String> BULK_REFRESH = new ConfigOption<>(ELASTICSEARCH_NS, "bulk-refresh",
         "Elasticsearch bulk API refresh setting used to control when changes made by this request are made "
@@ -780,10 +780,13 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                             // LPPM - use parameters to improve compilation time in elastic.
                             if (compat.scriptWithParameters())
                             {
-                                Pair< Boolean, ImmutableMap.Builder > builderPair = getAdditionScriptWithParameters(information, storeName, mutation);
-                                if (builderPair.getLeft()){
+                                Pair<Boolean, ImmutableMap.Builder> builderPair = getAdditionScriptWithParameters(
+                                    information, storeName, mutation);
+                                if (builderPair.getLeft())
+                                {
                                     requestByStore.add(ElasticSearchMutation
-                                        .createUpdateRequest(indexStoreName, storeName, documentId, builderPair.getRight(), upsert));
+                                        .createUpdateRequest(indexStoreName, storeName, documentId,
+                                            builderPair.getRight(), upsert));
 
                                 }
 
@@ -833,7 +836,8 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
     }
 
     // LPPM - added a method to prepare addition scripts with parameters
-    private Pair<Boolean, ImmutableMap.Builder> getAdditionScriptWithParameters(KeyInformation.IndexRetriever information, String storeName, IndexMutation mutation)
+    private Pair<Boolean, ImmutableMap.Builder> getAdditionScriptWithParameters(
+        KeyInformation.IndexRetriever information, String storeName, IndexMutation mutation)
     {
 
         Boolean hasScript = false;
@@ -841,9 +845,11 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
         ImmutableMap.Builder builder = null;
         final StringBuilder script = new StringBuilder();
 
-
-        int counter = 0;
         Map<String, Object> parameters = new HashMap<>();
+        ArrayList fieldArray = new ArrayList();
+        ArrayList valueArray = new ArrayList();
+        ArrayList fieldDualMappingArray = new ArrayList();
+        ArrayList valueDualMappingArray = new ArrayList();
 
         for (final IndexEntry e : mutation.getAdditions())
         {
@@ -856,27 +862,29 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                     counter ++;
                     hasScript = true;
 
-
-//                    StringBuilder sb = new StringBuilder("\"").append(e.field).append("\"");
+                    //                    StringBuilder sb = new StringBuilder("\"").append(e.field).append("\"");
                     String f = e.field;
-                    Object v = convertToEsType(e.value, Mapping.getMapping(keyInformation)); // convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation));
+                    Object v = convertToEsType(e.value, Mapping.getMapping(
+                        keyInformation)); // convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation));
 
-                    parameters.put("f"+counter, f);
-                    parameters.put("v"+counter, v);
+                    fieldArray.add(f);
+                    valueArray.add(v);
 
-                    script.append(
-                        "if(ctx._source[params.f").append(counter).append("]==null)ctx._source[params.f").append(counter).append("]=[];ctx._source[params.f").append(counter).append("].add(params.v").append(counter).append(");");
+                    //
+                    //                    parameters.put("f"+counter, f);
+                    //                    parameters.put("v"+counter, v);
+
+                    //                    script.append(
+                    //                        "if(ctx._source[params.f").append(counter).append("]==null)ctx._source[params.f").append(counter).append("]=[];ctx._source[params.f").append(counter).append("].add(params.v").append(counter).append(");");
                     if (hasDualStringMapping(keyInformation))
                     {
 
                         String fdm = getDualMappingName(e.field);
-                        script.append(
-                            "if(ctx._source[params.fdm").append(counter).append("]==null) ctx._source[params.fdm").append(counter).append("]=[];ctx._source[params.fdm").append(counter).append("].add(params.v").append(counter).append(");");
 
-                        parameters.put("fdm"+counter, fdm);
+                        fieldDualMappingArray.add(fdm);
+                        valueDualMappingArray.add(v);
 
                     }
-
 
                     break;
                 default:
@@ -886,9 +894,31 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
 
         }
 
-
         if (hasScript)
         {
+            parameters.put("values", valueArray);
+            parameters.put("fields", fieldArray);
+            parameters.put("valuesDM", valueDualMappingArray);
+            parameters.put("fieldsDM", fieldDualMappingArray);
+
+            //            script.append(
+            //                "if(ctx._source[params.fdm").append(counter).append("]==null) ctx._source[params.fdm").append(counter).append("]=[];ctx._source[params.fdm").append(counter).append("].add(params.v").append(counter).append(");");
+
+            script.append("int totalValues = params.values.length;\n")
+                  .append("int totalValuesDM = params.valuesDM.size();\n")
+                  .append("for (int i = 0; i < totalValues; i++) {\n")
+                  .append("    if(ctx._source[params.fields[i]] == null){\n")
+                  .append("        ctx._source[params.fields[i]] = [];\n")
+                  .append("    }\n")
+                  .append("    ctx._source[params.fields[i]].add(params.values[i]);\n")
+                  .append("}\n")
+                  .append("for (int i = 0; i < totalValuesDM; i++) {\n")
+                  .append("    if(ctx._source[params.fieldsDM[i]] == null){\n")
+                  .append("        ctx._source[params.fieldsDM[i]] = [];\n")
+                  .append("    }\n")
+                  .append("    ctx._source[params.fieldsDM[i]].add(params.valuesDM.values[i]);\n")
+                  .append("}\n");
+
             builder = ImmutableMap.builder();
 
             final Map<String, Object> scriptMap = ImmutableMap
