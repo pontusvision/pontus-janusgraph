@@ -96,6 +96,7 @@ public class RestClientSetup {
             restClientBuilder.setMaxRetryTimeoutMillis(config.get(ElasticSearchIndex.MAX_RETRY_TIMEOUT));
         }
 
+
         return restClientBuilder.build();
     }
 
@@ -120,8 +121,24 @@ public class RestClientSetup {
      *            ES index configuration
      * @return callback or null if the request customization is not needed
      */
+
+    // LPPM - adding a custom configurator to set the CONNECTION_REQUEST_TIMEOUT_MILLIS option
+
     protected RequestConfigCallback getRequestConfigCallback(Configuration config) {
-        return null;
+
+        RequestConfigCallback requestConfigCallback = requestConfigBuilder -> {
+            if (config.has(ElasticSearchIndex.CONNECTION_REQUEST_TIMEOUT_MILLIS)) {
+                requestConfigBuilder.setConnectionRequestTimeout(config.get(ElasticSearchIndex.CONNECTION_REQUEST_TIMEOUT_MILLIS));
+            }
+            return requestConfigBuilder;
+        };
+
+
+
+
+
+
+        return requestConfigCallback;
     }
 
     /**

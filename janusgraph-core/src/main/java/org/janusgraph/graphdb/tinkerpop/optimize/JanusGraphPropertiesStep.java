@@ -115,26 +115,43 @@ public class JanusGraphPropertiesStep<E> extends PropertiesStep<E> implements Ha
     protected Iterator<E> flatMap(final Traverser.Admin<Element> traverser) {
         if (useMultiQuery) { //it is guaranteed that all elements are vertices
             assert multiQueryResults != null;
-            return convertIterator(multiQueryResults.get(traverser.get()));
+            // LPPM - attempt to fix an issue where the traverser is not in the query results... causing a null Pointer
+            Iterable<? extends JanusGraphProperty> iterable  = multiQueryResults.get(traverser.get());
+            if (iterable != null)
+            {
+                return convertIterator(iterable);
+            }
+            else
+            {
+                return flatMapDefault(traverser);
+            }
+
         } else if (traverser.get() instanceof JanusGraphVertex || traverser.get() instanceof WrappedVertex) {
             final JanusGraphVertexQuery query = makeQuery((JanusGraphTraversalUtil.getJanusGraphVertex(traverser)).query());
             return convertIterator(query.properties());
         } else {
             //It is some other element (edge or vertex property)
-            Iterator<E> iterator;
-            if (getReturnType().forValues()) {
-                assert orders.isEmpty() && hasContainers.isEmpty();
-                iterator = traverser.get().values(getPropertyKeys());
-            } else {
-                //this asks for properties
-                assert orders.isEmpty();
-                //HasContainers don't apply => empty result set
-                if (!hasContainers.isEmpty()) return Collections.emptyIterator();
-                iterator = (Iterator<E>) traverser.get().properties(getPropertyKeys());
-            }
-            if (limit!=Query.NO_LIMIT) iterator = Iterators.limit(iterator,limit);
-            return iterator;
+          return flatMapDefault(traverser);
         }
+    }
+
+    // LPPM
+    protected Iterator<E> flatMapDefault(final Traverser.Admin<Element> traverser) {
+
+        Iterator<E> iterator;
+        if (getReturnType().forValues()) {
+            assert orders.isEmpty() && hasContainers.isEmpty();
+            iterator = traverser.get().values(getPropertyKeys());
+        } else {
+            //this asks for properties
+            assert orders.isEmpty();
+            //HasContainers don't apply => empty result set
+            if (!hasContainers.isEmpty()) return Collections.emptyIterator();
+            iterator = (Iterator<E>) traverser.get().properties(getPropertyKeys());
+        }
+        if (limit!=Query.NO_LIMIT) iterator = Iterators.limit(iterator,limit);
+        return iterator;
+
     }
 
     @Override

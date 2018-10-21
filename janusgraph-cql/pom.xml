@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.janusgraph</groupId>
         <artifactId>janusgraph</artifactId>
-        <version>0.3.1</version>
+        <version>100-3.0</version>
     </parent>
 
     <artifactId>janusgraph-cql</artifactId>
@@ -35,10 +35,22 @@
             <groupId>com.datastax.cassandra</groupId>
             <artifactId>cassandra-driver-core</artifactId>
             <version>${cassandra-driver.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-handler</artifactId>
+            <exclusions>
+                <!-- conflicts with netty-all from org.apache.hbase:hbase-client -->
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-handler</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>

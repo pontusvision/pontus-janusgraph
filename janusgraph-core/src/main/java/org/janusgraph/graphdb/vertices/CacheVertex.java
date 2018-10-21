@@ -14,6 +14,7 @@
 
 package org.janusgraph.graphdb.vertices;
 
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.janusgraph.diskstorage.EntryList;
 import org.janusgraph.diskstorage.keycolumnvalue.SliceQuery;
 import org.janusgraph.graphdb.transaction.StandardJanusGraphTx;
@@ -91,6 +92,7 @@ public class CacheVertex extends StandardVertex {
             }
         }
         return null;
+
     }
 
 }

@@ -966,7 +966,7 @@ public class SolrIndex implements IndexProvider {
             }
             logger.debug("Clearing storage from Solr: {}", solrClient);
             final ZkStateReader zkStateReader = ((CloudSolrClient) solrClient).getZkStateReader();
-            zkStateReader.forciblyRefreshAllClusterStateSlow();
+            zkStateReader.updateClusterState();
             final ClusterState clusterState = zkStateReader.getClusterState();
             for (final String collection : clusterState.getCollectionsMap().keySet()) {
                 logger.debug("Clearing collection [{}] in Solr",collection);
@@ -1088,7 +1088,7 @@ public class SolrIndex implements IndexProvider {
         final CloudSolrClient server = (CloudSolrClient) solrClient;
         try {
             final ZkStateReader zkStateReader = server.getZkStateReader();
-            zkStateReader.forciblyRefreshAllClusterStateSlow();
+            zkStateReader.updateClusterState();
             final ClusterState clusterState = zkStateReader.getClusterState();
             final Map<String, DocCollection> collections = clusterState.getCollectionsMap();
             return collections != null && !collections.isEmpty();
