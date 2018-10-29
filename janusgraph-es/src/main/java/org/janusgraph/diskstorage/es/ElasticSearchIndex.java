@@ -850,6 +850,7 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
         ArrayList valueArray = new ArrayList();
         ArrayList fieldDualMappingArray = new ArrayList();
         ArrayList valueDualMappingArray = new ArrayList();
+        int counter = 0;
 
         for (final IndexEntry e : mutation.getAdditions())
         {
