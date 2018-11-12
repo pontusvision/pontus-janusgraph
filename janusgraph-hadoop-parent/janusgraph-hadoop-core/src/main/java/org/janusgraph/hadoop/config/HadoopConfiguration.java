@@ -97,8 +97,48 @@ public class HadoopConfiguration implements WriteConfiguration {
         } else throw new IllegalArgumentException("Unsupported data type: " + dataType);
     }
 
+
+    // LPPM - added synchronization in getKeys to avoid a concurrent exception in the OLAP jobs:
+    /*
+        at java.util.Hashtable$Enumerator.next(Hashtable.java:1387)
+        at org.apache.hadoop.conf.Configuration.iterator(Configuration.java:2451)
+        at java.lang.Iterable.spliterator(Iterable.java:101)
+        at org.janusgraph.hadoop.config.HadoopConfiguration.getKeys(HadoopConfiguration.java:107)
+        at org.janusgraph.diskstorage.configuration.AbstractConfiguration.getSubset(AbstractConfiguration.java:78)
+        at org.janusgraph.diskstorage.configuration.BasicConfiguration.getSubset(BasicConfiguration.java:79)
+        at org.janusgraph.hadoop.formats.hbase.HBaseBinaryInputFormat.setConf(HBaseBinaryInputFormat.java:72)
+        at org.janusgraph.hadoop.formats.util.GiraphInputFormat.setConf(GiraphInputFormat.java:74)
+        at org.apache.spark.rdd.NewHadoopRDD$$anon$1.<init>(NewHadoopRDD.scala:172)
+        at org.apache.spark.rdd.NewHadoopRDD.compute(NewHadoopRDD.scala:134)
+        at org.apache.spark.rdd.NewHadoopRDD.compute(NewHadoopRDD.scala:69)
+        at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:323)
+        at org.apache.spark.rdd.RDD.iterator(RDD.scala:287)
+        at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:38)
+        at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:323)
+        at org.apache.spark.rdd.RDD.iterator(RDD.scala:287)
+        at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:38)
+        at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:323)
+        at org.apache.spark.rdd.RDD.iterator(RDD.scala:287)
+        at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:38)
+        at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:323)
+        at org.apache.spark.rdd.RDD.iterator(RDD.scala:287)
+        at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:38)
+        at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:323)
+        at org.apache.spark.rdd.RDD.iterator(RDD.scala:287)
+        at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:38)
+        at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:323)
+        at org.apache.spark.rdd.RDD.iterator(RDD.scala:287)
+        at org.apache.spark.scheduler.ResultTask.runTask(ResultTask.scala:87)
+        at org.apache.spark.scheduler.Task.run(Task.scala:108)
+        at org.apache.spark.executor.Executor$TaskRunner.run(Executor.scala:335)
+        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+        at java.lang.Thread.run(Thread.java:748)
+     */
+
     @Override
-    public Iterable<String> getKeys(final String userPrefix) {
+    public synchronized Iterable<String> getKeys(final String userPrefix) {
+
         /*
          * Is there a way to iterate over just the keys of a Hadoop Configuration?
          * Iterating over Map.Entry is needlessly wasteful since we don't need the values.
