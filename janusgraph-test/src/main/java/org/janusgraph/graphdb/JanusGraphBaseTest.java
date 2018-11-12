@@ -81,7 +81,8 @@ public abstract class JanusGraphBaseTest {
         getBackend(config, true).clearStorage();
     }
 
-    public static Backend getBackend(WriteConfiguration config, boolean initialize) throws BackendException {
+    public static Backend getBackend(WriteConfiguration config, boolean initialize)
+    {
         final ModifiableConfiguration adjustedConfig = new ModifiableConfiguration(GraphDatabaseConfiguration.ROOT_NS,config.copy(), BasicConfiguration.Restriction.NONE);
         adjustedConfig.set(GraphDatabaseConfiguration.LOCK_LOCAL_MEDIATOR_GROUP, "tmp");
         adjustedConfig.set(GraphDatabaseConfiguration.UNIQUE_INSTANCE_ID, "inst");
@@ -447,7 +448,8 @@ public abstract class JanusGraphBaseTest {
         return StreamSupport.stream(iterable.spliterator(),false);
     }
 
-    public JanusGraph getForceIndexGraph() throws BackendException {
+    public JanusGraph getForceIndexGraph()
+    {
         final ModifiableConfiguration adjustedConfig = new ModifiableConfiguration(GraphDatabaseConfiguration.ROOT_NS,getConfiguration(), BasicConfiguration.Restriction.NONE);
         adjustedConfig.set(GraphDatabaseConfiguration.FORCE_INDEX_USAGE, true);
         final WriteConfiguration writeConfig = adjustedConfig.getConfiguration();

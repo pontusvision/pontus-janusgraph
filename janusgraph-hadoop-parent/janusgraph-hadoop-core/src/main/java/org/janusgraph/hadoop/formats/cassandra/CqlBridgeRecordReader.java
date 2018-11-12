@@ -104,7 +104,8 @@ public class CqlBridgeRecordReader extends RecordReader<StaticBuffer, Iterable<E
     }
 
     @Override
-    public void initialize(InputSplit split, TaskAttemptContext context) throws IOException {
+    public void initialize(InputSplit split, TaskAttemptContext context)
+    {
         this.split = (ColumnFamilySplit) split;
         Configuration conf = HadoopCompat.getConfiguration(context);
         totalRowCount = (this.split.getLength() < Long.MAX_VALUE)
@@ -187,7 +188,8 @@ public class CqlBridgeRecordReader extends RecordReader<StaticBuffer, Iterable<E
     }
 
     @Override
-    public Iterable<Entry> getCurrentValue() throws IOException {
+    public Iterable<Entry> getCurrentValue()
+    {
         return currentKV.entries;
     }
 
@@ -201,7 +203,8 @@ public class CqlBridgeRecordReader extends RecordReader<StaticBuffer, Iterable<E
         return progress > 1.0F ? 1.0F : progress;
     }
 
-    public boolean nextKeyValue() throws IOException {
+    public boolean nextKeyValue()
+    {
         final Map<StaticArrayBuffer, Map<StaticBuffer, StaticBuffer>> kv = distinctKeyIterator.next();
         if (kv == null) {
             return false;

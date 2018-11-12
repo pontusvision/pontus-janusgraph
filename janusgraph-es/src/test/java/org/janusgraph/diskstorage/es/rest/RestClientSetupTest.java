@@ -587,7 +587,8 @@ public class RestClientSetupTest {
         }
 
         @Override
-        public void init() throws IOException {
+        public void init()
+        {
             numInitCalls++;
         }
     }

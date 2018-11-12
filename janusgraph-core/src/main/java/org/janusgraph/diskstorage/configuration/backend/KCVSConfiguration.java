@@ -63,7 +63,8 @@ public class KCVSConfiguration implements ConcurrentWriteConfiguration {
     private Duration maxOperationWaitTime = Duration.ofMillis(10000L);
 
     public KCVSConfiguration(BackendOperation.TransactionalProvider txProvider, Configuration config,
-                             KeyColumnValueStore store, String identifier) throws BackendException {
+                             KeyColumnValueStore store, String identifier)
+    {
         Preconditions.checkArgument(txProvider!=null && store!=null && config!=null);
         Preconditions.checkArgument(StringUtils.isNotBlank(identifier));
         this.txProvider = txProvider;

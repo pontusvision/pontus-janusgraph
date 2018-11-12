@@ -92,7 +92,7 @@ public class ElasticSearchIndexTest extends IndexProviderTest {
     }
 
     @AfterClass
-    public static void stopElasticsearch() throws ClientProtocolException, IOException {
+    public static void stopElasticsearch() throws IOException {
         IOUtils.closeQuietly(httpClient.execute(host, new HttpDelete("janusgraph*")));
         IOUtils.closeQuietly(httpClient);
         esr.stop();

@@ -37,7 +37,8 @@ public class ThriftGraphSpeedTest extends JanusGraphSpeedTest {
     private static final Logger log =
             LoggerFactory.getLogger(ThriftGraphSpeedTest.class);
 
-    public ThriftGraphSpeedTest() throws BackendException {
+    public ThriftGraphSpeedTest()
+    {
         super(CassandraStorageSetup.getCassandraThriftGraphConfiguration(ThriftGraphSpeedTest.class.getSimpleName()));
     }
 

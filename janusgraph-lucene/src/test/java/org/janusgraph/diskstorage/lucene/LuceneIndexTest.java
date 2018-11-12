@@ -55,7 +55,8 @@ public class LuceneIndexTest extends IndexProviderTest {
     public TestName methodName = new TestName();
 
     @Override
-    public IndexProvider openIndex() throws BackendException {
+    public IndexProvider openIndex()
+    {
         return new LuceneIndex(getLocalLuceneTestConfig());
     }
 

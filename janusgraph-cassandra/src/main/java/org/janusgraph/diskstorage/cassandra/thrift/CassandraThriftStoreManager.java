@@ -228,7 +228,8 @@ public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
     }
 
     @Override
-    public void close() throws BackendException {
+    public void close()
+    {
         openStores.clear();
         closePool();
     }

@@ -88,7 +88,8 @@ public class SubqueryIterator implements Iterator<JanusGraphElement>, AutoClosea
     }
 
     @Override
-    public void close() throws Exception {
+    public void close()
+    {
         if (isTimerRunning) {
             profiler.stopTimer();
         }

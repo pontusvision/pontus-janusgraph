@@ -142,7 +142,8 @@ public class IndexTransaction implements BaseTransaction, LoggableTransaction {
 
 
 
-    private void flushInternal() throws BackendException {
+    private void flushInternal()
+    {
         if (mutations!=null && !mutations.isEmpty()) {
             //Consolidate all mutations prior to persistence to ensure that no addition accidentally gets swallowed by a delete
             for (Map<String, IndexMutation> store : mutations.values()) {

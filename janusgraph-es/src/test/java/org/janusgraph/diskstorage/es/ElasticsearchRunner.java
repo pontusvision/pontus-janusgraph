@@ -104,7 +104,8 @@ public class ElasticsearchRunner extends DaemonRunner<ElasticsearchStatus> {
     }
 
     @Override
-    protected void killImpl(ElasticsearchStatus stat) throws IOException {
+    protected void killImpl(ElasticsearchStatus stat)
+    {
         log.info("Killing {} pid {}...", getDaemonShortName(), stat.getPid());
 
         runCommand("/bin/kill", String.valueOf(stat.getPid()));

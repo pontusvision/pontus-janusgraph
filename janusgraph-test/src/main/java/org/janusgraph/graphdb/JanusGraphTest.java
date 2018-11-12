@@ -2655,7 +2655,8 @@ public abstract class JanusGraphTest extends JanusGraphBaseTest {
     }
 
     @Test
-    public void testConcurrentConsistencyEnforcement() throws Exception {
+    public void testConcurrentConsistencyEnforcement()
+    {
         PropertyKey name = mgmt.makePropertyKey("name").dataType(String.class).cardinality(Cardinality.SINGLE).make();
         JanusGraphIndex nameIndex = mgmt.buildIndex("name", Vertex.class)
                 .addKey(name).unique().buildCompositeIndex();
@@ -5728,7 +5729,8 @@ public abstract class JanusGraphTest extends JanusGraphBaseTest {
     }
 
     @Test
-    public void testVertexTTLImplicitKey() throws Exception {
+    public void testVertexTTLImplicitKey()
+    {
         Duration d;
 
         if (!features.hasCellTTL()) {

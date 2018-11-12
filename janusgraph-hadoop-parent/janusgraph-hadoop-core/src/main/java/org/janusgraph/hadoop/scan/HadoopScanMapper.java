@@ -95,7 +95,8 @@ public class HadoopScanMapper extends Mapper<StaticBuffer, Iterable<Entry>, Null
     }
 
     @Override
-    protected void map(StaticBuffer key, Iterable<Entry> values, Context context) throws IOException, InterruptedException {
+    protected void map(StaticBuffer key, Iterable<Entry> values, Context context)
+    {
         EntryArrayList al = EntryArrayList.of(values);
 
         // KeyFilter check

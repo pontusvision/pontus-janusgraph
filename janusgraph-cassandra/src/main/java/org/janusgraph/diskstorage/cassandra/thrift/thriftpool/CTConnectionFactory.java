@@ -53,12 +53,14 @@ public class CTConnectionFactory implements KeyedPoolableObjectFactory<String, C
     }
 
     @Override
-    public void activateObject(String key, CTConnection c) throws Exception {
+    public void activateObject(String key, CTConnection c)
+    {
         // Do nothing, as in passivateObject
     }
 
     @Override
-    public void destroyObject(String key, CTConnection c) throws Exception {
+    public void destroyObject(String key, CTConnection c)
+    {
         TTransport t = c.getTransport();
 
         if (t.isOpen()) {
@@ -126,7 +128,8 @@ public class CTConnectionFactory implements KeyedPoolableObjectFactory<String, C
     }
 
     @Override
-    public void passivateObject(String key, CTConnection o) throws Exception {
+    public void passivateObject(String key, CTConnection o)
+    {
         // Do nothing, as in activateObject
     }
 

@@ -53,7 +53,8 @@ public class RestClientSetup {
 
     private static final Logger log = LoggerFactory.getLogger(RestClientSetup.class);
 
-    public ElasticSearchClient connect(Configuration config) throws IOException {
+    public ElasticSearchClient connect(Configuration config)
+    {
         log.debug("Configuring RestClient");
 
         final List<HttpHost> hosts = new ArrayList<>();

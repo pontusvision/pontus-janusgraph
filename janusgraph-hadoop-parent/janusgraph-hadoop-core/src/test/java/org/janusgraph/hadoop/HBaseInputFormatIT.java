@@ -32,7 +32,8 @@ import java.nio.file.Paths;
 public class HBaseInputFormatIT extends AbstractInputFormatIT {
 
     @BeforeClass
-    public static void startHBase() throws IOException, BackendException {
+    public static void startHBase() throws IOException
+    {
         HBaseStorageSetup.startHBase();
     }
 

@@ -266,7 +266,8 @@ public class CQLKeyColumnValueStore implements KeyColumnValueStore {
     }
 
     @Override
-    public void close() throws BackendException {
+    public void close()
+    {
         this.closer.run();
     }
 
@@ -291,7 +292,8 @@ public class CQLKeyColumnValueStore implements KeyColumnValueStore {
     }
 
     @Override
-    public Map<StaticBuffer, EntryList> getSlice(final List<StaticBuffer> keys, final SliceQuery query, final StoreTransaction txh) throws BackendException {
+    public Map<StaticBuffer, EntryList> getSlice(final List<StaticBuffer> keys, final SliceQuery query, final StoreTransaction txh)
+    {
         throw new UnsupportedOperationException("The CQL backend does not support multi-key queries");
     }
 
@@ -364,7 +366,8 @@ public class CQLKeyColumnValueStore implements KeyColumnValueStore {
     }
 
     @Override
-    public void acquireLock(final StaticBuffer key, final StaticBuffer column, final StaticBuffer expectedValue, final StoreTransaction txh) throws BackendException {
+    public void acquireLock(final StaticBuffer key, final StaticBuffer column, final StaticBuffer expectedValue, final StoreTransaction txh)
+    {
         throw new UnsupportedOperationException();
     }
 

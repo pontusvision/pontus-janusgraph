@@ -493,7 +493,8 @@ public class HBaseStoreManager extends DistributedStoreManager implements KeyCol
     }
 
     @Override
-    public StoreTransaction beginTransaction(final BaseTransactionConfig config) throws BackendException {
+    public StoreTransaction beginTransaction(final BaseTransactionConfig config)
+    {
         return new HBaseTransaction(config);
     }
 

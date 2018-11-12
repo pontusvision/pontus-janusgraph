@@ -89,12 +89,14 @@ public class GiraphRecordReader extends RecordReader<NullWritable, VertexWritabl
     }
 
     @Override
-    public NullWritable getCurrentKey() throws IOException, InterruptedException {
+    public NullWritable getCurrentKey()
+    {
         return NullWritable.get();
     }
 
     @Override
-    public VertexWritable getCurrentValue() throws IOException, InterruptedException {
+    public VertexWritable getCurrentValue()
+    {
         return vertex;
     }
 

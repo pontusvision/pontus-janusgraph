@@ -56,7 +56,8 @@ public class CassandraBinaryInputFormat extends AbstractBinaryInputFormat {
     }
 
     @Override
-    public List<InputSplit> getSplits(final JobContext jobContext) throws IOException, InterruptedException {
+    public List<InputSplit> getSplits(final JobContext jobContext) throws IOException
+    {
         return this.columnFamilyInputFormat.getSplits(jobContext);
     }
 

@@ -42,7 +42,8 @@ public class BasicAuthHttpClientConfigCallbackTest {
     private final HttpAsyncClientBuilder httpAsyncClientBuilderMock = PowerMockito.mock(HttpAsyncClientBuilder.class);
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp()
+    {
         MockitoAnnotations.initMocks(this);
         when(httpAsyncClientBuilderMock.setDefaultCredentialsProvider(anyObject())).thenReturn(httpAsyncClientBuilderMock);
     }
@@ -64,7 +65,8 @@ public class BasicAuthHttpClientConfigCallbackTest {
     }
 
     @Test
-    public void testSetDefaultCredentialsProviderNoRealm() throws Exception {
+    public void testSetDefaultCredentialsProviderNoRealm()
+    {
 
         final CredentialsProvider cp = basicAuthTestBase("");
 
@@ -75,7 +77,8 @@ public class BasicAuthHttpClientConfigCallbackTest {
     }
 
     @Test
-    public void testSetDefaultCredentialsProviderWithRealm() throws Exception {
+    public void testSetDefaultCredentialsProviderWithRealm()
+    {
 
         final CredentialsProvider cp = basicAuthTestBase(HTTP_REALM);
 

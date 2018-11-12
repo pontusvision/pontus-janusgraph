@@ -447,7 +447,7 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
      * @param information information of the key
      */
     private void pushMapping(String store, String key, KeyInformation information)
-        throws AssertionError, PermanentBackendException, BackendException
+        throws AssertionError, BackendException
     {
         final Class<?> dataType = information.getDataType();
         Mapping map = Mapping.getMapping(information);
@@ -1570,7 +1570,7 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
         return compat.getIndexFeatures();
     }
 
-    @Override public BaseTransactionConfigurable beginTransaction(BaseTransactionConfig config) throws BackendException
+    @Override public BaseTransactionConfigurable beginTransaction(BaseTransactionConfig config)
     {
         return new DefaultTransaction(config);
     }

@@ -198,7 +198,8 @@ public class LuceneIndex implements IndexProvider {
     }
 
     @Override
-    public void register(String store, String key, KeyInformation information, BaseTransaction tx) throws BackendException {
+    public void register(String store, String key, KeyInformation information, BaseTransaction tx)
+    {
         final Class<?> dataType = information.getDataType();
         final Mapping map = Mapping.getMapping(information);
         Preconditions.checkArgument(map == Mapping.DEFAULT || AttributeUtil.isString(dataType) ||
@@ -759,7 +760,8 @@ public class LuceneIndex implements IndexProvider {
     }
 
     @Override
-    public BaseTransactionConfigurable beginTransaction(BaseTransactionConfig config) throws BackendException {
+    public BaseTransactionConfigurable beginTransaction(BaseTransactionConfig config)
+    {
         return new Transaction(config);
     }
 

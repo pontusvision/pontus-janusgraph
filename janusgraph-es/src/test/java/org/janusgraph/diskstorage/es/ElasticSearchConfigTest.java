@@ -320,7 +320,8 @@ public class ElasticSearchConfigTest {
     }
 
     @Test
-    public void testSplitIndexToMultiType() throws InterruptedException, BackendException, IOException {
+    public void testSplitIndexToMultiType() throws InterruptedException, BackendException
+    {
         final ModifiableConfiguration config = esr.setElasticsearchConfiguration(GraphDatabaseConfiguration.buildGraphConfiguration(), INDEX_NAME);
         config.set(USE_DEPRECATED_MULTITYPE_INDEX, false, INDEX_NAME);
         Configuration indexConfig = config.restrictTo(INDEX_NAME);
@@ -339,7 +340,8 @@ public class ElasticSearchConfigTest {
     }
 
     @Test
-    public void testMultiTypeToSplitIndex() throws InterruptedException, BackendException, IOException {
+    public void testMultiTypeToSplitIndex() throws InterruptedException, BackendException
+    {
         final ModifiableConfiguration config = esr.setElasticsearchConfiguration(GraphDatabaseConfiguration.buildGraphConfiguration(), INDEX_NAME);
         config.set(USE_DEPRECATED_MULTITYPE_INDEX, true, INDEX_NAME);
         Configuration indexConfig = config.restrictTo(INDEX_NAME);
@@ -358,7 +360,8 @@ public class ElasticSearchConfigTest {
     }
 
     @Test
-    public void testMultiTypeUpgrade() throws InterruptedException, BackendException, IOException {
+    public void testMultiTypeUpgrade() throws InterruptedException, BackendException
+    {
         // create multi-type index
         final ModifiableConfiguration config = esr.setElasticsearchConfiguration(GraphDatabaseConfiguration.buildGraphConfiguration(), INDEX_NAME);
         config.set(USE_DEPRECATED_MULTITYPE_INDEX, true, INDEX_NAME);

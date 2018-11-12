@@ -410,7 +410,8 @@ public class AstyanaxStoreManager extends AbstractCassandraStoreManager {
     }
 
     @Override
-    public List<KeyRange> getLocalKeyPartition() throws BackendException {
+    public List<KeyRange> getLocalKeyPartition()
+    {
         throw new UnsupportedOperationException();
     }
 

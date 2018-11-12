@@ -54,7 +54,8 @@ public class HBaseAuthHelper {
         return inner;
     }
 
-    public static void setHBaseAuthToken(Configuration configuration, Job job) throws IOException {
+    public static void setHBaseAuthToken(Configuration configuration, Job job)
+    {
         // Get HBase authentication token (when configured)
 
         String hbaseAuthentication = configuration.get("hbase.security.authentication");

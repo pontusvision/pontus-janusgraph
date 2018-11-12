@@ -39,7 +39,8 @@ public class NoLock implements Lock {
     }
 
     @Override
-    public void lockInterruptibly() throws InterruptedException {
+    public void lockInterruptibly()
+    {
         throw new UnsupportedOperationException();
     }
 
@@ -49,7 +50,8 @@ public class NoLock implements Lock {
     }
 
     @Override
-    public boolean tryLock(long l, TimeUnit timeUnit) throws InterruptedException {
+    public boolean tryLock(long l, TimeUnit timeUnit)
+    {
         return true;
     }
 

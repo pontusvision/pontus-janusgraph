@@ -366,7 +366,8 @@ public class HMACAuthenticatorTest extends EasyMockSupport {
         return sharedVars;
     }
 
-    private void testFailureShortenedToken(final Map<String, String> sharedVars) throws AuthenticationException {
+    private void testFailureShortenedToken(final Map<String, String> sharedVars)
+    {
         final String token = sharedVars.get("hmacToken");
         final String bcryptedPass = sharedVars.get("encryptedPass");
         final Map<String, String> credentials = new HashMap<>();

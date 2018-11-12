@@ -56,7 +56,8 @@ public class SaslAndHMACAuthenticator extends JanusGraphAbstractAuthenticator {
     }
 
     @Override
-    public AuthenticatedUser authenticate(final Map<String, String> credentials) throws AuthenticationException {
+    public AuthenticatedUser authenticate(final Map<String, String> credentials)
+    {
         throw new IllegalStateException(ILLEGAL_STATE_MESSAGE);
     }
 

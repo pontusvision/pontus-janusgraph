@@ -76,12 +76,14 @@ public class CassandraEmbeddedKeyColumnValueStore implements KeyColumnValueStore
     }
 
     @Override
-    public void close() throws BackendException {
+    public void close()
+    {
     }
 
     @Override
     public void acquireLock(StaticBuffer key, StaticBuffer column,
-                            StaticBuffer expectedValue, StoreTransaction txh) throws BackendException {
+                            StaticBuffer expectedValue, StoreTransaction txh)
+    {
         throw new UnsupportedOperationException();
     }
 
@@ -227,7 +229,8 @@ public class CassandraEmbeddedKeyColumnValueStore implements KeyColumnValueStore
     }
 
     @Override
-    public Map<StaticBuffer,EntryList> getSlice(List<StaticBuffer> keys, SliceQuery query, StoreTransaction txh) throws BackendException {
+    public Map<StaticBuffer,EntryList> getSlice(List<StaticBuffer> keys, SliceQuery query, StoreTransaction txh)
+    {
         throw new UnsupportedOperationException();
     }
 

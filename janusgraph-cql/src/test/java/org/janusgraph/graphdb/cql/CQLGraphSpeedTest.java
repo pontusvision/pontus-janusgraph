@@ -35,7 +35,8 @@ public class CQLGraphSpeedTest extends JanusGraphSpeedTest {
 
     private static final Logger log = LoggerFactory.getLogger(CQLGraphSpeedTest.class);
 
-    public CQLGraphSpeedTest() throws BackendException {
+    public CQLGraphSpeedTest()
+    {
         super(CassandraStorageSetup.getCQLConfiguration(CQLGraphSpeedTest.class.getSimpleName()).getConfiguration());
     }
 
