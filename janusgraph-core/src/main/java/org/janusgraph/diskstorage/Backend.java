@@ -282,8 +282,7 @@ public class Backend implements LockerProvider, AutoCloseable {
                 }
 
                 @Override
-                public void close()
-                {
+                public void close() throws BackendException {
                     //Do nothing, storeManager is closed explicitly by Backend
                 }
             },systemConfigStore,configuration);
@@ -294,8 +293,7 @@ public class Backend implements LockerProvider, AutoCloseable {
                 }
 
                 @Override
-                public void close()
-                {
+                public void close() throws BackendException {
                     //Do nothing, storeManager is closed explicitly by Backend
                 }
             },systemConfigStore,USER_CONFIGURATION_IDENTIFIER,configuration);

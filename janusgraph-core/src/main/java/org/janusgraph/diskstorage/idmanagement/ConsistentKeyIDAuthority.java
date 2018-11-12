@@ -100,8 +100,7 @@ public class ConsistentKeyIDAuthority extends AbstractIDAuthority implements Bac
 
     private final Random random = new Random();
 
-    public ConsistentKeyIDAuthority(KeyColumnValueStore idStore, StoreManager manager, Configuration config)
-    {
+    public ConsistentKeyIDAuthority(KeyColumnValueStore idStore, StoreManager manager, Configuration config) throws BackendException {
         super(config);
         Preconditions.checkArgument(manager.getFeatures().isKeyConsistent());
         this.manager = manager;

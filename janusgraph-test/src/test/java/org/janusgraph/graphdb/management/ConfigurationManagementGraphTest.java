@@ -38,8 +38,7 @@ import static org.junit.Assert.*;
 public class ConfigurationManagementGraphTest {
 
     @Test
-    public void shouldReindexIfPropertyKeyExists()
-    {
+    public void shouldReindexIfPropertyKeyExists() throws Exception {
         final JanusGraphManager gm = new JanusGraphManager(new Settings());
         final Map<String, Object> map = new HashMap<>();
         map.put(STORAGE_BACKEND.toStringWithoutRoot(), "inmemory");

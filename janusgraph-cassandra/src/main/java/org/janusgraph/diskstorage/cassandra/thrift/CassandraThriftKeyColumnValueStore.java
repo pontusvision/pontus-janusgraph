@@ -205,8 +205,7 @@ public class CassandraThriftKeyColumnValueStore implements KeyColumnValueStore {
 
     @Override
     public void acquireLock(StaticBuffer key, StaticBuffer column, StaticBuffer expectedValue,
-                            StoreTransaction txh)
-    {
+                            StoreTransaction txh) throws BackendException {
         throw new UnsupportedOperationException();
     }
 

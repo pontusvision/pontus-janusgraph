@@ -30,8 +30,7 @@ import java.io.IOException;
 public class HBaseStoreTest extends KeyColumnValueStoreTest {
 
     @BeforeClass
-    public static void startHBase() throws IOException
-    {
+    public static void startHBase() throws IOException, BackendException {
         HBaseStorageSetup.startHBase();
     }
 

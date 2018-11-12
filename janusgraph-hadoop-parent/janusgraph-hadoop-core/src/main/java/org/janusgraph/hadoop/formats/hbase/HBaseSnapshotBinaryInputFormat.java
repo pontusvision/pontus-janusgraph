@@ -96,8 +96,7 @@ public class HBaseSnapshotBinaryInputFormat extends AbstractBinaryInputFormat {
     }
 
     @Override
-    public RecordReader<StaticBuffer, Iterable<Entry>> createRecordReader(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException
-    {
+    public RecordReader<StaticBuffer, Iterable<Entry>> createRecordReader(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         tableReader = tableSnapshotInputFormat.createRecordReader(inputSplit, taskAttemptContext);
         janusgraphRecordReader = new HBaseBinaryRecordReader(tableReader, edgeStoreFamily);
         return janusgraphRecordReader;

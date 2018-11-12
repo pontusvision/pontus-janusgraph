@@ -47,14 +47,12 @@ public class CassandraBinaryRecordReader extends RecordReader<StaticBuffer, Iter
     }
 
     @Override
-    public void initialize(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException
-    {
+    public void initialize(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         reader.initialize(inputSplit, taskAttemptContext);
     }
 
     @Override
-    public boolean nextKeyValue() throws IOException
-    {
+    public boolean nextKeyValue() throws IOException, InterruptedException {
         return null != (currentKV = completeNextKV());
     }
 
@@ -99,20 +97,17 @@ public class CassandraBinaryRecordReader extends RecordReader<StaticBuffer, Iter
     }
 
     @Override
-    public StaticBuffer getCurrentKey()
-    {
+    public StaticBuffer getCurrentKey() throws IOException, InterruptedException {
         return currentKV.key;
     }
 
     @Override
-    public Iterable<Entry> getCurrentValue()
-    {
+    public Iterable<Entry> getCurrentValue() throws IOException, InterruptedException {
         return currentKV.entries;
     }
 
     @Override
-    public void close()
-    {
+    public void close() throws IOException {
         reader.close();
     }
 

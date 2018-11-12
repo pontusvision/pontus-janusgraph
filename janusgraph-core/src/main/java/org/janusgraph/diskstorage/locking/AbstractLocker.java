@@ -365,8 +365,7 @@ public abstract class AbstractLocker<S extends LockStatus> implements Locker {
     }
 
     @Override
-    public void deleteLocks(StoreTransaction tx)
-    {
+    public void deleteLocks(StoreTransaction tx) throws TemporaryLockingException, PermanentLockingException {
         if (null != tx.getConfiguration().getGroupName()) {
             MetricManager.INSTANCE.getCounter(tx.getConfiguration().getGroupName(), M_LOCKS, M_DELETE, M_CALLS).inc();
         }

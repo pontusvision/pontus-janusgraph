@@ -132,8 +132,7 @@ public class BerkeleyJEStoreManager extends LocalStoreManager implements Ordered
     }
 
     @Override
-    public List<KeyRange> getLocalKeyPartition()
-    {
+    public List<KeyRange> getLocalKeyPartition() throws BackendException {
         throw new UnsupportedOperationException();
     }
 
@@ -267,8 +266,7 @@ public class BerkeleyJEStoreManager extends LocalStoreManager implements Ordered
     }
 
     @Override
-    public boolean exists()
-    {
+    public boolean exists() throws BackendException {
         return !environment.getDatabaseNames().isEmpty();
     }
 

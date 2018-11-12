@@ -29,7 +29,7 @@ public class Cassandra3BinaryInputFormat extends CassandraBinaryInputFormat {
 
     @Override
     public RecordReader<StaticBuffer, Iterable<Entry>> createRecordReader(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext)
-    {
+            throws IOException, InterruptedException {
         janusgraphRecordReader = new CqlBridgeRecordReader(); // See issue 172
         return janusgraphRecordReader;
     }

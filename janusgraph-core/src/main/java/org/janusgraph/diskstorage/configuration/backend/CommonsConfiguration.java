@@ -96,7 +96,7 @@ public class CommonsConfiguration implements WriteConfiguration {
         } else if (Duration.class.isAssignableFrom(dataType)) {
             // This is a conceptual leak; the config layer should ideally only handle standard library types
             Object o = config.getProperty(key);
-            if (o instanceof Duration) {
+            if (Duration.class.isInstance(o)) {
                 return (O) o;
             } else {
                 String[] comps = o.toString().split("\\s");

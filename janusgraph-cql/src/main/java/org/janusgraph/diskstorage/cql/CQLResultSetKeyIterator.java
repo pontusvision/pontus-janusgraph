@@ -81,8 +81,7 @@ class CQLResultSetKeyIterator extends AbstractIterator<StaticBuffer> implements 
     }
 
     @Override
-    public void close()
-    {
+    public void close() throws IOException {
         // NOP
     }
 
@@ -112,8 +111,7 @@ class CQLResultSetKeyIterator extends AbstractIterator<StaticBuffer> implements 
         }
 
         @Override
-        public void close()
-        {
+        public void close() throws IOException {
             // NOP
         }
     }

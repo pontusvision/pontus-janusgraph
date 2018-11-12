@@ -93,8 +93,7 @@ public class AstyanaxKeyColumnValueStore implements KeyColumnValueStore {
     }
 
     @Override
-    public void close()
-    {
+    public void close() throws BackendException {
         //Do nothing
     }
 
@@ -280,8 +279,7 @@ public class AstyanaxKeyColumnValueStore implements KeyColumnValueStore {
     }
 
     @Override
-    public void acquireLock(StaticBuffer key, StaticBuffer column, StaticBuffer expectedValue, StoreTransaction txh)
-    {
+    public void acquireLock(StaticBuffer key, StaticBuffer column, StaticBuffer expectedValue, StoreTransaction txh) throws BackendException {
         throw new UnsupportedOperationException();
     }
 

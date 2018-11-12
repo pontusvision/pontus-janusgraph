@@ -71,8 +71,7 @@ public class InMemoryStoreManager implements KeyColumnValueStoreManager {
     }
 
     @Override
-    public StoreTransaction beginTransaction(final BaseTransactionConfig config)
-    {
+    public StoreTransaction beginTransaction(final BaseTransactionConfig config) throws BackendException {
         return new InMemoryTransaction(config);
     }
 
@@ -85,8 +84,7 @@ public class InMemoryStoreManager implements KeyColumnValueStoreManager {
     }
 
     @Override
-    public void clearStorage()
-    {
+    public void clearStorage() throws BackendException {
         for (InMemoryKeyColumnValueStore store : stores.values()) {
             store.clear();
         }
@@ -94,8 +92,7 @@ public class InMemoryStoreManager implements KeyColumnValueStoreManager {
     }
 
     @Override
-    public boolean exists()
-    {
+    public boolean exists() throws BackendException {
         return !stores.isEmpty();
     }
 
@@ -105,8 +102,7 @@ public class InMemoryStoreManager implements KeyColumnValueStoreManager {
     }
 
     @Override
-    public KeyColumnValueStore openDatabase(final String name, StoreMetaData.Container metaData)
-    {
+    public KeyColumnValueStore openDatabase(final String name, StoreMetaData.Container metaData) throws BackendException {
         if (!stores.containsKey(name)) {
             stores.putIfAbsent(name, new InMemoryKeyColumnValueStore(name));
         }
@@ -127,8 +123,7 @@ public class InMemoryStoreManager implements KeyColumnValueStoreManager {
     }
 
     @Override
-    public List<KeyRange> getLocalKeyPartition()
-    {
+    public List<KeyRange> getLocalKeyPartition() throws BackendException {
         throw new UnsupportedOperationException();
     }
 

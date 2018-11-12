@@ -292,7 +292,7 @@ public enum Text implements JanusGraphPredicate {
                 previous = p + 1;
             }
         }
-        if (previous + MIN_TOKEN_LENGTH < str.length()) tokens.add(str.substring(previous));
+        if (previous + MIN_TOKEN_LENGTH < str.length()) tokens.add(str.substring(previous, str.length()));
         return tokens;
     }
 

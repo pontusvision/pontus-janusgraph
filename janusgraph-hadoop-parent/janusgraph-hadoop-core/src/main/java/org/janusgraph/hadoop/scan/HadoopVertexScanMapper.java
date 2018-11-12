@@ -28,8 +28,7 @@ import static org.janusgraph.hadoop.compat.HadoopCompatLoader.DEFAULT_COMPAT;
 public class HadoopVertexScanMapper extends HadoopScanMapper {
 
     @Override
-    protected void setup(Context context)
-    {
+    protected void setup(Context context) throws IOException, InterruptedException {
         /* Don't call super implementation super.setup(context); */
         org.apache.hadoop.conf.Configuration hadoopConf = DEFAULT_COMPAT.getContextConfiguration(context);
         ModifiableHadoopConfiguration scanConf = ModifiableHadoopConfiguration.of(JanusGraphHadoopConfiguration.MAPRED_NS, hadoopConf);

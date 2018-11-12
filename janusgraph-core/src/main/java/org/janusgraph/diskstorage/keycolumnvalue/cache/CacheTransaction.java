@@ -112,8 +112,7 @@ public class CacheTransaction implements StoreTransaction, LoggableTransaction {
             return new KCVMutation(mutation.getAdditions(), Lists.newArrayList(Iterables.transform(mutation.getDeletions(), KCVEntryMutation.ENTRY2COLUMN_FCT)));
     }
 
-    private void flushInternal()
-    {
+    private void flushInternal() throws BackendException {
         if (numMutations > 0) {
             //Consolidate all mutations prior to persistence to ensure that no addition accidentally gets swallowed by a delete
             for (Map<StaticBuffer, KCVEntryMutation> store : mutations.values()) {

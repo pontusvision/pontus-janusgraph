@@ -27,6 +27,6 @@ public interface JanusGraphChannelizer {
      * which gives a running JanusGraph server access to lower level Gremlin Server
      * components.
      */
-    void init(final ServerGremlinExecutor serverGremlinExecutor);
+    public void init(final ServerGremlinExecutor serverGremlinExecutor);
 }
 

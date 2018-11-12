@@ -280,8 +280,7 @@ public class StandardSerializer implements AttributeHandler, Serializer {
     }
 
     @Override
-    public void close()
-    {
+    public void close() throws IOException {
         //Nothing to close
     }
 

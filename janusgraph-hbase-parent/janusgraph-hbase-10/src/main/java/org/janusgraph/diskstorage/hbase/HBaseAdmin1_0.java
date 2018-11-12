@@ -100,7 +100,7 @@ public class HBaseAdmin1_0 implements AdminMask
     }
 
     @Override
-    public HTableDescriptor getTableDescriptor(String tableString) throws IOException
+    public HTableDescriptor getTableDescriptor(String tableString) throws TableNotFoundException, IOException
     {
         return adm.getTableDescriptor(TableName.valueOf(tableString));
     }

@@ -794,14 +794,12 @@ public class ManagementSystem implements JanusGraphManagement {
         }
 
         @Override
-        public ScanMetrics get()
-        {
+        public ScanMetrics get() throws InterruptedException, ExecutionException {
             return null;
         }
 
         @Override
-        public ScanMetrics get(long timeout, TimeUnit unit)
-        {
+        public ScanMetrics get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
             return null;
         }
     }
@@ -830,8 +828,7 @@ public class ManagementSystem implements JanusGraphManagement {
         }
 
         @Override
-        public Boolean call()
-        {
+        public Boolean call() throws Exception {
             ManagementSystem management = (ManagementSystem) graph.openManagement();
             try {
                 JanusGraphVertex vertex = management.transaction.getVertex(schemaVertexId);

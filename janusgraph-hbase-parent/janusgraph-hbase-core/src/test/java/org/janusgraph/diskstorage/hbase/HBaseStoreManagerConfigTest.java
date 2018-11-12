@@ -40,8 +40,7 @@ import org.junit.Test;
 public class HBaseStoreManagerConfigTest {
 
     @BeforeClass
-    public static void startHBase() throws IOException
-    {
+    public static void startHBase() throws IOException, BackendException {
         HBaseStorageSetup.startHBase();
     }
 
@@ -87,8 +86,7 @@ public class HBaseStoreManagerConfigTest {
     
     @Test
     // Test HBase preferred timestamp provider MILLI is set by default
-    public void testHBaseTimestampProvider()
-    {
+    public void testHBaseTimestampProvider() throws BackendException {
         // Get an empty configuration
         // GraphDatabaseConfiguration.buildGraphConfiguration() only build an empty one.
         ModifiableConfiguration config = GraphDatabaseConfiguration.buildGraphConfiguration();

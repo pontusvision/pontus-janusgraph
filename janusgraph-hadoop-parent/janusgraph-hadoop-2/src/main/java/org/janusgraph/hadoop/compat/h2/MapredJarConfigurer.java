@@ -28,8 +28,7 @@ public class MapredJarConfigurer implements JobClasspathConfigurer {
     }
 
     @Override
-    public void configure(Job job)
-    {
+    public void configure(Job job) throws IOException {
         job.setJar(mapredJar);
     }
 }

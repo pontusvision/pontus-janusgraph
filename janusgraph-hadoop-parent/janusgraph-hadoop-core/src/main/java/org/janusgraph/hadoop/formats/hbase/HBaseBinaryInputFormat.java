@@ -53,14 +53,12 @@ public class HBaseBinaryInputFormat extends AbstractBinaryInputFormat {
     private byte[] edgeStoreFamily;
 
     @Override
-    public List<InputSplit> getSplits(final JobContext jobContext) throws IOException
-    {
+    public List<InputSplit> getSplits(final JobContext jobContext) throws IOException, InterruptedException {
         return this.tableInputFormat.getSplits(jobContext);
     }
 
     @Override
-    public RecordReader<StaticBuffer, Iterable<Entry>> createRecordReader(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException
-    {
+    public RecordReader<StaticBuffer, Iterable<Entry>> createRecordReader(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         tableReader = tableInputFormat.createRecordReader(inputSplit, taskAttemptContext);
         return new HBaseBinaryRecordReader(tableReader, edgeStoreFamily);
     }

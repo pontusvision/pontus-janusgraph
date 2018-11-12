@@ -255,14 +255,12 @@ public class MapReduceIndexManagement {
         }
 
         @Override
-        public ScanMetrics get()
-        {
+        public ScanMetrics get() throws InterruptedException, ExecutionException {
             return completedJobMetrics;
         }
 
         @Override
-        public ScanMetrics get(long timeout, TimeUnit unit)
-        {
+        public ScanMetrics get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
             return completedJobMetrics;
         }
     }
@@ -296,13 +294,12 @@ public class MapReduceIndexManagement {
         }
 
         @Override
-        public ScanMetrics get() throws ExecutionException {
+        public ScanMetrics get() throws InterruptedException, ExecutionException {
             throw new ExecutionException(cause);
         }
 
         @Override
-        public ScanMetrics get(long timeout, TimeUnit unit) throws ExecutionException
-        {
+        public ScanMetrics get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
             throw new ExecutionException(cause);
         }
     }

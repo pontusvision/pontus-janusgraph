@@ -69,8 +69,7 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
                             final StoreFeatures storeFeatures,
                             final int numProcessors, final int workBlockSize,
                             final Configuration jobConfiguration,
-                            final Configuration graphConfiguration)
-    {
+                            final Configuration graphConfiguration) throws BackendException {
         this.job = job;
         this.finishJob = finishJob;
         this.store = store;

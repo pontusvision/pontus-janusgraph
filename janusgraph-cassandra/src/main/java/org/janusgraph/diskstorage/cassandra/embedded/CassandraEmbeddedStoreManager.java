@@ -269,8 +269,7 @@ public class CassandraEmbeddedStoreManager extends AbstractCassandraStoreManager
     }
 
     @Override
-    public boolean exists()
-    {
+    public boolean exists() throws BackendException {
         return Schema.instance.getKeyspaceInstance(keySpaceName) != null;
     }
 
@@ -378,8 +377,7 @@ public class CassandraEmbeddedStoreManager extends AbstractCassandraStoreManager
     }
 
     @Override
-    public Map<String, String> getCompressionOptions(String cf)
-    {
+    public Map<String, String> getCompressionOptions(String cf) throws BackendException {
 
         CFMetaData cfm = Schema.instance.getCFMetaData(keySpaceName, cf);
 

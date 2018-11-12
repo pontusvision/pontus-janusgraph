@@ -37,13 +37,11 @@ public class DefaultTransaction implements BaseTransactionConfigurable {
     }
 
     @Override
-    public void commit()
-    {
+    public void commit() throws BackendException {
     }
 
     @Override
-    public void rollback()
-    {
+    public void rollback() throws BackendException {
     }
 
 }

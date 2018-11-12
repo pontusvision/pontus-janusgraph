@@ -47,8 +47,7 @@ public class HBaseOperationCountingTest extends JanusGraphOperationCountingTest 
     }
 
     @Override
-    public void testCacheConcurrency()
-    {
+    public void testCacheConcurrency() throws InterruptedException {
         //Don't run this test;
     }
 

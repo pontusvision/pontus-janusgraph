@@ -84,8 +84,7 @@ public class HBaseKeyColumnValueStore implements KeyColumnValueStore {
     }
 
     @Override
-    public void close()
-    {
+    public void close() throws BackendException {
     }
 
     @Override
@@ -109,8 +108,7 @@ public class HBaseKeyColumnValueStore implements KeyColumnValueStore {
     public void acquireLock(StaticBuffer key,
                             StaticBuffer column,
                             StaticBuffer expectedValue,
-                            StoreTransaction txh)
-    {
+                            StoreTransaction txh) throws BackendException {
         throw new UnsupportedOperationException();
     }
 

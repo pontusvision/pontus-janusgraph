@@ -1699,8 +1699,7 @@ public abstract class JanusGraphIndexTest extends JanusGraphBaseTest {
     }
 
     @Test
-    public void testIndexQueryWithScore()
-    {
+    public void testIndexQueryWithScore() throws InterruptedException {
         final PropertyKey textKey = mgmt.makePropertyKey("text").dataType(String.class).make();
         mgmt.buildIndex("store1", Vertex.class).addKey(textKey).buildMixedIndex(INDEX);
         mgmt.commit();
@@ -1726,8 +1725,7 @@ public abstract class JanusGraphIndexTest extends JanusGraphBaseTest {
     // this tests a case when there as AND with a single CONTAINS condition inside AND(name:(was here))
     // which (in case of Solr) spans multiple conditions such as AND(AND(name:was, name:here))
     // so we need to make sure that we don't apply AND twice.
-    public void testContainsWithMultipleValues()
-    {
+    public void testContainsWithMultipleValues() throws Exception {
         final PropertyKey name = makeKey("name", String.class);
 
         mgmt.buildIndex("store1", Vertex.class).addKey(name).buildMixedIndex(INDEX);

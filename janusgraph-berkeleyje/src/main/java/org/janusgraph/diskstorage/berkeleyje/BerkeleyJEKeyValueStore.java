@@ -109,8 +109,7 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
     }
 
     @Override
-    public void acquireLock(StaticBuffer key, StaticBuffer expectedValue, StoreTransaction txh)
-    {
+    public void acquireLock(StaticBuffer key, StaticBuffer expectedValue, StoreTransaction txh) throws BackendException {
         if (getTransaction(txh) == null) {
             log.warn("Attempt to acquire lock with transactions disabled");
         } //else we need no locking
@@ -176,8 +175,7 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
     }
 
     @Override
-    public Map<KVQuery,RecordIterator<KeyValueEntry>> getSlices(List<KVQuery> queries, StoreTransaction txh)
-    {
+    public Map<KVQuery,RecordIterator<KeyValueEntry>> getSlices(List<KVQuery> queries, StoreTransaction txh) throws BackendException {
         throw new UnsupportedOperationException();
     }
 

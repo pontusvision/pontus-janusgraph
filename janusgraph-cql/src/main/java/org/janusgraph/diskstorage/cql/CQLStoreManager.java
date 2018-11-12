@@ -365,8 +365,7 @@ public class CQLStoreManager extends DistributedStoreManager implements KeyColum
     }
 
     @Override
-    public void close()
-    {
+    public void close() throws BackendException {
         try {
             this.session.close();
         } finally {
@@ -394,15 +393,13 @@ public class CQLStoreManager extends DistributedStoreManager implements KeyColum
     }
 
     @Override
-    public KeyColumnValueStore openDatabase(final String name, final Container metaData)
-    {
+    public KeyColumnValueStore openDatabase(final String name, final Container metaData) throws BackendException {
         Supplier<Boolean> initializeTable = () -> Optional.ofNullable(this.cluster.getMetadata().getKeyspace(this.keyspace)).map(k -> k.getTable(name) == null).orElse(true);
         return this.openStores.computeIfAbsent(name, n -> new CQLKeyColumnValueStore(this, n, getStorageConfig(), () -> this.openStores.remove(n), allowCompactStorage, initializeTable));
     }
 
     @Override
-    public StoreTransaction beginTransaction(final BaseTransactionConfig config)
-    {
+    public StoreTransaction beginTransaction(final BaseTransactionConfig config) throws BackendException {
         return new CQLTransaction(config);
     }
 
@@ -421,14 +418,12 @@ public class CQLStoreManager extends DistributedStoreManager implements KeyColum
     }
 
     @Override
-    public boolean exists()
-    {
+    public boolean exists() throws BackendException {
         return cluster.getMetadata().getKeyspace(this.keyspace) != null;
     }
 
     @Override
-    public List<KeyRange> getLocalKeyPartition()
-    {
+    public List<KeyRange> getLocalKeyPartition() throws BackendException {
         throw new UnsupportedOperationException();
     }
 

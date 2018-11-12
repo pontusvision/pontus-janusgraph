@@ -35,8 +35,7 @@ public abstract class RestClientAuthenticatorBase implements RestClientAuthentic
     }
 
     @Override
-    public void init()
-    {
+    public void init() throws IOException {
         // does nothing
     }
 }

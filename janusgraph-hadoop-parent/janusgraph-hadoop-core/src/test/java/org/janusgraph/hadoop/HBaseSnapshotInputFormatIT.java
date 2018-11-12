@@ -64,8 +64,7 @@ public class HBaseSnapshotInputFormatIT extends AbstractInputFormatIT {
     private final String snapshotName = "janusgraph-snapshot";
 
     @BeforeClass
-    public static void startHBase() throws IOException
-    {
+    public static void startHBase() throws IOException, BackendException {
         HBaseStorageSetup.startHBase();
     }
 
@@ -139,7 +138,8 @@ public class HBaseSnapshotInputFormatIT extends AbstractInputFormatIT {
 
         // Add a self-loop on sky with edge label "lives"; it's nonsense, but at least it needs no
         // schema changes
-        JanusGraphVertex sky = graph.query().has("name", "sky").vertices().iterator().next();
+        JanusGraphVertex sky =
+                (JanusGraphVertex) graph.query().has("name", "sky").vertices().iterator().next();
         assertNotNull(sky);
         assertEquals("sky", sky.value("name"));
         assertEquals(1L, sky.query().direction(Direction.IN).edgeCount());
