@@ -75,10 +75,10 @@ public class ConfiguredGraphFactory {
      */
     public static synchronized JanusGraph create(final String graphName) {
         final ConfigurationManagementGraph configManagementGraph = getConfigGraphManagementInstance();
-
-        final Map<String, Object> graphConfigMap = configManagementGraph.getConfiguration(graphName);
+        // LPPM Replaced all Map<String, Object> with Map<Object, Object> to stay compliant w/ tinkerpop 3.4.0
+        final Map<Object, Object> graphConfigMap = configManagementGraph.getConfiguration(graphName);
         Preconditions.checkState(null == graphConfigMap, String.format("Configuration for graph %s already exists.", graphName));
-        final Map<String, Object> templateConfigMap = configManagementGraph.getTemplateConfiguration();
+        final Map<Object, Object> templateConfigMap = configManagementGraph.getTemplateConfiguration();
         Preconditions.checkState(null != templateConfigMap,
                                 "Please create a template Configuration using the ConfigurationManagementGraph#createTemplateConfiguration API.");
         templateConfigMap.put(ConfigurationManagementGraph.PROPERTY_GRAPH_NAME, graphName);
@@ -86,9 +86,14 @@ public class ConfiguredGraphFactory {
 
         final JanusGraphManager jgm = JanusGraphManagerUtility.getInstance();
         Preconditions.checkState(jgm != null, JANUS_GRAPH_MANAGER_EXPECTED_STATE_MSG);
-        final CommonsConfiguration config = new CommonsConfiguration(new MapConfiguration(templateConfigMap));
+
+        // LPPM Replaced all Map<String, Object> with Map<Object, Object> to stay compliant w/ tinkerpop 3.4.0
+        Map<String, Object> tmemplateConfigMap2 = templateConfigMap.entrySet().stream()
+            .collect(Collectors.toMap(k -> (String) k.toString(), e -> (Object)e.getValue()));
+
+        final CommonsConfiguration config = new CommonsConfiguration(new MapConfiguration(tmemplateConfigMap2));
         final JanusGraph g = (JanusGraph) jgm.openGraph(graphName, (String gName) -> new StandardJanusGraph(new GraphDatabaseConfiguration(config)));
-        configManagementGraph.createConfiguration(new MapConfiguration(templateConfigMap));
+        configManagementGraph.createConfiguration(new MapConfiguration(tmemplateConfigMap2));
         return g;
     }
 
@@ -106,12 +111,18 @@ public class ConfiguredGraphFactory {
      */
     public static JanusGraph open(String graphName) {
         final ConfigurationManagementGraph configManagementGraph = getConfigGraphManagementInstance();
-        final Map<String, Object> graphConfigMap = configManagementGraph.getConfiguration(graphName);
+        final Map<Object, Object> graphConfigMap = configManagementGraph.getConfiguration(graphName);
         Preconditions.checkState(null != graphConfigMap,
                                 "Please create configuration for this graph using the ConfigurationManagementGraph#createConfiguration API.");
         final JanusGraphManager jgm = JanusGraphManagerUtility.getInstance();
         Preconditions.checkState(jgm != null, JANUS_GRAPH_MANAGER_EXPECTED_STATE_MSG);
-        final CommonsConfiguration config = new CommonsConfiguration(new MapConfiguration(graphConfigMap));
+
+        // LPPM Replaced all Map<String, Object> with Map<Object, Object> to stay compliant w/ tinkerpop 3.4.0
+        Map<String, Object> graphConfigMap2 = graphConfigMap.entrySet().stream()
+            .collect(Collectors.toMap(k -> (String) k.toString(), e -> (Object)e.getValue()));
+
+
+        final CommonsConfiguration config = new CommonsConfiguration(new MapConfiguration(graphConfigMap2));
         return (JanusGraph) jgm.openGraph(graphName, (String gName) -> new StandardJanusGraph(new GraphDatabaseConfiguration(config)));
     }
 
@@ -121,7 +132,7 @@ public class ConfiguredGraphFactory {
      */
     public static Set<String> getGraphNames() {
         final ConfigurationManagementGraph configManagementGraph = getConfigGraphManagementInstance();
-        final List<Map<String, Object>> configurations = configManagementGraph.getConfigurations();
+        final List<Map<Object, Object>> configurations = configManagementGraph.getConfigurations();
         return configurations.stream()
             .map(elem -> (String) elem.getOrDefault(ConfigurationManagementGraph.PROPERTY_GRAPH_NAME, null))
             .filter(Objects::nonNull).collect(Collectors.toSet());
@@ -265,7 +276,8 @@ public class ConfiguredGraphFactory {
      *
      * @return Map&lt;String, Object&gt;
      */
-    public static Map<String, Object> getConfiguration(final String configName) {
+    // LPPM Replaced all Map<String, Object> with Map<Object, Object> to stay compliant w/ tinkerpop 3.4.0
+    public static Map<Object, Object> getConfiguration(final String configName) {
         final ConfigurationManagementGraph configManagementGraph = getConfigGraphManagementInstance();
         return configManagementGraph.getConfiguration(configName);
     }
@@ -276,7 +288,8 @@ public class ConfiguredGraphFactory {
      *
      * @return List&lt;Map&lt;String, Object&gt;&gt;
      */
-    public static List<Map<String, Object>> getConfigurations() {
+    // LPPM Replaced all Map<String, Object> with Map<Object, Object> to stay compliant w/ tinkerpop 3.4.0
+    public static List<Map<Object, Object>> getConfigurations() {
         final ConfigurationManagementGraph configManagementGraph = getConfigGraphManagementInstance();
         return configManagementGraph.getConfigurations();
     }
@@ -286,7 +299,8 @@ public class ConfiguredGraphFactory {
      *
      * @return Map&lt;String, Object&gt;
      */
-    public static Map<String, Object> getTemplateConfiguration() {
+    // LPPM Replaced all Map<String, Object> with Map<Object, Object> to stay compliant w/ tinkerpop 3.4.0
+    public static Map<Object, Object> getTemplateConfiguration() {
         final ConfigurationManagementGraph configManagementGraph = getConfigGraphManagementInstance();
         return configManagementGraph.getTemplateConfiguration();
     }

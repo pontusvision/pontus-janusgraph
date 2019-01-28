@@ -14,12 +14,6 @@
 
 package org.janusgraph.diskstorage.es.compat;
 
-import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_ANALYZER;
-import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_INLINE_KEY;
-import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_LANG_KEY;
-import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_SCRIPT_KEY;
-import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_TYPE_KEY;
-
 import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
@@ -45,6 +39,8 @@ import org.janusgraph.diskstorage.indexing.IndexMutation;
 import org.janusgraph.diskstorage.indexing.KeyInformation;
 import org.janusgraph.graphdb.database.serialize.AttributeUtil;
 import org.locationtech.spatial4j.shape.Rectangle;
+
+import static org.janusgraph.diskstorage.es.ElasticSearchConstants.*;
 
 /**
  * Base class for building Elasticsearch mapping and query objects.
@@ -83,6 +79,11 @@ public abstract class AbstractESCompat {
     public Map<String,Object> createTextMapping(String textAnalyzer) {
         final ImmutableMap.Builder builder = ImmutableMap.builder().put(ES_TYPE_KEY, "text");
         return (textAnalyzer != null ? builder.put(ES_ANALYZER, textAnalyzer) : builder).build();
+    }
+    // LPPM - adding support for Suffix matching
+    public Map<String,Object> createTextSuffixMapping() {
+        final ImmutableMap.Builder builder = ImmutableMap.builder().put(ES_TYPE_KEY, "keyword");
+        return builder.put(ES_ANALYZER, ES_LOWER_REVERSE).build() ;
     }
 
     public String scriptLang() {
@@ -140,6 +141,10 @@ public abstract class AbstractESCompat {
 
     public Map<String,Object> prefix(String key, Object value) {
         return ImmutableMap.of("prefix", ImmutableMap.of(key, value));
+    }
+
+    public Map<String,Object> suffix(String key, Object value) {
+        return ImmutableMap.of("match_phrase_prefix", ImmutableMap.of(key, value));
     }
 
     public Map<String,Object> regexp(String key, Object value) {

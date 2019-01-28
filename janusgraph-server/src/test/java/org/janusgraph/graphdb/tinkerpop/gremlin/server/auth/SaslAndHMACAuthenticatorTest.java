@@ -14,18 +14,8 @@
 
 package org.janusgraph.graphdb.tinkerpop.gremlin.server.auth;
 
-import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_USERNAME;
-import static org.apache.tinkerpop.gremlin.server.auth.SimpleAuthenticator.CONFIG_CREDENTIALS_DB;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.isA;
-
-import java.net.InetAddress;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraph;
+import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialTraversal;
+import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialTraversalSource;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.auth.SimpleAuthenticator;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
@@ -41,44 +31,52 @@ import org.janusgraph.core.schema.SchemaStatus;
 import org.janusgraph.graphdb.database.management.ManagementSystem;
 import org.junit.Test;
 
-public class SaslAndHMACAuthenticatorTest extends EasyMockSupport {
+import java.net.InetAddress;
+import java.util.HashMap;
+import java.util.Map;
 
-    @Test(expected = RuntimeException.class)
-    public void testNewSaslNegotiator() {
+import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_USERNAME;
+import static org.apache.tinkerpop.gremlin.server.auth.SimpleAuthenticator.CONFIG_CREDENTIALS_DB;
+import static org.easymock.EasyMock.*;
+
+public class SaslAndHMACAuthenticatorTest extends EasyMockSupport
+{
+
+    @Test(expected = RuntimeException.class) public void testNewSaslNegotiator()
+    {
         new SaslAndHMACAuthenticator().newSaslNegotiator();
     }
 
-    @Test(expected = RuntimeException.class)
-    public void testNewSaslNegotiatorInet() {
+    @Test(expected = RuntimeException.class) public void testNewSaslNegotiatorInet()
+    {
         final InetAddress inet = createMock(InetAddress.class);
         new SaslAndHMACAuthenticator().newSaslNegotiator(inet);
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testAuthenticate() throws AuthenticationException {
+    @Test(expected = IllegalStateException.class) public void testAuthenticate() throws AuthenticationException
+    {
         new SaslAndHMACAuthenticator().authenticate(null);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testSetupNullConfig() {
+    @Test(expected = IllegalArgumentException.class) public void testSetupNullConfig()
+    {
         final SaslAndHMACAuthenticator authenticator = new SaslAndHMACAuthenticator();
         authenticator.setup(null);
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testSetupNoCredDb() {
+    @Test(expected = IllegalStateException.class) public void testSetupNoCredDb()
+    {
         final SaslAndHMACAuthenticator authenticator = new SaslAndHMACAuthenticator();
         authenticator.setup(new HashMap<String, Object>());
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testSetupEmptyNoUserDefault() {
+    @Test(expected = IllegalStateException.class) public void testSetupEmptyNoUserDefault()
+    {
         final SaslAndHMACAuthenticator authenticator = createMockBuilder(SaslAndHMACAuthenticator.class)
-            .addMockedMethod("openGraph")
-            .addMockedMethod("createCredentialGraph")
-            .createMock();
+            .addMockedMethod("openGraph").addMockedMethod("createCredentialGraph").createMock();
         final JanusGraph graph = createMock(JanusGraph.class);
-        final CredentialGraph credentialGraph = createMock(CredentialGraph.class);
+        final CredentialTraversalSource credentialGraph = createMock(CredentialTraversalSource.class);
+        final CredentialTraversal credentialTraversal = createMock(CredentialTraversal.class);
         final Map<String, Object> configMap = new HashMap<String, Object>();
         configMap.put(CONFIG_CREDENTIALS_DB, "configCredDb");
         configMap.put(SaslAndHMACAuthenticator.CONFIG_DEFAULT_PASSWORD, "pass");
@@ -88,14 +86,13 @@ public class SaslAndHMACAuthenticatorTest extends EasyMockSupport {
         authenticator.setup(configMap);
     }
 
-    @Test(expected=IllegalStateException.class)
-    public void testSetupEmptyCredGraphNoPassDefault() {
+    @Test(expected = IllegalStateException.class) public void testSetupEmptyCredGraphNoPassDefault()
+    {
         final SaslAndHMACAuthenticator authenticator = createMockBuilder(SaslAndHMACAuthenticator.class)
-            .addMockedMethod("openGraph")
-            .addMockedMethod("createCredentialGraph")
-            .createMock();
+            .addMockedMethod("openGraph").addMockedMethod("createCredentialGraph").createMock();
         final JanusGraph graph = createMock(JanusGraph.class);
-        final CredentialGraph credentialGraph = createMock(CredentialGraph.class);
+        final CredentialTraversalSource credentialGraph = createMock(CredentialTraversalSource.class);
+        final CredentialTraversal credentialTraversal = createMock(CredentialTraversal.class);
         final Map<String, Object> configMap = new HashMap<String, Object>();
         configMap.put(CONFIG_CREDENTIALS_DB, "configCredDb");
         configMap.put(SaslAndHMACAuthenticator.CONFIG_DEFAULT_USER, "user");
@@ -105,14 +102,11 @@ public class SaslAndHMACAuthenticatorTest extends EasyMockSupport {
         authenticator.setup(configMap);
     }
 
-    @Test
-    public void testSetupEmptyCredGraphNoUserIndex() {
+    @Test public void testSetupEmptyCredGraphNoUserIndex()
+    {
         final SaslAndHMACAuthenticator authenticator = createMockBuilder(SaslAndHMACAuthenticator.class)
-            .addMockedMethod("openGraph")
-            .addMockedMethod("createCredentialGraph")
-            .addMockedMethod("createSimpleAuthenticator")
-            .addMockedMethod("createHMACAuthenticator")
-            .createMock();
+            .addMockedMethod("openGraph").addMockedMethod("createCredentialGraph")
+            .addMockedMethod("createSimpleAuthenticator").addMockedMethod("createHMACAuthenticator").createMock();
 
         final Map<String, Object> configMap = new HashMap<String, Object>();
         configMap.put(CONFIG_CREDENTIALS_DB, "configCredDb");
@@ -120,7 +114,8 @@ public class SaslAndHMACAuthenticatorTest extends EasyMockSupport {
         configMap.put(SaslAndHMACAuthenticator.CONFIG_DEFAULT_USER, "user");
 
         final JanusGraph graph = createMock(JanusGraph.class);
-        final CredentialGraph credentialGraph = createMock(CredentialGraph.class);
+        final CredentialTraversalSource credentialGraph = createMock(CredentialTraversalSource.class);
+        final CredentialTraversal credentialTraversal = createMock(CredentialTraversal.class);
         final ManagementSystem mgmt = createMock(ManagementSystem.class);
         final JanusGraphSimpleAuthenticator janusSimpleAuthenticator = createMock(JanusGraphSimpleAuthenticator.class);
         final HMACAuthenticator hmacAuthenticator = createMock(HMACAuthenticator.class);
@@ -130,7 +125,7 @@ public class SaslAndHMACAuthenticatorTest extends EasyMockSupport {
         final PropertyKeyMaker pkm = createMock(PropertyKeyMaker.class);
         final JanusGraphManagement.IndexBuilder indexBuilder = createMock(JanusGraphManagement.IndexBuilder.class);
         final JanusGraphIndex index = createMock(JanusGraphIndex.class);
-        final PropertyKey[] pks = {pk};
+        final PropertyKey[] pks = { pk };
 
         expect(authenticator.openGraph(isA(String.class))).andReturn(graph);
         expect(authenticator.createCredentialGraph(isA(JanusGraph.class))).andReturn(credentialGraph);
@@ -142,8 +137,8 @@ public class SaslAndHMACAuthenticatorTest extends EasyMockSupport {
         simpleAuthenticator.setup(configMap);
         expectLastCall();
 
-        expect(credentialGraph.findUser("user")).andReturn(null);
-        expect(credentialGraph.createUser(eq("user"), eq("pass"))).andReturn(null);
+        expect(credentialGraph.users("user")).andReturn(null);
+        expect(credentialGraph.user(eq("user"), eq("pass"))).andReturn(null);
         expect(graph.openManagement()).andReturn(mgmt).times(2);
         expect(graph.tx()).andReturn(tx);
         expect(index.getFieldKeys()).andReturn(pks);
@@ -174,14 +169,11 @@ public class SaslAndHMACAuthenticatorTest extends EasyMockSupport {
         authenticator.setup(configMap);
     }
 
-    @Test
-    public void testPassEmptyCredGraphUserIndex() {
+    @Test public void testPassEmptyCredGraphUserIndex()
+    {
         final SaslAndHMACAuthenticator authenticator = createMockBuilder(SaslAndHMACAuthenticator.class)
-            .addMockedMethod("openGraph")
-            .addMockedMethod("createCredentialGraph")
-            .addMockedMethod("createSimpleAuthenticator")
-            .addMockedMethod("createHMACAuthenticator")
-            .createMock();
+            .addMockedMethod("openGraph").addMockedMethod("createCredentialGraph")
+            .addMockedMethod("createSimpleAuthenticator").addMockedMethod("createHMACAuthenticator").createMock();
 
         final Map<String, Object> configMap = new HashMap<>();
         configMap.put(CONFIG_CREDENTIALS_DB, "configCredDb");
@@ -189,7 +181,8 @@ public class SaslAndHMACAuthenticatorTest extends EasyMockSupport {
         configMap.put(SaslAndHMACAuthenticator.CONFIG_DEFAULT_USER, "user");
 
         final JanusGraph graph = createMock(JanusGraph.class);
-        final CredentialGraph credentialGraph = createMock(CredentialGraph.class);
+        final CredentialTraversalSource credentialGraph = createMock(CredentialTraversalSource.class);
+        final CredentialTraversal credentialTraversal = createMock(CredentialTraversal.class);
         final ManagementSystem mgmt = createMock(ManagementSystem.class);
         final HMACAuthenticator hmacAuthenticator = createMock(HMACAuthenticator.class);
         final JanusGraphSimpleAuthenticator janusSimpleAuthenticator = createMock(JanusGraphSimpleAuthenticator.class);
@@ -206,8 +199,8 @@ public class SaslAndHMACAuthenticatorTest extends EasyMockSupport {
         simpleAuthenticator.setup(configMap);
         expectLastCall();
         expect(mgmt.containsGraphIndex(eq("byUsername"))).andReturn(true);
-        expect(credentialGraph.findUser("user")).andReturn(null);
-        expect(credentialGraph.createUser(eq("user"), eq("pass"))).andReturn(null);
+        expect(credentialGraph.users("user")).andReturn(null);
+        expect(credentialGraph.user(eq("user"), eq("pass"))).andReturn(null);
         expect(graph.openManagement()).andReturn(mgmt);
         expect(graph.tx()).andReturn(tx);
         tx.rollback();
@@ -217,14 +210,11 @@ public class SaslAndHMACAuthenticatorTest extends EasyMockSupport {
         authenticator.setup(configMap);
     }
 
-    @Test
-    public void testSetupDefaultUserNonEmptyCredGraph() {
+    @Test public void testSetupDefaultUserNonEmptyCredGraph()
+    {
         final SaslAndHMACAuthenticator authenticator = createMockBuilder(SaslAndHMACAuthenticator.class)
-            .addMockedMethod("openGraph")
-            .addMockedMethod("createCredentialGraph")
-            .addMockedMethod("createSimpleAuthenticator")
-            .addMockedMethod("createHMACAuthenticator")
-            .createMock();
+            .addMockedMethod("openGraph").addMockedMethod("createCredentialGraph")
+            .addMockedMethod("createSimpleAuthenticator").addMockedMethod("createHMACAuthenticator").createMock();
 
         final Map<String, Object> configMap = new HashMap<String, Object>();
         configMap.put(CONFIG_CREDENTIALS_DB, "configCredDb");
@@ -232,7 +222,8 @@ public class SaslAndHMACAuthenticatorTest extends EasyMockSupport {
         configMap.put(SaslAndHMACAuthenticator.CONFIG_DEFAULT_USER, "user");
 
         final JanusGraph graph = createMock(JanusGraph.class);
-        final CredentialGraph credentialGraph = createMock(CredentialGraph.class);
+        final CredentialTraversalSource credentialGraph = createMock(CredentialTraversalSource.class);
+        final CredentialTraversal credentialTraversal = createMock(CredentialTraversal.class);
         final ManagementSystem mgmt = createMock(ManagementSystem.class);
         final JanusGraphSimpleAuthenticator janusSimpleAuthenticator = createMock(JanusGraphSimpleAuthenticator.class);
         final HMACAuthenticator hmacAuthenticator = createMock(HMACAuthenticator.class);
@@ -251,7 +242,7 @@ public class SaslAndHMACAuthenticatorTest extends EasyMockSupport {
         expect(mgmt.containsGraphIndex(eq("byUsername"))).andReturn(true);
         expect(graph.openManagement()).andReturn(mgmt);
         expect(graph.tx()).andReturn(tx);
-        expect(credentialGraph.findUser("user")).andReturn(createMock(Vertex.class));
+        expect(credentialGraph.users("user")).andReturn(credentialTraversal);
         tx.rollback();
         expectLastCall();
 

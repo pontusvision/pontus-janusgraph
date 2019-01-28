@@ -69,6 +69,7 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
     private static final Logger log = LoggerFactory.getLogger(ElasticSearchIndex.class);
 
     private static final String STRING_MAPPING_SUFFIX = "__STRING";
+    private static final String SUFFIX_MAPPING_SUFFIX = "__STRING";
 
     public static final ConfigNamespace ELASTICSEARCH_NS = new ConfigNamespace(INDEX_NS, "elasticsearch",
         "Elasticsearch index configuration");
@@ -97,8 +98,6 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
         "Sets the ElasticSearch connection request timeout in milliseconds; this is the time that we wait for"
             + " the ElasticSearch connection to return; if this is set to de default value of 500ms during bulk loads, "
             + "it may cause issues.", ConfigOption.Type.MASKABLE, Integer.class);
-
-
 
     public static final ConfigOption<String> BULK_REFRESH = new ConfigOption<>(ELASTICSEARCH_NS, "bulk-refresh",
         "Elasticsearch bulk API refresh setting used to control when changes made by this request are made "
@@ -387,6 +386,11 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
         return key + STRING_MAPPING_SUFFIX;
     }
 
+    private static String getDualMappingSuffixName(String key)
+    {
+        return key + SUFFIX_MAPPING_SUFFIX;
+    }
+
     private String getIndexStoreName(String store)
     {
         return useMultitypeIndex ? indexName : indexName + "_" + store.toLowerCase();
@@ -475,6 +479,13 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                     properties.put(key, compat.createTextMapping(textAnalyzer));
                     properties.put(getDualMappingName(key), stringMapping);
                     break;
+                // LPPM _ Adding support for suffix matching in Tinkerpop 3.4
+                case TEXTSTRING_SUFFIX:
+                    properties.put(key, compat.createTextMapping(textAnalyzer));
+                    properties.put(getDualMappingName(key), stringMapping);
+                    properties.put(getDualMappingSuffixName(key), compat.createTextSuffixMapping());
+                    break;
+
                 default:
                     throw new AssertionError("Unexpected mapping: " + map);
             }
@@ -585,6 +596,12 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
         return AttributeUtil.isString(information.getDataType()) && getStringMapping(information) == Mapping.TEXTSTRING;
     }
 
+    private static boolean hasSuffixMapping(KeyInformation information)
+    {
+        return AttributeUtil.isString(information.getDataType())
+            && getStringMapping(information) == Mapping.TEXTSTRING_SUFFIX;
+    }
+
     public Map<String, Object> getNewDocument(final List<IndexEntry> additions,
                                               KeyInformation.StoreRetriever information) throws BackendException
     {
@@ -627,6 +644,12 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
             if (hasDualStringMapping(information.get(add.getKey())) && keyInformation.getDataType() == String.class)
             {
                 doc.put(getDualMappingName(add.getKey()), value);
+            }
+            // LPPM _ Adding support for suffix matching in Tinkerpop 3.4
+            else if (hasSuffixMapping(information.get(add.getKey())) && keyInformation.getDataType() == String.class)
+            {
+                doc.put(getDualMappingName(add.getKey()), value);
+                doc.put(getDualMappingSuffixName(add.getKey()), value);
             }
 
         }
@@ -849,7 +872,9 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
         ArrayList fieldArray = new ArrayList();
         ArrayList valueArray = new ArrayList();
         ArrayList fieldDualMappingArray = new ArrayList();
+        ArrayList fieldSuffixMappingArray = new ArrayList();
         ArrayList valueDualMappingArray = new ArrayList();
+        ArrayList valueSuffixMappingArray = new ArrayList();
         int counter = 0;
 
         for (final IndexEntry e : mutation.getAdditions())
@@ -860,7 +885,7 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                 case SET:
                 case LIST:
 
-                    counter ++;
+                    counter++;
                     hasScript = true;
 
                     //                    StringBuilder sb = new StringBuilder("\"").append(e.field).append("\"");
@@ -886,6 +911,18 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                         valueDualMappingArray.add(v);
 
                     }
+                    else if (hasSuffixMapping(keyInformation))
+                    {
+
+                        String fdm = getDualMappingName(e.field);
+                        String fsm = getDualMappingSuffixName(e.field);
+
+                        fieldDualMappingArray.add(fdm);
+                        fieldSuffixMappingArray.add(fsm);
+                        valueDualMappingArray.add(v);
+                        valueSuffixMappingArray.add(v);
+
+                    }
 
                     break;
                 default:
@@ -901,24 +938,33 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
             parameters.put("fields", fieldArray);
             parameters.put("valuesDM", valueDualMappingArray);
             parameters.put("fieldsDM", fieldDualMappingArray);
+            parameters.put("valuesSM", valueSuffixMappingArray);
+            parameters.put("fieldsSM", fieldSuffixMappingArray);
 
             //            script.append(
             //                "if(ctx._source[params.fdm").append(counter).append("]==null) ctx._source[params.fdm").append(counter).append("]=[];ctx._source[params.fdm").append(counter).append("].add(params.v").append(counter).append(");");
 
             script.append("int totalValues = params.values.length;\n")
-                  .append("int totalValuesDM = params.valuesDM.size();\n")
-                  .append("for (int i = 0; i < totalValues; i++) {\n")
-                  .append("    if(ctx._source[params.fields[i]] == null){\n")
-                  .append("        ctx._source[params.fields[i]] = [];\n")
-                  .append("    }\n")
-                  .append("    ctx._source[params.fields[i]].add(params.values[i]);\n")
-                  .append("}\n")
-                  .append("for (int i = 0; i < totalValuesDM; i++) {\n")
-                  .append("    if(ctx._source[params.fieldsDM[i]] == null){\n")
-                  .append("        ctx._source[params.fieldsDM[i]] = [];\n")
-                  .append("    }\n")
-                  .append("    ctx._source[params.fieldsDM[i]].add(params.valuesDM.values[i]);\n")
-                  .append("}\n");
+                .append("int totalValuesDM = params.valuesDM.size();\n")
+                .append("int totalValuesSM = params.valuesSM.size();\n")
+                .append("for (int i = 0; i < totalValues; i++) {\n")
+                .append("    if(ctx._source[params.fields[i]] == null){\n")
+                .append("        ctx._source[params.fields[i]] = [];\n")
+                .append("    }\n")
+                .append("    ctx._source[params.fields[i]].add(params.values[i]);\n")
+                .append("}\n")
+                .append("for (int i = 0; i < totalValuesDM; i++) {\n")
+                .append("    if(ctx._source[params.fieldsDM[i]] == null){\n")
+                .append("        ctx._source[params.fieldsDM[i]] = [];\n")
+                .append("    }\n")
+                .append("    ctx._source[params.fieldsDM[i]].add(params.valuesDM.values[i]);\n")
+                .append("}\n")
+                .append("for (int i = 0; i < totalValuesSM; i++) {\n")
+                .append("    if(ctx._source[params.fieldsSM[i]] == null){\n")
+                .append("        ctx._source[params.fieldsSM[i]] = [];\n")
+                .append("    }\n")
+                .append("    ctx._source[params.fieldsSM[i]].add(params.valuesSM.values[i]);\n")
+                .append("}\n");
 
             builder = ImmutableMap.builder();
 
@@ -951,6 +997,15 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                         script.append("ctx._source.remove(\"").append(getDualMappingName(deletion.field))
                             .append("\");");
                     }
+                    else if (hasSuffixMapping(information.get(storeName, deletion.field)))
+                    {
+                        script.append("ctx._source.remove(\"").append(getDualMappingName(deletion.field))
+                            .append("\");");
+
+                        script.append("ctx._source.remove(\"").append(getDualMappingSuffixName(deletion.field))
+                            .append("\");");
+
+                    }
                     break;
                 case SET:
                 case LIST:
@@ -967,6 +1022,16 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                             .append(getDualMappingName(deletion.field)).append("\"].indexOf(").append(jsValue)
                             .append("); ctx._source[\"").append(getDualMappingName(deletion.field))
                             .append("\"].remove(").append(index).append(");");
+                    }
+                    else if (hasSuffixMapping(information.get(storeName, deletion.field)))
+                    {
+                        index = INDEX_NAME + i++;
+                        script.append("def ").append(index).append(" = ctx._source[\"")
+                            .append(getDualMappingName(deletion.field)).append("\"].indexOf(").append(jsValue)
+                            .append("); ctx._source[\"").append(getDualMappingName(deletion.field))
+                            .append("\"].remove(").append(index).append("); ctx._source[\"")
+                            .append(getDualMappingSuffixName(deletion.field))
+                            .append("\"].remove(").append(index).append("); ");
                     }
                     break;
             }
@@ -1001,6 +1066,23 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                             .append(convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation)))
                             .append(");");
                     }
+                    else if (hasSuffixMapping(keyInformation))
+                    {
+                        script.append("if(ctx._source[\"").append(getDualMappingName(e.field))
+                            .append("\"] == null) ctx._source[\"").append(getDualMappingName(e.field))
+                            .append("\"] = [];");
+                        script.append("ctx._source[\"").append(getDualMappingName(e.field)).append("\"].add(")
+                            .append(convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation)))
+                            .append(");");
+                        script.append("if(ctx._source[\"").append(getDualMappingSuffixName(e.field))
+                            .append("\"] == null) ctx._source[\"").append(getDualMappingSuffixName(e.field))
+                            .append("\"] = [];");
+                        script.append("ctx._source[\"").append(getDualMappingSuffixName(e.field)).append("\"].add(")
+                            .append(convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation)))
+                            .append(");");
+
+                    }
+
                     break;
                 default:
                     break;
@@ -1024,6 +1106,12 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                 if (hasDualStringMapping(keyInformation))
                 {
                     doc.put(getDualMappingName(e.field), convertToEsType(e.value, Mapping.getMapping(keyInformation)));
+                }
+                else if (hasSuffixMapping(keyInformation))
+                {
+                    doc.put(getDualMappingName(e.field), convertToEsType(e.value, Mapping.getMapping(keyInformation)));
+                    doc.put(getDualMappingSuffixName(e.field), convertToEsType(e.value, Mapping.getMapping(keyInformation)));
+
                 }
             }
         }
@@ -1145,6 +1233,10 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                 {
                     fieldName = getDualMappingName(key);
                 }
+                else if (mapping == Mapping.TEXTSTRING_SUFFIX && !(Text.HAS_SUFFIX.contains(predicate)))
+                {
+                    fieldName = getDualMappingSuffixName(key);
+                }
                 else
                 {
                     fieldName = key;
@@ -1154,11 +1246,34 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                 {
                     return compat.match(key, value);
                 }
+                else if (predicate == Text.NOT_CONTAINS)
+                {
+                    return compat.boolMustNot(compat.match(key, value));
+                }
+
                 else if (predicate == Text.CONTAINS_PREFIX)
                 {
                     if (!ParameterType.TEXT_ANALYZER.hasParameter(information.get(key).getParameters()))
                         value = ((String) value).toLowerCase();
                     return compat.prefix(fieldName, value);
+                }
+                else if (predicate == Text.NOT_CONTAINS_PREFIX)
+                {
+                    if (!ParameterType.TEXT_ANALYZER.hasParameter(information.get(key).getParameters()))
+                        value = ((String) value).toLowerCase();
+                    return compat.boolMustNot(compat.prefix(fieldName, value));
+                }
+                else if (predicate == Text.CONTAINS_SUFFIX)
+                {
+                    if (!ParameterType.SUFFIX_ANALYZER.hasParameter(information.get(key).getParameters()))
+                        value = ((String) value).toLowerCase();
+                    return compat.suffix(fieldName, value);
+                }
+                else if (predicate == Text.NOT_CONTAINS_SUFFIX)
+                {
+                    if (!ParameterType.TEXT_ANALYZER.hasParameter(information.get(key).getParameters()))
+                        value = ((String) value).toLowerCase();
+                    return compat.boolMustNot(compat.suffix(fieldName, value));
                 }
                 else if (predicate == Text.CONTAINS_REGEX)
                 {
@@ -1170,6 +1285,19 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                 {
                     return compat.prefix(fieldName, value);
                 }
+                else if (predicate == Text.NOT_PREFIX)
+                {
+                    return compat.boolMustNot(compat.prefix(fieldName, value));
+                }
+                else if (predicate == Text.SUFFIX)
+                {
+                    return compat.suffix(fieldName, value);
+                }
+                else if (predicate == Text.NOT_SUFFIX)
+                {
+                    return compat.boolMustNot(compat.suffix(fieldName, value));
+                }
+
                 else if (predicate == Text.REGEX)
                 {
                     return compat.regexp(fieldName, value);
@@ -1515,10 +1643,14 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                 case DEFAULT:
                 case TEXT:
                     return janusgraphPredicate == Text.CONTAINS || janusgraphPredicate == Text.CONTAINS_PREFIX
-                        || janusgraphPredicate == Text.CONTAINS_REGEX || janusgraphPredicate == Text.CONTAINS_FUZZY;
+                        || janusgraphPredicate == Text.CONTAINS_REGEX || janusgraphPredicate == Text.CONTAINS_FUZZY
+                        || janusgraphPredicate == Text.CONTAINS_SUFFIX || janusgraphPredicate == Text.NOT_CONTAINS
+                        || janusgraphPredicate == Text.NOT_CONTAINS_PREFIX
+                        || janusgraphPredicate == Text.NOT_CONTAINS_SUFFIX;
                 case STRING:
                     return janusgraphPredicate instanceof Cmp || janusgraphPredicate == Text.REGEX
-                        || janusgraphPredicate == Text.PREFIX || janusgraphPredicate == Text.FUZZY;
+                        || janusgraphPredicate == Text.PREFIX || janusgraphPredicate == Text.FUZZY
+                        || janusgraphPredicate == Text.NOT_PREFIX || janusgraphPredicate == Text.NOT_SUFFIX;
                 case TEXTSTRING:
                     return janusgraphPredicate instanceof Text || janusgraphPredicate instanceof Cmp;
             }

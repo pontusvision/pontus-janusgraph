@@ -141,14 +141,17 @@ public class JanusGraphManager implements GraphManager {
         instance = null;
     }
 
-    /**
-     * @deprecated
-     */
-    @Deprecated
-    @Override
-    public Map getGraphs() {
-        return graphs;
-    }
+    // LPPM - removed the deprecated entries to remain compliant with 3.4.0 tinkerpop
+    // as part of the 3.4.0 upgrade.
+
+    //    /**
+//     * @deprecated
+//     */
+//    @Deprecated
+//    @Override
+//    public Map getGraphs() {
+//        return graphs;
+//    }
 
     @Override
     public Set<String> getGraphNames() {
@@ -165,14 +168,16 @@ public class JanusGraphManager implements GraphManager {
         graphs.put(gName, g);
     }
 
-    /**
-     * @deprecated
-     */
-    @Override
-    @Deprecated
-    public Map<String, TraversalSource> getTraversalSources() {
-        return traversalSources;
-    }
+    // LPPM - removed the deprecated entries to remain compliant with 3.4.0 tinkerpop
+
+    //    /**
+//     * @deprecated
+//     */
+//    @Override
+//    @Deprecated
+//    public Map<String, TraversalSource> getTraversalSources() {
+//        return traversalSources;
+//    }
 
     @Override
     public Set<String> getTraversalSourceNames() {

@@ -33,7 +33,8 @@ public enum Mapping {
     TEXT,
     STRING,
     TEXTSTRING,
-    PREFIX_TREE;
+    PREFIX_TREE,
+    TEXTSTRING_SUFFIX;
 
     /**
      * Returns the mapping as a parameter so that it can be passed to {@link JanusGraphManagement#addIndexKey(JanusGraphIndex, org.janusgraph.core.PropertyKey, Parameter[])}

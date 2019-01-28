@@ -36,5 +36,8 @@ public class ElasticSearchConstants {
     public static final String ES_SOURCE_KEY = "source";
     public static final String ES_PARAMS_KEY = "params";
 
+    // LPPM - added custom analyzer lowerReverse for Tinkerpop 3.4 suffix matches:
+    public static final String ES_LOWER_REVERSE = "lowerReverse";
+
 
 }

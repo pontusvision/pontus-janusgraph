@@ -17,7 +17,8 @@ package org.janusgraph.graphdb.tinkerpop.gremlin.server.auth;
 import java.net.InetAddress;
 import java.util.Map;
 
-import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraph;
+//import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraph;
+import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialTraversalSource;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.auth.Authenticator;
@@ -26,7 +27,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 
 /**
  * A simple implementation of an {@link Authenticator} that uses a {@link Graph} instance as a credential store.
- * Management of the credential store can be handled through the {@link CredentialGraph} DSL.
+ * Management of the credential store can be handled through the {@link CredentialTraversalSource} DSL.
  */
 public class JanusGraphSimpleAuthenticator extends JanusGraphAbstractAuthenticator {
 

@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.janusgraph</groupId>
         <artifactId>janusgraph</artifactId>
-        <version>100-3.0</version>
+        <version>100-3.2</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>janusgraph-all</artifactId>
@@ -130,6 +130,12 @@
             <groupId>org.janusgraph</groupId>
             <artifactId>janusgraph-bigtable</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.dropwizard.metrics</groupId>
+                    <artifactId>metrics-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

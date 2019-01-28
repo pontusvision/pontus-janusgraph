@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.janusgraph</groupId>
         <artifactId>janusgraph</artifactId>
-        <version>100-3.0</version>
+        <version>100-3.2</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>janusgraph-hadoop-parent</artifactId>
@@ -55,6 +55,10 @@
             <version>${tinkerpop.version}</version>
             <exclusions>
                 <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-compress</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>org.mockito</groupId>
                     <artifactId>mockito-core</artifactId>
                 </exclusion>
@@ -66,6 +70,10 @@
             <artifactId>hadoop-gremlin</artifactId>
             <version>${tinkerpop.version}</version>
             <exclusions>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-compress</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>javax.servlet</groupId>
                     <artifactId>jsp-api</artifactId>
@@ -81,6 +89,10 @@
             <artifactId>spark-gremlin</artifactId>
             <version>${tinkerpop.version}</version>
             <exclusions>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-compress</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>org.eclipse.jetty.orbit</groupId>
                     <artifactId>javax.servlet</artifactId>

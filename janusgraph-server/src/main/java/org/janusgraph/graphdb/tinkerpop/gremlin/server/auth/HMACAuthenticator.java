@@ -32,6 +32,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialTraversal;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -134,10 +135,26 @@ public class HMACAuthenticator extends JanusGraphAbstractAuthenticator {
             return authenticateUser(credentials);
         }
     }
+    // LPPM - tinkerpop 3.4.0 change
 
     private AuthenticatedUser authenticateUser(final Map<String, String> credentials) throws AuthenticationException {
-        final Vertex v = credentialStore.findUser(credentials.get(PROPERTY_USERNAME));
-        if (null == v || !BCrypt.checkpw(credentials.get(PROPERTY_PASSWORD), v.value(PROPERTY_PASSWORD))) {
+
+
+        final CredentialTraversal<Vertex,Vertex> t = credentialStore.users(credentials.get(PROPERTY_USERNAME));
+        if (!t.hasNext())
+            throw new AuthenticationException("Username and/or password are incorrect");
+
+        final Vertex user;
+        user = t.next();
+        if (t.hasNext()) {
+//            logger.warn("There is more than one user with the username [{}] - usernames must be unique", username);
+            throw new AuthenticationException("Username and/or password are incorrect; more than one user with the same name!");
+        }
+
+        final String hash = user.value(PROPERTY_PASSWORD);
+
+//        final Vertex v = credentialStore.users(credentials.get(PROPERTY_USERNAME));
+        if (null == user || !BCrypt.checkpw(credentials.get(PROPERTY_PASSWORD), user.value(PROPERTY_PASSWORD))) {
             throw new AuthenticationException(AUTH_ERROR);
         }
         return new AuthenticatedUser(credentials.get(PROPERTY_USERNAME));
@@ -148,7 +165,7 @@ public class HMACAuthenticator extends JanusGraphAbstractAuthenticator {
         final Map<String, String> tokenMap = parseToken(token);
         final String username = tokenMap.get(PROPERTY_USERNAME);
         final String time = tokenMap.get("time");
-        final String password = credentialStore.findUser(username).value(PROPERTY_PASSWORD);
+        final String password = credentialStore.users(username).next().value(PROPERTY_PASSWORD);
         final String salt = getBcryptSaltFromStoredPassword(password);
         final String expected = generateToken(username, salt, time);
         final Long timeLong = Long.parseLong(time);
@@ -198,7 +215,8 @@ public class HMACAuthenticator extends JanusGraphAbstractAuthenticator {
 
     private String getToken(final Map<String, String> credentials) {
         final String username = credentials.get(PROPERTY_USERNAME);
-        final Vertex user = credentialStore.findUser(username);
+        // LPPM - tinkerpop 3.4.0 change
+        final Vertex user = credentialStore.users(username).next();
         final String password = user.value(PROPERTY_PASSWORD);
         final String salt = getBcryptSaltFromStoredPassword(password);
         final String time = Long.toString(new Date().getTime());

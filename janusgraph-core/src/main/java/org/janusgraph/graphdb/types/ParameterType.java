@@ -46,6 +46,9 @@ public enum ParameterType {
 
     /** Analyzer for String Type with mapping TEXT**/
     TEXT_ANALYZER("text-analyzer"),
+
+    SUFFIX_ANALYZER("suffix-analyzer")
+
     ;
 
     private static final String CUSTOM_PARAMETER_PREFIX = "%`custom%`";

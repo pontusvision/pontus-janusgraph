@@ -14,6 +14,7 @@
 
 package org.janusgraph.graphdb.query;
 
+import org.apache.tinkerpop.gremlin.process.traversal.Text;
 import org.janusgraph.core.attribute.Cmp;
 import org.janusgraph.core.attribute.Contain;
 import org.janusgraph.graphdb.predicate.AndJanusPredicate;
@@ -121,7 +122,25 @@ public interface JanusGraphPredicate extends BiPredicate<Object, Object> {
                     default: throw new IllegalArgumentException("Unexpected container: " + con);
 
                 }
-            } else return null;
+            }
+            // LPPM - add support for the new Tinkerpop 3.4 predicates:
+            else if (p instanceof Text) {
+                final Text txt = (Text) p;
+                switch (txt) {
+                    case containing: return org.janusgraph.core.attribute.Text.CONTAINS;
+                    case startingWith: return org.janusgraph.core.attribute.Text.PREFIX;
+                    case endingWith: return org.janusgraph.core.attribute.Text.SUFFIX;
+                    case notContaining: return org.janusgraph.core.attribute.Text.NOT_CONTAINS;
+                    case notStartingWith: return org.janusgraph.core.attribute.Text.NOT_PREFIX;
+                    case notEndingWith: return org.janusgraph.core.attribute.Text.NOT_SUFFIX;
+
+                    default: throw new IllegalArgumentException("Unexpected Text Predicate: " + txt);
+
+                }
+
+            }
+
+            else return null;
         }
 
         public static JanusGraphPredicate convert(BiPredicate p) {

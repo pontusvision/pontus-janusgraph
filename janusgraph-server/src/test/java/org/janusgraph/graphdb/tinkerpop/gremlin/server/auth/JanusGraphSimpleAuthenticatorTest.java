@@ -14,17 +14,8 @@
 
 package org.janusgraph.graphdb.tinkerpop.gremlin.server.auth;
 
-import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_USERNAME;
-import static org.apache.tinkerpop.gremlin.server.auth.SimpleAuthenticator.CONFIG_CREDENTIALS_DB;
-
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.isA;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraph;
+import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialTraversal;
+import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialTraversalSource;
 import org.apache.tinkerpop.gremlin.server.auth.SimpleAuthenticator;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -40,63 +31,67 @@ import org.janusgraph.core.schema.SchemaStatus;
 import org.janusgraph.graphdb.database.management.ManagementSystem;
 import org.junit.Test;
 
-public class JanusGraphSimpleAuthenticatorTest extends EasyMockSupport {
+import java.util.HashMap;
+import java.util.Map;
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testSetupNullConfig() {
+import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_USERNAME;
+import static org.apache.tinkerpop.gremlin.server.auth.SimpleAuthenticator.CONFIG_CREDENTIALS_DB;
+import static org.easymock.EasyMock.*;
+
+public class JanusGraphSimpleAuthenticatorTest extends EasyMockSupport
+{
+
+    @Test(expected = IllegalArgumentException.class) public void testSetupNullConfig()
+    {
         JanusGraphSimpleAuthenticator authenticator = new JanusGraphSimpleAuthenticator();
         authenticator.setup(null);
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testSetupNoCredDb() {
+    @Test(expected = IllegalStateException.class) public void testSetupNoCredDb()
+    {
         final JanusGraphSimpleAuthenticator authenticator = new JanusGraphSimpleAuthenticator();
         authenticator.setup(new HashMap<String, Object>());
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testSetupEmptyNoUserDefault() {
+    @Test(expected = IllegalStateException.class) public void testSetupEmptyNoUserDefault()
+    {
         final JanusGraphSimpleAuthenticator authenticator = createMockBuilder(JanusGraphSimpleAuthenticator.class)
-            .addMockedMethod("openGraph")
-            .addMockedMethod("createCredentialGraph")
-            .createMock();
+            .addMockedMethod("openGraph").addMockedMethod("createCredentialGraph").createMock();
         final JanusGraph graph = createMock(JanusGraph.class);
-        final CredentialGraph credentialGraph = createMock(CredentialGraph.class);
+        final CredentialTraversalSource credentialGraph = createMock(CredentialTraversalSource.class);
+        final CredentialTraversal credentialTraversal = createMock(CredentialTraversal.class);
         final Map<String, Object> configMap = new HashMap<String, Object>();
         configMap.put(CONFIG_CREDENTIALS_DB, "configCredDb");
         configMap.put(JanusGraphSimpleAuthenticator.CONFIG_DEFAULT_PASSWORD, "pass");
 
         expect(authenticator.openGraph(isA(String.class))).andReturn(graph);
         expect(authenticator.createCredentialGraph(isA(JanusGraph.class))).andReturn(credentialGraph);
-        expect(credentialGraph.countUsers()).andReturn(0l);
+        expect(credentialGraph.users().count().next()).andReturn(0l);
         authenticator.setup(configMap);
     }
 
-    @Test(expected=IllegalStateException.class)
-    public void testSetupEmptyCredGraphNoPassDefault() {
+    @Test(expected = IllegalStateException.class) public void testSetupEmptyCredGraphNoPassDefault()
+    {
         final JanusGraphSimpleAuthenticator authenticator = createMockBuilder(JanusGraphSimpleAuthenticator.class)
-            .addMockedMethod("openGraph")
-            .addMockedMethod("createCredentialGraph")
-            .createMock();
+            .addMockedMethod("openGraph").addMockedMethod("createCredentialGraph").createMock();
         final JanusGraph graph = createMock(JanusGraph.class);
-        final CredentialGraph credentialGraph = createMock(CredentialGraph.class);
+        final CredentialTraversalSource credentialGraph = createMock(CredentialTraversalSource.class);
+        final CredentialTraversal credentialTraversal = createMock(CredentialTraversal.class);
         final Map<String, Object> configMap = new HashMap<String, Object>();
         configMap.put(CONFIG_CREDENTIALS_DB, "configCredDb");
         configMap.put(JanusGraphSimpleAuthenticator.CONFIG_DEFAULT_USER, "user");
 
         expect(authenticator.openGraph(isA(String.class))).andReturn(graph);
         expect(authenticator.createCredentialGraph(isA(JanusGraph.class))).andReturn(credentialGraph);
-        expect(credentialGraph.countUsers()).andReturn(0l);
+        expect(credentialGraph.users().count().next()).andReturn(0l);
         authenticator.setup(configMap);
     }
 
-    @Test
-    public void testSetupEmptyCredGraphNoUserIndex() {
+    @Test public void testSetupEmptyCredGraphNoUserIndex()
+    {
         final JanusGraphSimpleAuthenticator authenticator = createMockBuilder(JanusGraphSimpleAuthenticator.class)
-            .addMockedMethod("openGraph")
-            .addMockedMethod("createCredentialGraph")
-            .addMockedMethod("createSimpleAuthenticator")
-            .createMock();
+            .addMockedMethod("openGraph").addMockedMethod("createCredentialGraph")
+            .addMockedMethod("createSimpleAuthenticator").createMock();
 
         final Map<String, Object> configMap = new HashMap<String, Object>();
         configMap.put(CONFIG_CREDENTIALS_DB, "configCredDb");
@@ -104,21 +99,22 @@ public class JanusGraphSimpleAuthenticatorTest extends EasyMockSupport {
         configMap.put(JanusGraphSimpleAuthenticator.CONFIG_DEFAULT_USER, "user");
 
         final JanusGraph graph = createMock(JanusGraph.class);
-        final CredentialGraph credentialGraph = createMock(CredentialGraph.class);
+        final CredentialTraversalSource credentialGraph = createMock(CredentialTraversalSource.class);
+        final CredentialTraversal credentialTraversal = createMock(CredentialTraversal.class);
         final ManagementSystem mgmt = createMock(ManagementSystem.class);
         final Transaction tx = createMock(Transaction.class);
         final PropertyKey pk = createMock(PropertyKey.class);
         final PropertyKeyMaker pkm = createMock(PropertyKeyMaker.class);
         final JanusGraphManagement.IndexBuilder indexBuilder = createMock(JanusGraphManagement.IndexBuilder.class);
         final JanusGraphIndex index = createMock(JanusGraphIndex.class);
-        final PropertyKey[] pks = {pk};
+        final PropertyKey[] pks = { pk };
         final SimpleAuthenticator sa = createMock(SimpleAuthenticator.class);
 
         expect(authenticator.openGraph(isA(String.class))).andReturn(graph);
         expect(authenticator.createCredentialGraph(isA(JanusGraph.class))).andReturn(credentialGraph);
         expect(authenticator.createSimpleAuthenticator()).andReturn(sa);
-        expect(credentialGraph.findUser("user")).andReturn(null);
-        expect(credentialGraph.createUser(eq("user"), eq("pass"))).andReturn(null);
+        expect(credentialGraph.users("user")).andReturn(null);
+        expect(credentialGraph.user(eq("user"), eq("pass"))).andReturn(null);
         expect(graph.openManagement()).andReturn(mgmt);
         expect(graph.tx()).andReturn(tx);
         sa.setup(configMap);
@@ -153,17 +149,15 @@ public class JanusGraphSimpleAuthenticatorTest extends EasyMockSupport {
         EasyMock.expectLastCall();
 
         replayAll();
-        
+
         authenticator.setup(configMap);
     }
 
-    @Test
-    public void testPassEmptyCredGraphUserIndex() {
+    @Test public void testPassEmptyCredGraphUserIndex()
+    {
         final JanusGraphSimpleAuthenticator authenticator = createMockBuilder(JanusGraphSimpleAuthenticator.class)
-            .addMockedMethod("openGraph")
-            .addMockedMethod("createCredentialGraph")
-            .addMockedMethod("createSimpleAuthenticator")
-            .createMock();
+            .addMockedMethod("openGraph").addMockedMethod("createCredentialGraph")
+            .addMockedMethod("createSimpleAuthenticator").createMock();
 
         final Map<String, Object> configMap = new HashMap<>();
         configMap.put(CONFIG_CREDENTIALS_DB, "configCredDb");
@@ -172,16 +166,17 @@ public class JanusGraphSimpleAuthenticatorTest extends EasyMockSupport {
 
         final SimpleAuthenticator sa = createMock(SimpleAuthenticator.class);
         final JanusGraph graph = createMock(JanusGraph.class);
-        final CredentialGraph credentialGraph = createMock(CredentialGraph.class);
+        final CredentialTraversalSource credentialGraph = createMock(CredentialTraversalSource.class);
+        final CredentialTraversal credentialTraversal = createMock(CredentialTraversal.class);
         final ManagementSystem mgmt = createMock(ManagementSystem.class);
         final Transaction tx = createMock(Transaction.class);
 
         expect(authenticator.openGraph(isA(String.class))).andReturn(graph);
         expect(authenticator.createCredentialGraph(isA(JanusGraph.class))).andReturn(credentialGraph);
         expect(authenticator.createSimpleAuthenticator()).andReturn(sa);
-        expect(credentialGraph.findUser("user")).andReturn(null);
+        expect(credentialGraph.users("user")).andReturn(null);
         expect(mgmt.containsGraphIndex(eq("byUsername"))).andReturn(true);
-        expect(credentialGraph.createUser(eq("user"), eq("pass"))).andReturn(null);
+        expect(credentialGraph.user(eq("user"), eq("pass"))).andReturn(null);
         expect(graph.openManagement()).andReturn(mgmt);
         expect(graph.tx()).andReturn(tx);
 
