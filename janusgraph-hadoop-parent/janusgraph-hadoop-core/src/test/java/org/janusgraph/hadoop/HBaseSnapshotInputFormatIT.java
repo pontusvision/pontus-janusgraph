@@ -111,7 +111,7 @@ public class HBaseSnapshotInputFormatIT extends AbstractInputFormatIT {
         graph.tx().commit();
 
         assertEquals(numV, (long) graph.traversal().V().count().next());
-        // LPPM - Tinkerpop 3.4 compatibilities 
+        // LPPM - Tinkerpop 3.4 compatibilities
         Map<Object, Object> propertiesOnVertex = graph.traversal().V().valueMap().next();
         List<?> valuesOnP = (List) propertiesOnVertex.values().iterator().next();
         assertEquals(numProps, valuesOnP.size());
