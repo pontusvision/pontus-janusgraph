@@ -15,6 +15,13 @@
     </properties>
 
     <dependencies>
+
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>${lucene-solr.version}</version>
+        </dependency>
+
         <!-- TinkerPop -->
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
@@ -148,6 +155,11 @@
                   </exclusion>
              </exclusions>
        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-sandbox</artifactId>
+            <version>5.3.1</version>
+        </dependency>
     </dependencies>
     <build>
         <directory>${basedir}/target</directory>

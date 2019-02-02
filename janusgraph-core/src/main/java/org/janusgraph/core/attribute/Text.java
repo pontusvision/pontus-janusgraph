@@ -18,6 +18,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.text.similarity.LevenshteinDistance;
+import org.apache.lucene.util.automaton.Automaton;
+import org.apache.lucene.util.automaton.Operations;
+import org.apache.lucene.util.automaton.RegExp;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.janusgraph.graphdb.query.JanusGraphPredicate;
 import org.slf4j.Logger;
@@ -399,7 +402,13 @@ public enum Text implements JanusGraphPredicate
 
             public boolean evaluateRaw(String value, String regex)
             {
-                return value.matches(regex);
+
+                // LPPM - CDMP-1745 -  use the regexp automaton to make sure that the regex string is the same regardless
+                // of whether we run this in elastic search or locally.
+                Automaton regExpAutomaton = (new RegExp(regex)).toAutomaton();
+                return Operations.run(regExpAutomaton, value);
+
+                //            return value.matches(regex);
             }
 
             @Override public boolean isValidCondition(Object condition)
@@ -567,10 +576,11 @@ public enum Text implements JanusGraphPredicate
 
     //////////////// statics
     public final static Set<Text> HAS_SUFFIX = Collections
-        .unmodifiableSet(EnumSet.of(SUFFIX, CONTAINS_SUFFIX,  NOT_SUFFIX, NOT_CONTAINS_SUFFIX));
+        .unmodifiableSet(EnumSet.of(SUFFIX, CONTAINS_SUFFIX, NOT_SUFFIX, NOT_CONTAINS_SUFFIX));
 
-    public final static Set<Text> HAS_CONTAINS = Collections
-        .unmodifiableSet(EnumSet.of(CONTAINS, CONTAINS_PREFIX,  CONTAINS_SUFFIX, CONTAINS_REGEX, CONTAINS_FUZZY, NOT_CONTAINS, NOT_CONTAINS_PREFIX, NOT_CONTAINS_SUFFIX));
+    public final static Set<Text> HAS_CONTAINS = Collections.unmodifiableSet(EnumSet
+        .of(CONTAINS, CONTAINS_PREFIX, CONTAINS_SUFFIX, CONTAINS_REGEX, CONTAINS_FUZZY, NOT_CONTAINS,
+            NOT_CONTAINS_PREFIX, NOT_CONTAINS_SUFFIX));
 
     public static <V> P<V> textContains(final V value)
     {
