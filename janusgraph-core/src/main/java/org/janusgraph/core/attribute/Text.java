@@ -19,9 +19,14 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.lucene.util.automaton.Automaton;
+import org.apache.lucene.util.automaton.Operations;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.text.similarity.LevenshteinDistance;
+import org.apache.lucene.util.automaton.RegExp;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.janusgraph.graphdb.query.JanusGraphPredicate;
 import org.slf4j.Logger;
@@ -115,7 +120,7 @@ public enum Text implements JanusGraphPredicate {
 
         @Override
         public boolean evaluateRaw(String value, String regex) {
-            // LPPM - attempt to fix regex inconsistencies in queries where containsRegex is used repeatedly in the
+            // LPPM - CDMP-1745 - attempt to fix regex inconsistencies in queries where containsRegex is used repeatedly in the
             // same statement (e.g. inside union())
 //            for (String token : tokenize(value.toLowerCase())) {
             for (String token : tokenize(value)) {
@@ -174,7 +179,13 @@ public enum Text implements JanusGraphPredicate {
         }
 
         public boolean evaluateRaw(String value, String regex) {
-            return value.matches(regex);
+
+            // LPPM - CDMP-1745 -  use the regexp automaton to make sure that the regex string is the same regardless
+            // of whether we run this in elastic search or locally.
+            Automaton regExpAutomaton = new RegExp(regex).toAutomaton();
+            return Operations.run(regExpAutomaton,value);
+
+//            return value.matches(regex);
         }
 
         @Override
