@@ -1277,8 +1277,10 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                 }
                 else if (predicate == Text.CONTAINS_REGEX)
                 {
-                    if (!ParameterType.TEXT_ANALYZER.hasParameter(information.get(key).getParameters()))
-                        value = ((String) value).toLowerCase();
+                    // LPPM - CDMP-1745 - attempt to fix regex inconsistencies in queries where containsRegex is used repeatedly in the
+                    // same statement (e.g. inside union())
+//                    if (!ParameterType.TEXT_ANALYZER.hasParameter(information.get(key).getParameters()))
+//                        value = ((String) value).toLowerCase();
                     return compat.regexp(fieldName, value);
                 }
                 else if (predicate == Text.PREFIX)
