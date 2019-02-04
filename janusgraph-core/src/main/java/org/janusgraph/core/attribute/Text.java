@@ -123,7 +123,7 @@ public enum Text implements JanusGraphPredicate {
             // LPPM - CDMP-1745 - attempt to fix regex inconsistencies in queries where containsRegex is used repeatedly in the
             // same statement (e.g. inside union())
 //            for (String token : tokenize(value.toLowerCase())) {
-            for (String token : tokenize(value.toLowerCase())) {
+            for (String token : tokenize(value)) {
                 if (REGEX.evaluateRaw(token,regex)) return true;
             }
             return false;
