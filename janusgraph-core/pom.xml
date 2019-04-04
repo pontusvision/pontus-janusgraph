@@ -15,6 +15,13 @@
     </properties>
 
     <dependencies>
+
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>${lucene-solr.version}</version>
+        </dependency>
+
         <!-- TinkerPop -->
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
