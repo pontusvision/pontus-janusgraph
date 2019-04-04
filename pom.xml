@@ -12,7 +12,7 @@
 
     <description>
         JanusGraph is a distributed graph database optimized for processing massive-scale graphs represented over a machine
-        cluster.
+        cluster.  This is the Pontus Vision fork, which has a few extra bug fixes, and advanced features.
         JanusGraph separates the concerns of graph processing and manipulation from storing the graph on disk,
         delegating that concern to an extensible set of persistence solutions.
     </description>
@@ -43,6 +43,11 @@
             <email>spmva@genoprime.com</email>
             <url>http://stephen.genoprime.com</url>
         </contributor>
+        <contributor>
+            <name>Leo Martins</name>
+            <email>lmartins@pontusnetworks.com</email>
+            <url>http://www.pontusvision.com</url>
+        </contributor>
     </contributors>
     <inceptionYear>2012</inceptionYear>
     <licenses>
@@ -52,9 +57,9 @@
         </license>
     </licenses>
     <scm>
-        <connection>scm:git:git@github.com:JanusGraph/janusgraph.git</connection>
-        <developerConnection>scm:git:git@github.com:JanusGraph/janusgraph.git</developerConnection>
-        <url>git@github.com:JanusGraph/janusgraph.git</url>
+        <connection>scm:git:git@github.com:pontusvision/pontus-janusgraph.git</connection>
+        <developerConnection>scm:git:git@github.com:pontusvision/pontus-janusgraph.git</developerConnection>
+        <url>git@github.com:pontusvision/pontus-janusgraph</url>
         <tag>HEAD</tag>
     </scm>
     <distributionManagement>
@@ -1279,7 +1284,7 @@
                 </dependencies>
             </dependencyManagement>
         </profile>
-	
+
         <profile>
             <id>coverage</id>
             <properties>
