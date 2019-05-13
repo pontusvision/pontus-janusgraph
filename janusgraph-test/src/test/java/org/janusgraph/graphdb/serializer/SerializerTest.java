@@ -27,7 +27,7 @@ import org.janusgraph.graphdb.database.serialize.DataOutput;
 import org.janusgraph.graphdb.database.serialize.attribute.*;
 import org.janusgraph.graphdb.serializer.attributes.*;
 import org.janusgraph.testutil.RandomGenerator;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.locationtech.spatial4j.context.SpatialContext;
 import org.locationtech.spatial4j.context.SpatialContextFactory;
 import org.locationtech.spatial4j.distance.DistanceUtils;
@@ -40,11 +40,17 @@ import org.locationtech.spatial4j.shape.Shape;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.tinkerpop.shaded.jackson.databind.JsonNode;
+import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
+import org.apache.tinkerpop.shaded.jackson.databind.node.ArrayNode;
+import org.apache.tinkerpop.shaded.jackson.databind.node.ObjectNode;
+
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.*;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class SerializerTest extends SerializerTestCommon {
 
@@ -84,7 +90,7 @@ public class SerializerTest extends SerializerTestCommon {
             StaticBuffer b2 = out2.getStaticBuffer();
             assertEquals(s1, serialize.readObjectByteOrder(b1.asReadBuffer(), String.class));
             assertEquals(s2, serialize.readObjectByteOrder(b2.asReadBuffer(), String.class));
-            assertEquals(s1 + " vs " + s2, Integer.signum(s1.compareTo(s2)), Integer.signum(b1.compareTo(b2)));
+            assertEquals(Integer.signum(s1.compareTo(s2)), Integer.signum(b1.compareTo(b2)), s1 + " vs " + s2);
         }
     }
 
@@ -375,7 +381,7 @@ public class SerializerTest extends SerializerTestCommon {
             o2.writeObjectByteOrder(c2,type.getKey());
             StaticBuffer s1 = o1.getStaticBuffer();
             StaticBuffer s2 = o2.getStaticBuffer();
-            assertEquals(Math.signum(c1.compareTo(c2)),Math.signum(s1.compareTo(s2)),0.0);
+            assertEquals(Math.signum(c1.compareTo(c2)),Math.signum(s1.compareTo(s2)));
             Object c1o = serialize.readObjectByteOrder(s1.asReadBuffer(),type.getKey());
             Object c2o = serialize.readObjectByteOrder(s2.asReadBuffer(),type.getKey());
             assertEquals(c1,c1o);
@@ -450,6 +456,18 @@ public class SerializerTest extends SerializerTestCommon {
         assertEquals(Geoshape.geoshape(shapes[0]), serialize.readObjectNotNull(b, Geoshape.class));
         assertEquals(Geoshape.geoshape(shapes[1]), serialize.readObjectNotNull(b, Geoshape.class));
         assertEquals(Geoshape.geoshape(shapes[2]), serialize.readObjectNotNull(b, Geoshape.class));
+    }
+
+    @Test
+    public void jsonObjectSerialization() throws IOException {
+
+        jsonSerialization(ObjectNode.class, "{\"key1\":\"test\",\"key2\":123}");
+    }
+
+    @Test
+    public void jsonArraySerialization() throws IOException {
+
+        jsonSerialization(ArrayNode.class, "[\"val1\",\"val2\",\"val3\"]");
     }
 
     private static class SerialEntry {
@@ -569,11 +587,23 @@ public class SerializerTest extends SerializerTestCommon {
         };
     }
 
+    private <T extends JsonNode> void jsonSerialization(Class<T> type, String jsonContent) throws IOException {
 
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        T jsonNode = type.cast(objectMapper.readTree(jsonContent));
+
+        DataOutput out = serialize.getDataOutput(128);
+
+        out.writeObjectNotNull(jsonNode);
+
+        ReadBuffer b = out.getStaticBuffer().asReadBuffer();
+
+        assertEquals(jsonNode, serialize.readObjectNotNull(b, type));
+    }
 
 
     //Arrays (support null serialization)
-
 
 
 }

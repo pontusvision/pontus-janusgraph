@@ -321,9 +321,8 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
      * @param index index name
      * @throws IOException if the index status could not be checked or index could not be created
      */
-    private void checkForOrCreateIndex(String index) throws IOException
-    {
-        Preconditions.checkState(null != client);
+    private void checkForOrCreateIndex(String index) throws IOException {
+        Preconditions.checkNotNull(client);
         Preconditions.checkNotNull(index);
 
         // Create index if it does not useExternalMappings and if it does not already exist
@@ -979,44 +978,40 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
     {
         final StringBuilder script = new StringBuilder();
 
-        for (final IndexEntry e : mutation.getAdditions())
-        {
+        for (final IndexEntry e : mutation.getAdditions()) {
             final KeyInformation keyInformation = information.get(storeName).get(e.field);
-            switch (keyInformation.getCardinality())
-            {
-                case SET:
-                case LIST:
+            final Cardinality cardinality = keyInformation.getCardinality();
 
-                    script.append("if(ctx._source[\"").append(e.field).append("\"] == null) ctx._source[\"")
-                        .append(e.field).append("\"] = [];");
-                    script.append("ctx._source[\"").append(e.field).append("\"].add(")
-                        .append(convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation)))
-                        .append(");");
-                    if (hasDualStringMapping(keyInformation))
-                    {
-                        script.append("if(ctx._source[\"").append(getDualMappingName(e.field))
-                            .append("\"] == null) ctx._source[\"").append(getDualMappingName(e.field))
-                            .append("\"] = [];");
-                        script.append("ctx._source[\"").append(getDualMappingName(e.field)).append("\"].add(")
-                            .append(convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation)))
-                            .append(");");
-                    }
-                    break;
-                default:
-                    break;
-
+            if (cardinality != Cardinality.SET && cardinality != Cardinality.LIST) {
+                continue;
             }
 
+            String value = convertToJsType(e.value, compat.scriptLang(), Mapping.getMapping(keyInformation));
+
+            appendAdditionScript(script, value, e.field, cardinality == Cardinality.SET);
+
+            if (hasDualStringMapping(keyInformation)) {
+                appendAdditionScript(script, value, getDualMappingName(e.field), cardinality == Cardinality.SET);
+            }
         }
+
         return script.toString();
     }
 
-    private Map<String, Object> getAdditionDoc(KeyInformation.IndexRetriever information, String store,
-                                               IndexMutation mutation) throws PermanentBackendException
-    {
-        final Map<String, Object> doc = new HashMap<>();
-        for (final IndexEntry e : mutation.getAdditions())
-        {
+    private void appendAdditionScript(StringBuilder script, String value, String fieldName, Boolean distinct) {
+        script.append("if (ctx._source[\"").append(fieldName).append("\"] == null) ctx._source[\"").append(fieldName).append("\"] = [];");
+
+        if (distinct) {
+            script.append("if (ctx._source[\"").append(fieldName).append("\"].indexOf(").append(value).append(") == -1) ");
+        }
+
+        script.append("ctx._source[\"").append(fieldName).append("\"].add(").append(value).append(");");
+    }
+
+    private Map<String,Object> getAdditionDoc(KeyInformation.IndexRetriever information,
+                                              String store, IndexMutation mutation) throws PermanentBackendException {
+        final Map<String,Object> doc = new HashMap<>();
+        for (final IndexEntry e : mutation.getAdditions()) {
             final KeyInformation keyInformation = information.get(store).get(e.field);
             if (keyInformation.getCardinality() == Cardinality.SINGLE)
             {
@@ -1134,15 +1129,11 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
 
                 final Mapping mapping = getStringMapping(information.get(key));
                 final String fieldName;
-                if (mapping == Mapping.TEXT && !(Text.HAS_CONTAINS.contains(predicate) || predicate instanceof Cmp))
-                    throw new IllegalArgumentException(
-                        "Text mapped string values only support CONTAINS and Compare queries and not: " + predicate);
-                if (mapping == Mapping.STRING && Text.HAS_CONTAINS.contains(predicate))
-                    throw new IllegalArgumentException(
-                        "String mapped string values do not support CONTAINS queries: " + predicate);
-                if (mapping == Mapping.TEXTSTRING && !(Text.HAS_CONTAINS.contains(predicate)
-                    || predicate instanceof Cmp))
-                {
+                if (mapping==Mapping.TEXT && !(Text.HAS_CONTAINS.contains(predicate) || predicate instanceof Cmp))
+                    throw new IllegalArgumentException("Text mapped string values only support CONTAINS and Compare queries and not: " + predicate);
+                if (mapping==Mapping.STRING && Text.HAS_CONTAINS.contains(predicate))
+                    throw new IllegalArgumentException("String mapped string values do not support CONTAINS queries: " + predicate);
+                if (mapping==Mapping.TEXTSTRING && !(Text.HAS_CONTAINS.contains(predicate) || (predicate instanceof Cmp && predicate != Cmp.EQUAL))) {
                     fieldName = getDualMappingName(key);
                 }
                 else
@@ -1150,12 +1141,9 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
                     fieldName = key;
                 }
 
-                if (predicate == Text.CONTAINS || predicate == Cmp.EQUAL)
-                {
-                    return compat.match(key, value);
-                }
-                else if (predicate == Text.CONTAINS_PREFIX)
-                {
+                if (predicate == Text.CONTAINS || predicate == Cmp.EQUAL) {
+                    return compat.match(fieldName, value);
+                } else if (predicate == Text.CONTAINS_PREFIX) {
                     if (!ParameterType.TEXT_ANALYZER.hasParameter(information.get(key).getParameters()))
                         value = ((String) value).toLowerCase();
                     return compat.prefix(fieldName, value);
@@ -1365,17 +1353,8 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
         final ElasticSearchRequest sr = new ElasticSearchRequest();
         final Map<String, Object> esQuery = getFilter(query.getCondition(), informations.get(query.getStore()));
         sr.setQuery(compat.prepareQuery(esQuery));
-        if (!query.getOrder().isEmpty())
-        {
-            final List<IndexQuery.OrderEntry> orders = query.getOrder();
-            for (final IndexQuery.OrderEntry orderEntry : orders)
-            {
-                final String order = orderEntry.getOrder().name();
-                final KeyInformation information = informations.get(query.getStore()).get(orderEntry.getKey());
-                final Mapping mapping = Mapping.getMapping(information);
-                final Class<?> datatype = orderEntry.getDatatype();
-                sr.addSort(orderEntry.getKey(), order.toLowerCase(), convertToEsDataType(datatype, mapping));
-            }
+        if (!query.getOrder().isEmpty()) {
+            addOrderToQuery(informations, sr, query.getOrder(), query.getStore());
         }
         sr.setFrom(0);
         if (query.hasLimit())
@@ -1448,11 +1427,13 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
         return null;
     }
 
-    private ElasticSearchResponse runCommonQuery(RawQuery query, BaseTransaction tx, int size, boolean useScroll)
-        throws BackendException
-    {
+    private ElasticSearchResponse runCommonQuery(RawQuery query, KeyInformation.IndexRetriever informations, BaseTransaction tx, int size,
+                                                 boolean useScroll) throws BackendException{
         final ElasticSearchRequest sr = new ElasticSearchRequest();
         sr.setQuery(compat.queryString(query.getQuery()));
+        if (!query.getOrders().isEmpty()) {
+            addOrderToQuery(informations, sr, query.getOrders(), query.getStore());
+        }
         sr.setFrom(0);
         sr.setSize(size);
         try
@@ -1466,11 +1447,22 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
         }
     }
 
-    @Override public Stream<RawQuery.Result<String>> query(RawQuery query, KeyInformation.IndexRetriever information,
-                                                           BaseTransaction tx) throws BackendException
-    {
+    private void addOrderToQuery(KeyInformation.IndexRetriever informations, ElasticSearchRequest sr, final List<IndexQuery.OrderEntry> orders,
+                                 String store) {
+        for (final IndexQuery.OrderEntry orderEntry : orders) {
+            final String order = orderEntry.getOrder().name();
+            final KeyInformation information = informations.get(store).get(orderEntry.getKey());
+            final Mapping mapping = Mapping.getMapping(information);
+            final Class<?> datatype = orderEntry.getDatatype();
+            sr.addSort(orderEntry.getKey(), order.toLowerCase(), convertToEsDataType(datatype, mapping));
+        }
+    }
+
+    @Override
+    public Stream<RawQuery.Result<String>> query(RawQuery query, KeyInformation.IndexRetriever information,
+                                                 BaseTransaction tx) throws BackendException {
         final int size = query.hasLimit() ? Math.min(query.getLimit() + query.getOffset(), batchSize) : batchSize;
-        final ElasticSearchResponse response = runCommonQuery(query, tx, size, size >= batchSize);
+        final ElasticSearchResponse response = runCommonQuery(query, information, tx, size, size >= batchSize );
         log.debug("First Executed query [{}] in {} ms", query.getQuery(), response.getTook());
         final ElasticSearchScroll resultIterator = new ElasticSearchScroll(client, response, size);
         final Stream<RawQuery.Result<String>> toReturn = StreamSupport
@@ -1483,7 +1475,7 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
         throws BackendException
     {
         final int size = query.hasLimit() ? Math.min(query.getLimit() + query.getOffset(), batchSize) : batchSize;
-        final ElasticSearchResponse response = runCommonQuery(query, tx, size, false);
+        final ElasticSearchResponse response = runCommonQuery(query, information, tx, size, false);
         log.debug("Executed query [{}] in {} ms", query.getQuery(), response.getTook());
         return response.getTotal();
     }

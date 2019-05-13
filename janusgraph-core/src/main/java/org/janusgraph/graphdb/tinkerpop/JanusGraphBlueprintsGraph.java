@@ -77,7 +77,7 @@ public abstract class JanusGraphBlueprintsGraph implements JanusGraph {
         tinkerpopTxContainer.readWrite();
 
         JanusGraphBlueprintsTransaction tx = txs.get();
-        Preconditions.checkState(tx!=null,"Invalid read-write behavior configured: " +
+        Preconditions.checkNotNull(tx,"Invalid read-write behavior configured: " +
                 "Should either open transaction or throw exception.");
         return tx;
     }
@@ -181,13 +181,11 @@ public abstract class JanusGraphBlueprintsGraph implements JanusGraph {
     }
 
     @Override
-    @Deprecated
     public JanusGraphMultiVertexQuery multiQuery(JanusGraphVertex... vertices) {
         return getAutoStartTx().multiQuery(vertices);
     }
 
     @Override
-    @Deprecated
     public JanusGraphMultiVertexQuery multiQuery(Collection<JanusGraphVertex> vertices) {
         return getAutoStartTx().multiQuery(vertices);
     }
