@@ -107,7 +107,7 @@
         </dependency>
         <dependency>
             <groupId>com.pontusvision</groupId>
-            <artifactId>janusgraph-cassandra</artifactId>
+            <artifactId>janusgraph-cql</artifactId>
             <version>${project.version}</version>
             <exclusions>
                 <exclusion>

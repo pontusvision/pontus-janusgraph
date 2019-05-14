@@ -45,7 +45,7 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>janusgraph-cassandra</artifactId>
             <version>${project.version}</version>
-            <!--<scope>test</scope>-->
+            <scope>test</scope>
             <exclusions>
                 <exclusion>
                     <groupId>com.lmax</groupId>
@@ -67,6 +67,7 @@
             <artifactId>janusgraph-cassandra</artifactId>
             <version>${project.version}</version>
             <classifier>tests</classifier>
+            <scope>test</scope>
             <exclusions>
                 <exclusion>
                     <groupId>com.lmax</groupId>

@@ -262,16 +262,6 @@ import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
 
         switch (client.getMajorVersion())
         {
-            case ONE:
-                compat = new ES1Compat();
-                Preconditions.checkArgument(ingestPipelines.isEmpty(),
-                    "Ingest pipelines are not supported by Elasticsearch 1.x.");
-                break;
-            case TWO:
-                compat = new ES2Compat();
-                Preconditions.checkArgument(ingestPipelines.isEmpty(),
-                    "Ingest pipelines are not supported by Elasticsearch 2.x.");
-                break;
             case FIVE:
                 compat = new ES5Compat();
                 break;

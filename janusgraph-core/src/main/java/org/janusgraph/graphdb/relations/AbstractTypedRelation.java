@@ -45,10 +45,12 @@ public abstract class AbstractTypedRelation extends AbstractElement implements I
     public InternalRelation it() {
         if (isLoadedInThisTx()) {
             return this;
+        }
 
         InternalRelation next = (InternalRelation) RelationIdentifier.get(this).findRelation(tx());
-        if (next == null)
+        if (next == null) {
             throw InvalidElementException.removedException(this);
+        }
 
         return next;
     }
