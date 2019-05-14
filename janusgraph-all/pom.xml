@@ -134,6 +134,7 @@
             <artifactId>hadoop-common</artifactId>
             <version>${hadoop2.version}</version>
             <exclusions>
+                <exclusion><groupId>org.apache.commons</groupId><artifactId>commons-compress</artifactId></exclusion>
 
                 <exclusion>
                     <groupId>org.codehaus.jackson</groupId>

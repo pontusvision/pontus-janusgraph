@@ -155,6 +155,7 @@
         <module>janusgraph-all</module>
         <module>janusgraph-dist</module>
         <module>janusgraph-doc</module>
+        <module>janusgraph-solr</module>
         <!-- module>janusgraph-solr</module -->
 	<!-- <module>hbase</module> -->
     </modules>
