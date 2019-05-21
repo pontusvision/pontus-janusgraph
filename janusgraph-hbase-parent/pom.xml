@@ -1,15 +1,15 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="https://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.pontusvision</groupId>
         <artifactId>janusgraph</artifactId>
-        <version>100-3.0</version>
+        <version>100-3.2</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>janusgraph-hbase-parent</artifactId>
     <packaging>pom</packaging>
     <name>JanusGraph-HBase: Parent Module</name>
-    <url>http://janusgraph.org</url>
+    <url>https://janusgraph.org</url>
     
     <modules>
         <module>janusgraph-hbase-core</module>
@@ -120,7 +120,7 @@
                             <systemPropertyVariables>
                                 <test.hbase.parentdir>${top.level.basedir}/janusgraph-hbase-parent</test.hbase.parentdir>
                             </systemPropertyVariables>
-                        <excludedGroups>${test.excluded.groups},org.janusgraph.testcategory.UnorderedKeyStoreTests</excludedGroups>
+                        <excludedGroups>${test.excluded.groups},UNORDERED_KEY_STORE_TESTS</excludedGroups>
                     </configuration>
                 </plugin>
                 <plugin>

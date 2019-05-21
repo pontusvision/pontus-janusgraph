@@ -122,11 +122,7 @@ public class JanusGraphManager implements GraphManager {
             ConfiguredGraphFactory.getGraphNames().forEach(it -> {
                 try {
                     final Graph graph = ConfiguredGraphFactory.open(it);
-                    this.gremlinExecutor.getScriptEngineManager().put(it, graph);
-                    String traversalName = it + "_traversal";
-                    TraversalSource traversalSource = graph.traversal();
-                    this.gremlinExecutor.getScriptEngineManager().put(traversalName, traversalSource);
-                    this.graphManager.putTraversalSource(traversalName, traversalSource);
+                    updateTraversalSource(it, graph, this.gremlinExecutor, this.graphManager);
                 } catch (Exception e) {
                     // cannot open graph, do nothing
                     log.error(String.format("Failed to open graph %s with the following error:\n %s.\n" +
@@ -139,15 +135,6 @@ public class JanusGraphManager implements GraphManager {
     // To be used for testing purposes
     protected static void shutdownJanusGraphManager() {
         instance = null;
-    }
-
-    /**
-     * @deprecated
-     */
-    @Deprecated
-    @Override
-    public Map getGraphs() {
-        return graphs;
     }
 
     @Override
@@ -163,15 +150,6 @@ public class JanusGraphManager implements GraphManager {
     @Override
     public void putGraph(String gName, Graph g) {
         graphs.put(gName, g);
-    }
-
-    /**
-     * @deprecated
-     */
-    @Override
-    @Deprecated
-    public Map<String, TraversalSource> getTraversalSources() {
-        return traversalSources;
     }
 
     @Override
@@ -256,13 +234,7 @@ public class JanusGraphManager implements GraphManager {
     public Graph openGraph(String gName, Function<String, Graph> thunk) {
         Graph graph = graphs.get(gName);
         if (graph != null && !((StandardJanusGraph) graph).isClosed()) {
-            if (null != gremlinExecutor) {
-                this.gremlinExecutor.getScriptEngineManager().put(gName, graph);
-                String traversalName = gName + "_traversal";
-                TraversalSource traversalSource = graph.traversal();
-                this.gremlinExecutor.getScriptEngineManager().put(traversalName, traversalSource);
-                this.putTraversalSource(traversalName, traversalSource);
-            }
+            updateTraversalSource(gName, graph);
             return graph;
         } else {
             synchronized (instantiateGraphLock) {
@@ -272,13 +244,7 @@ public class JanusGraphManager implements GraphManager {
                     graphs.put(gName, graph);
                 }
             }
-            if (null != gremlinExecutor) {
-                this.gremlinExecutor.getScriptEngineManager().put(gName, graph);
-                String traversalName = gName + "_traversal";
-                TraversalSource traversalSource = graph.traversal();
-                this.gremlinExecutor.getScriptEngineManager().put(traversalName, traversalSource);
-                this.putTraversalSource(traversalName, traversalSource);
-            }
+            updateTraversalSource(gName, graph);
             return graph;
         }
     }
@@ -288,5 +254,21 @@ public class JanusGraphManager implements GraphManager {
         if (gName == null) return null;
         return graphs.remove(gName);
     }
+
+    private void updateTraversalSource(String graphName, Graph graph){
+        if (null != gremlinExecutor) {
+            updateTraversalSource(graphName, graph, gremlinExecutor, this);
+        }
+    }
+
+    private void updateTraversalSource(String graphName, Graph graph, GremlinExecutor gremlinExecutor,
+                                       JanusGraphManager graphManager){
+        gremlinExecutor.getScriptEngineManager().put(graphName, graph);
+        String traversalName = graphName + "_traversal";
+        TraversalSource traversalSource = graph.traversal();
+        gremlinExecutor.getScriptEngineManager().put(traversalName, traversalSource);
+        graphManager.putTraversalSource(traversalName, traversalSource);
+    }
+
 }
 

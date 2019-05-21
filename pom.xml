@@ -1,14 +1,14 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="https://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.pontusvision</groupId>
     <artifactId>janusgraph</artifactId>
-    <version>100-3.0</version>
+    <version>100-3.2</version>
     <packaging>pom</packaging>
     <prerequisites>
         <maven>2.2.1</maven>
     </prerequisites>
     <name>JanusGraph: Distributed Graph Database</name>
-    <url>http://janusgraph.org</url>
+    <url>https://janusgraph.org</url>
 
     <description>
         JanusGraph is a distributed graph database optimized for processing massive-scale graphs represented over a machine
@@ -29,19 +29,19 @@
         <developer>
             <name>Pavel Yaskevich</name>
             <email>povel.y@gmail.com</email>
-            <url>http://github.com/xedin</url>
+            <url>https://github.com/xedin</url>
         </developer>
     </developers>
     <contributors>
         <contributor>
             <name>Marko A. Rodriguez</name>
             <email>marko@markorodriguez.com</email>
-            <url>http://markorodriguez.com</url>
+            <url>https://markorodriguez.com</url>
         </contributor>
         <contributor>
             <name>Stephen Mallette</name>
             <email>spmva@genoprime.com</email>
-            <url>http://stephen.genoprime.com</url>
+            <url>https://stephen.genoprime.com</url>
         </contributor>
         <contributor>
             <name>Leo Martins</name>
@@ -75,14 +75,14 @@
     <properties>
         <janusgraph.compatible.versions>0.1.0,0.1.1,0.2.0,100-3.0,100-2.1</janusgraph.compatible.versions>
         <titan.compatible-versions>1.0.0,1.1.0-SNAPSHOT</titan.compatible-versions>
-        <tinkerpop.version>3.3.4</tinkerpop.version>
-        <junit.version>4.12</junit.version>
+        <tinkerpop.version>3.4.1</tinkerpop.version>
+        <junit-platform.version>1.4.0</junit-platform.version>
+        <junit.version>5.4.0</junit.version>
         <mrunit.version>1.1.0</mrunit.version>
-        <mockito.version>1.10.19</mockito.version>
-        <cassandra.version>2.1.18</cassandra.version>
+        <mockito.version>2.23.0</mockito.version>
+        <cassandra.version>2.2.13</cassandra.version>
         <jamm.version>0.3.0</jamm.version>
-        <metrics2.version>2.1.2</metrics2.version>
-        <metrics3.version>3.0.2</metrics3.version>
+        <metrics.version>3.2.2</metrics.version>
         <sesame.version>2.7.10</sesame.version>
         <slf4j.version>1.7.21</slf4j.version>
         <httpcomponents.version>4.4.1</httpcomponents.version>
@@ -101,7 +101,8 @@
 -->
         <jackson2.version>2.6.6</jackson2.version>
         <lucene-solr.version>7.0.0</lucene-solr.version>
-        <elasticsearch.version>6.0.1</elasticsearch.version>
+        <elasticsearch-driver.version>6.6.0</elasticsearch-driver.version>
+        <elasticsearch-server.version>6.0.1</elasticsearch-server.version>
         <commons.beanutils.version>1.7.0</commons.beanutils.version>
         <commons.collections.version>3.2.2</commons.collections.version>
         <joda.version>2.8.2</joda.version>
@@ -113,7 +114,7 @@
         <zookeeper.version>3.4.6</zookeeper.version>
         <jersey.version>1.9</jersey.version>
         <!-- align with org.apache.tinkerpop:tinkerpop -->
-        <netty4.version>4.0.56.Final</netty4.version>
+        <netty4.version>4.1.25.Final</netty4.version>
         <jna.version>4.0.0</jna.version>
         <kuali.s3.wagon.version>1.1.20</kuali.s3.wagon.version>
         <jasper.version>5.5.23</jasper.version>
@@ -133,9 +134,10 @@
         <maven.javadoc.version>2.10.4</maven.javadoc.version>
         <compiler.source>1.8</compiler.source>
         <compiler.target>1.8</compiler.target>
-        <test.excluded.groups>org.janusgraph.testcategory.MemoryTests,org.janusgraph.testcategory.PerformanceTests,org.janusgraph.testcategory.BrittleTests</test.excluded.groups>
+        <test.excluded.groups>MEMORY_TESTS,PERFORMANCE_TESTS,BRITTLE_TESTS</test.excluded.groups>
         <dependency.locations.enabled>false</dependency.locations.enabled>
         <cassandra-driver.version>3.3.2</cassandra-driver.version>
+        <testcontainers.version>1.10.6</testcontainers.version>
     </properties>
     <modules>
         <module>janusgraph-codepipelines-ci</module>
@@ -153,6 +155,7 @@
         <module>janusgraph-all</module>
         <module>janusgraph-dist</module>
         <module>janusgraph-doc</module>
+        <module>janusgraph-solr</module>
         <!-- module>janusgraph-solr</module -->
 	<!-- <module>hbase</module> -->
     </modules>
@@ -183,7 +186,7 @@
             <!-- for org.restlet.jee:org.restlet:jar -->
             <id>spring-releases</id>
             <name>Spring Release Repository</name>
-            <url>http://repo.spring.io/libs-release-remote/</url>
+            <url>https://repo.spring.io/libs-release-remote/</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -192,9 +195,10 @@
     <build>
         <directory>${basedir}/target</directory>
         <plugins>
-            <plugin>
+            <plugin>        
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>1.3.1</version>
+                <version>3.0.0-M2</version>
                 <executions>
                     <execution>
                         <id>enforce-dependency-convergence</id>
@@ -203,7 +207,7 @@
                         </goals>
                         <configuration>
                             <rules>
-                                <DependencyConvergence />
+                                <DependencyConvergence/>
                             </rules>
                         </configuration>
                     </execution>
@@ -256,6 +260,55 @@
                     <arguments>-DskipTests=true</arguments>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <version>0.13</version>
+                <executions>
+                    <execution>
+                        <id>rat-checks</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <excludeSubProjects>false</excludeSubProjects>
+                    <excludes>
+                        <exclude>**/target/**</exclude>
+                        <exclude>**/.classpath</exclude>
+                        <exclude>**/.project</exclude>
+                        <exclude>**/.settings/**</exclude>
+                        <exclude>**/src/main/resources/META-INF/services/**</exclude>
+                        <exclude>**/src/test/resources/META-INF/services/**</exclude>
+                        <exclude>**/*.iml</exclude>
+                        <exclude>**/*.json</exclude>
+                        <exclude>**/*.xml</exclude>
+                        <exclude>docs/**</exclude>
+                        <exclude>**/*.md</exclude>
+                        <exclude>**/*.txt</exclude>
+                        <exclude>**/*.log</exclude>
+                        <exclude>**/*.patch</exclude>
+                        <exclude>**/*.crt</exclude>
+                        <exclude>**/*.sysconfig</exclude>
+                        <exclude>**/*.csv</exclude>
+                        <exclude>**/*.id</exclude>
+                        <exclude>**/*.gz</exclude>
+                        <exclude>.editorconfig</exclude>
+                        <exclude>CC-BY-4.0.txt</exclude>
+                        <exclude>**/cqlshrc</exclude>
+                        <exclude>**/regionservers</exclude>
+                        <exclude>**/jaas_keytab.conf</exclude>
+                        <exclude>**/src/test/resources/excludes</exclude>
+                        <exclude>**/src/test/resources/longTests1</exclude>
+                        <exclude>**/src/test/resources/longTests2</exclude>
+                        <exclude>**/src/pkg/static/debian/**</exclude>
+                        <exclude>**/src/test/resources/mockito-extensions/**</exclude>
+                        <exclude>**/src/test/resources/org/janusgraph/hadoop/formats/edgelist/rdf/**</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>        
 
         </plugins>
         <pluginManagement>
@@ -276,7 +329,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.15</version>
+                    <version>2.22.1</version>
                     <configuration>
                         <argLine>${default.test.jvm.opts}</argLine>
                         <runOrder>alphabetical</runOrder>
@@ -336,7 +389,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>2.15</version>
+                    <version>2.22.1</version>
                     <configuration>
                         <!-- Use log4j.properties from module test resources -->
                         <systemProperties>
@@ -490,6 +543,59 @@
     </build>
     <dependencyManagement>
         <dependencies>
+            <!-- Tinkerpop 3.x -->
+            <dependency>
+                <groupId>org.apache.tinkerpop</groupId>
+                <artifactId>gremlin-core</artifactId>
+                <version>${tinkerpop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tinkerpop</groupId>
+                <artifactId>gremlin-server</artifactId>
+                <version>${tinkerpop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tinkerpop</groupId>
+                <artifactId>gremlin-console</artifactId>
+                <version>${tinkerpop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tinkerpop</groupId>
+                <artifactId>gremlin-groovy</artifactId>
+                <version>${tinkerpop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tinkerpop</groupId>
+                <artifactId>gremlin-driver</artifactId>
+                <version>${tinkerpop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tinkerpop</groupId>
+                <artifactId>gremlin-test</artifactId>
+                <version>${tinkerpop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tinkerpop</groupId>
+                <artifactId>tinkergraph-gremlin</artifactId>
+                <version>${tinkerpop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tinkerpop</groupId>
+                <artifactId>hadoop-gremlin</artifactId>
+                <version>${tinkerpop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tinkerpop</groupId>
+                <artifactId>spark-gremlin</artifactId>
+                <version>${tinkerpop.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.eclipse.jetty.orbit</groupId>
+                        <artifactId>javax.servlet</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
             <!-- Jackson 2.x -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -677,7 +783,7 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.1.2</version>
+                <version>1.1.3</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.jettison</groupId>
@@ -831,18 +937,48 @@
                 <version>2.1</version>
             </dependency>
             <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>4.12</version>
+                <groupId>org.junit.platform</groupId>
+                <artifactId>junit-platform-launcher</artifactId>
+                <version>${junit-platform.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-all</artifactId>
-                <version>${mockito.version}</version>
+                <groupId>org.junit.platform</groupId>
+                <artifactId>junit-platform-runner</artifactId>
+                <version>${junit-platform.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>${junit.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-params</artifactId>
+                <version>${junit.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>${junit.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.vintage</groupId>
+                <artifactId>junit-vintage-engine</artifactId>
+                <version>${junit.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-inline</artifactId>
+                <version>${mockito.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
                 <version>${mockito.version}</version>
             </dependency>
             <dependency>
@@ -985,24 +1121,24 @@
                 <version>0.7.9</version>
             </dependency>
             <dependency>
-                <groupId>com.yammer.metrics</groupId>
+                <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
-                <version>${metrics2.version}</version>
+                <version>${metrics.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.codahale.metrics</groupId>
-                <artifactId>metrics-core</artifactId>
-                <version>${metrics3.version}</version>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-jvm</artifactId>
+                <version>${metrics.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.codahale.metrics</groupId>
+                <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-ganglia</artifactId>
-                <version>${metrics3.version}</version>
+                <version>${metrics.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.codahale.metrics</groupId>
+                <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-graphite</artifactId>
-                <version>${metrics3.version}</version>
+                <version>${metrics.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.stephenc.high-scale-lib</groupId>
@@ -1031,7 +1167,7 @@
                 <version>${cassandra.version}</version>
                 <!-- Using avro-ipc 1.5.3 caused the following when opening the graphdb:
                      java.lang.NoSuchMethodError: org.apache.avro.io.DecoderFactory.configureDirectDecoder(Z)Lorg/apache/avro/io/DecoderFactory
-    
+
                      Stock avro 1.4.0 or 1.4.1 might work, but I'd like to see
                      what customizations were made in the cassandra copy of avro
                      before trying to drop it for the stock artifact...
@@ -1066,7 +1202,7 @@
             <dependency>
                 <groupId>com.carrotsearch.randomizedtesting</groupId>
                 <artifactId>randomizedtesting-runner</artifactId>
-                <version>2.0.8</version>
+                <version>2.7.2</version>
             </dependency>
             <dependency>
                 <groupId>com.google.protobuf</groupId>
@@ -1093,6 +1229,32 @@
                 <groupId>jdk.tools</groupId>
                 <artifactId>jdk.tools</artifactId>
                 <version>1.8</version>
+            </dependency>
+            <dependency>
+                <groupId>org.elasticsearch.client</groupId>
+                <artifactId>elasticsearch-rest-client</artifactId>
+                <version>${elasticsearch-driver.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>${testcontainers.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>net.java.dev.jna</groupId>
+                        <artifactId>jna</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>elasticsearch</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${testcontainers.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -1126,7 +1288,7 @@
               when this profile is automatically activated or whenever
               else it is manually activated.
     
-              Stolen from: http://blog.sonatype.com/people/2010/01/how-to-generate-pgp-signatures-with-maven/
+              Stolen from: https://blog.sonatype.com/people/2010/01/how-to-generate-pgp-signatures-with-maven/
             -->
             <build>
                 <plugins>
@@ -1455,7 +1617,7 @@
                                     <threadCount>1</threadCount>
                                     <perCoreThreadCount>false</perCoreThreadCount>
                                     <runOrder>alphabetical</runOrder>
-                                    <groups>org.janusgraph.testcategory.MemoryTests</groups>
+                                    <groups>MEMORY_TESTS</groups>
                                     <excludedGroups />
                                 </configuration>
                             </execution>
@@ -1492,7 +1654,7 @@
                                     <threadCount>1</threadCount>
                                     <perCoreThreadCount>false</perCoreThreadCount>
                                     <runOrder>alphabetical</runOrder>
-                                    <groups>org.janusgraph.testcategory.PerformanceTests</groups>
+                                    <groups>PERFORMANCE_TESTS</groups>
                                     <excludedGroups />
                                 </configuration>
                             </execution>

@@ -25,8 +25,8 @@ import java.util.Collection;
  * <p>
  * All vertex and edge retrievals are channeled by a graph transaction which bundles all such retrievals, creations and
  * deletions into one transaction. A graph transaction is analogous to a
- * <a href="http://en.wikipedia.org/wiki/Database_transaction">database transaction</a>.
- * The isolation level and <a href="http://en.wikipedia.org/wiki/ACID">ACID support</a> are configured through the storage
+ * <a href="https://en.wikipedia.org/wiki/Database_transaction">database transaction</a>.
+ * The isolation level and <a href="https://en.wikipedia.org/wiki/ACID">ACID support</a> are configured through the storage
  * backend, meaning whatever level of isolation is supported by the storage backend is mirrored by a graph transaction.
  * <p>
  * A graph transaction supports:
@@ -68,7 +68,7 @@ public interface Transaction extends Graph, SchemaManager {
      * Returns a {@link org.janusgraph.core.JanusGraphIndexQuery} to query for vertices or edges against the specified indexing backend using
      * the given query string. The query string is analyzed and answered by the underlying storage backend.
      * <p>
-     * Note, that using indexQuery will may ignore modifications in the current transaction.
+     * Note, that using indexQuery may ignore modifications in the current transaction.
      *
      * @param indexName Name of the index to query as configured
      * @param query Query string
@@ -80,14 +80,12 @@ public interface Transaction extends Graph, SchemaManager {
      * @return
      * @see JanusGraph#multiQuery(org.janusgraph.core.JanusGraphVertex...)
      */
-    @Deprecated
     JanusGraphMultiVertexQuery<? extends JanusGraphMultiVertexQuery> multiQuery(JanusGraphVertex... vertices);
 
     /**
      * @return
      * @see JanusGraph#multiQuery(java.util.Collection)
      */
-    @Deprecated
     JanusGraphMultiVertexQuery<? extends JanusGraphMultiVertexQuery> multiQuery(Collection<JanusGraphVertex> vertices);
 
     @Override

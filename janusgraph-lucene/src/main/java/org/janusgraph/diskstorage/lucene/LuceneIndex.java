@@ -17,6 +17,7 @@ package org.janusgraph.diskstorage.lucene;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.lucene.util.BytesRef;
 import org.locationtech.spatial4j.context.SpatialContext;
 import org.locationtech.spatial4j.shape.Shape;
 
@@ -43,9 +44,6 @@ import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.queryparser.xml.builders.BooleanQueryBuilder;
-import org.apache.lucene.queryparser.xml.builders.RangeQueryBuilder;
 import org.apache.lucene.search.*;
 import org.apache.lucene.search.BooleanQuery.Builder;
 import org.apache.lucene.spatial.SpatialStrategy;
@@ -58,7 +56,6 @@ import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.spatial.vector.PointVectorStrategy;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.QueryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -373,29 +370,37 @@ public class LuceneIndex implements IndexProvider {
                 final String str = (String) e.value;
                 final Mapping mapping = Mapping.getMapping(store, e.field, information);
                 final Field field;
+                final Field sortField;
                 switch (mapping) {
                     case DEFAULT:
                     case TEXT:
                         // lowering the case for case insensitive text search
                         field = new TextField(e.field, str.toLowerCase(), Field.Store.YES);
+                        sortField = null;
                         break;
                     case STRING:
                         // if this field uses a custom analyzer, it must be stored as a TextField
                         // (or the analyzer, even if it is a KeywordAnalyzer won't be used)
                         field = new TextField(e.field, str, Field.Store.YES);
+                        sortField = new SortedDocValuesField(e.field, new BytesRef(str));
                         break;
                     default:
                         throw new IllegalArgumentException("Illegal mapping specified: " + mapping);
                 }
                 doc.add(field);
+                if (sortField != null) {
+                    doc.add(sortField);
+                }
             } else if (e.value instanceof Geoshape) {
                 final Shape shape = ((Geoshape) e.value).getShape();
                 geoFields.put(e.field, shape);
                 doc.add(new StoredField(e.field, GEOID + e.value.toString()));
             } else if (e.value instanceof Date) {
                 doc.add(new LongPoint(e.field, (((Date) e.value).getTime())));
+                doc.add(new NumericDocValuesField(e.field, (((Date) e.value).getTime())));
             } else if (e.value instanceof Instant) {
                 doc.add(new LongPoint(e.field, (((Instant) e.value).toEpochMilli())));
+                doc.add(new NumericDocValuesField(e.field, (((Instant) e.value).toEpochMilli())));
             } else if (e.value instanceof Boolean) {
                 doc.add(new IntPoint(e.field, ((Boolean) e.value) ? 1 : 0));
             } else if (e.value instanceof UUID) {
@@ -426,8 +431,11 @@ public class LuceneIndex implements IndexProvider {
     }
 
     private static Sort getSortOrder(IndexQuery query) {
+        return getSortOrder(query.getOrder());
+    }
+
+    private static Sort getSortOrder(List<IndexQuery.OrderEntry> orders) {
         final Sort sort = new Sort();
-        final List<IndexQuery.OrderEntry> orders = query.getOrder();
         if (!orders.isEmpty()) {
             final SortField[] fields = new SortField[orders.size()];
             for (int i = 0; i < orders.size(); i++) {
@@ -437,6 +445,7 @@ public class LuceneIndex implements IndexProvider {
                 if (AttributeUtil.isString(dataType)) sortType = SortField.Type.STRING;
                 else if (AttributeUtil.isWholeNumber(dataType)) sortType = SortField.Type.LONG;
                 else if (AttributeUtil.isDecimal(dataType)) sortType = SortField.Type.DOUBLE;
+                else if (dataType.equals(Instant.class) || dataType.equals(Date.class)) sortType = SortField.Type.LONG;
                 else
                     Preconditions.checkArgument(false, "Unsupported order specified on field [%s] with datatype [%s]", order.getKey(), dataType);
 
@@ -701,9 +710,9 @@ public class LuceneIndex implements IndexProvider {
     public Stream<RawQuery.Result<String>> query(RawQuery query, KeyInformation.IndexRetriever information, BaseTransaction tx) throws BackendException {
         final Query q;
         try {
-            final Analyzer analyzer = delegatingAnalyzerFor(query.getStore(), information);//writers.get(query.getStore()).getAnalyzer();
-            q = new QueryParser("_all", analyzer).parse(query.getQuery());
-            // Lucene query parser does not take additional parameters so any parameters on the RawQuery are ignored. 
+            final Analyzer analyzer = delegatingAnalyzerFor(query.getStore(), information);
+            q = new NumericTranslationQueryParser(information.get(query.getStore()), "_all", analyzer).parse(query.getQuery());
+            // Lucene query parser does not take additional parameters so any parameters on the RawQuery are ignored.
         } catch (final ParseException e) {
             throw new PermanentBackendException("Could not parse raw query: " + query.getQuery(), e);
         }
@@ -719,7 +728,12 @@ public class LuceneIndex implements IndexProvider {
             int adjustedLimit = query.hasLimit() ? query.getLimit() : Integer.MAX_VALUE - 1;
             if (adjustedLimit < Integer.MAX_VALUE - 1 - offset) adjustedLimit += offset;
             else adjustedLimit = Integer.MAX_VALUE - 1;
-            final TopDocs docs = searcher.search(q, adjustedLimit);
+            final TopDocs docs;
+            if (!query.getOrders().isEmpty()) {
+                docs = searcher.search(q, adjustedLimit, getSortOrder(query.getOrders()));
+            } else {
+                docs = searcher.search(q, adjustedLimit);
+            }
             log.debug("Executed query [{}] in {} ms", q, System.currentTimeMillis() - time);
             final List<RawQuery.Result<String>> result = new ArrayList<>(docs.scoreDocs.length);
             for (int i = offset; i < docs.scoreDocs.length; i++) {
@@ -736,8 +750,8 @@ public class LuceneIndex implements IndexProvider {
     public Long totals(RawQuery query, KeyInformation.IndexRetriever information, BaseTransaction tx) throws BackendException {
         final Query q;
         try {
-            final Analyzer analyzer = delegatingAnalyzerFor(query.getStore(), information);//writers.get(query.getStore()).getAnalyzer();
-            q = new QueryParser("_all", analyzer).parse(query.getQuery());
+            final Analyzer analyzer = delegatingAnalyzerFor(query.getStore(), information);
+            q = new NumericTranslationQueryParser(information.get(query.getStore()), "_all", analyzer).parse(query.getQuery());
         } catch (final ParseException e) {
             throw new PermanentBackendException("Could not parse raw query: "+query.getQuery(),e);
         }
