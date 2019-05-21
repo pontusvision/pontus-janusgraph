@@ -191,7 +191,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Gremlin-Plugin-Dependencies>com.com.pontusvision-cassandra:${project.version};com.com.pontusvision-hadoop:${project.version}</Gremlin-Plugin-Dependencies>
+                            <Gremlin-Plugin-Dependencies>com.pontusvision:janusgraph-cassandra:${project.version};com.com.pontusvision-hadoop:${project.version}</Gremlin-Plugin-Dependencies>
                         </manifestEntries>
                     </archive>
                 </configuration>
