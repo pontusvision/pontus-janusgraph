@@ -62,6 +62,7 @@ public class RestElasticSearchClient implements ElasticSearchClient {
 
     private static final Logger log = LoggerFactory.getLogger(RestElasticSearchClient.class);
 
+    private static final long numRetriesOnConflict = Long.parseLong(System.getProperty("bulk.elastic.retry_on_conflict","500"));
     private static final String REQUEST_TYPE_DELETE = "DELETE";
     private static final String REQUEST_TYPE_GET = "GET";
     private static final String REQUEST_TYPE_POST = "POST";
@@ -242,7 +243,9 @@ public class RestElasticSearchClient implements ElasticSearchClient {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         for (final ElasticSearchMutation request : requests) {
             final Map actionData = ImmutableMap.of(request.getRequestType().name().toLowerCase(),
-                    ImmutableMap.of("_index", request.getIndex(), "_type", request.getType(), "_id", request.getId()));
+                    ImmutableMap.of("_index", request.getIndex(), "_type", request.getType(), "_id", request.getId()
+                        // LPPM - added retry_on_conflict AS SOON AS WE UPDATE THIS TO 6.x, this has to be
+                        , majorVersion== ElasticMajorVersion.SIX? "retry_on_conflict":"_retry_on_conflict" , numRetriesOnConflict));
                 outputStream.write(mapWriter.writeValueAsBytes(actionData));
             outputStream.write("\n".getBytes(UTF8_CHARSET));
             if (request.getSource() != null) {
@@ -257,6 +260,8 @@ public class RestElasticSearchClient implements ElasticSearchClient {
         }
         if (bulkRefresh != null && !bulkRefresh.toLowerCase().equals("false")) {
             APPEND_OP.apply(builder).append("refresh=").append(bulkRefresh);
+            // LPPM - setting retry on conflict to 5 to avoid elastic complaining.
+//            APPEND_OP.apply(builder).append("retry_on_conflict=").append(5);
         }
         builder.insert(0, REQUEST_SEPARATOR + "_bulk");
 
@@ -297,18 +302,13 @@ public class RestElasticSearchClient implements ElasticSearchClient {
     public RestSearchResponse search(String scrollId) throws IOException {
         final String path;
         final byte[] requestData;
-        if (ElasticMajorVersion.ONE == majorVersion) {
-             path = REQUEST_SEPARATOR + "_search" + REQUEST_SEPARATOR + "scroll" + REQUEST_PARAM_BEGINNING + "scroll=" + scrollKeepAlive;
-             requestData = scrollId.getBytes(UTF8_CHARSET);
-        } else {
-            path = REQUEST_SEPARATOR + "_search" + REQUEST_SEPARATOR + "scroll";
-            final Map<String, Object> request = new HashMap<>();
-            request.put("scroll", scrollKeepAlive);
-            request.put("scroll_id", scrollId);
-            requestData = mapper.writeValueAsBytes(request);
-            if (log.isDebugEnabled()) {
-                log.debug("Elasticsearch request: " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(request));
-            }
+        path = REQUEST_SEPARATOR + "_search" + REQUEST_SEPARATOR + "scroll";
+        final Map<String, Object> request = new HashMap<>();
+        request.put("scroll", scrollKeepAlive);
+        request.put("scroll_id", scrollId);
+        requestData = mapper.writeValueAsBytes(request);
+        if (log.isDebugEnabled()) {
+            log.debug("Elasticsearch request: " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(request));
         }
         final Response response = performRequest(REQUEST_TYPE_POST, path, requestData);
         try (final InputStream inputStream = response.getEntity().getContent()) {
@@ -318,11 +318,7 @@ public class RestElasticSearchClient implements ElasticSearchClient {
 
     @Override
     public void deleteScroll(String scrollId) throws IOException {
-        if (ElasticMajorVersion.ONE == majorVersion) {
-            performRequest(REQUEST_TYPE_DELETE, REQUEST_SEPARATOR + "_search" + REQUEST_SEPARATOR + "scroll", scrollId.getBytes(UTF8_CHARSET));
-        } else {
-            delegate.performRequest(REQUEST_TYPE_DELETE, REQUEST_SEPARATOR + "_search" + REQUEST_SEPARATOR + "scroll" + REQUEST_SEPARATOR + scrollId);
-        }
+        delegate.performRequest(REQUEST_TYPE_DELETE, REQUEST_SEPARATOR + "_search" + REQUEST_SEPARATOR + "scroll" + REQUEST_SEPARATOR + scrollId);
     }
 
     public void setBulkRefresh(String bulkRefresh) {

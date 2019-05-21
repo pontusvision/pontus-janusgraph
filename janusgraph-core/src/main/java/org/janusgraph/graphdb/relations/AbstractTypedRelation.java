@@ -57,7 +57,9 @@ public abstract class AbstractTypedRelation extends AbstractElement implements I
 
     private boolean isLoadedInThisTx() {
         InternalVertex v = getVertex(0);
-        return v == v.it();
+// LPPM - changed this to avoid recursion issues
+        return (v.equals(v.it()));
+        //return v == v.it();
     }
 
     @Override

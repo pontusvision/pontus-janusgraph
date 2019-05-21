@@ -1,9 +1,9 @@
 <project xmlns="https://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.janusgraph</groupId>
+        <groupId>com.pontusvision</groupId>
         <artifactId>janusgraph-examples</artifactId>
-        <version>0.3.2-SNAPSHOT</version>
+        <version>100.3.2</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>example-cassandra</artifactId>
@@ -14,19 +14,19 @@
     <dependencies>
         <!-- These are all runtime dependencies -->
         <dependency>
-            <groupId>org.janusgraph</groupId>
+            <groupId>com.pontusvision</groupId>
             <artifactId>example-common</artifactId>
             <version>${project.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>org.janusgraph</groupId>
+            <groupId>com.pontusvision</groupId>
             <artifactId>janusgraph-cassandra</artifactId>
             <version>${project.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>org.janusgraph</groupId>
+            <groupId>com.pontusvision</groupId>
             <artifactId>janusgraph-es</artifactId>
             <version>${project.version}</version>
             <scope>runtime</scope>
