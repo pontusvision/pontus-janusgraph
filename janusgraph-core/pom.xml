@@ -3,7 +3,7 @@
     <parent>
         <groupId>com.pontusvision</groupId>
         <artifactId>janusgraph</artifactId>
-        <version>100.3.2</version>
+        <version>100.3.2.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>janusgraph-core</artifactId>
