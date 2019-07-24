@@ -18,6 +18,10 @@ import com.google.common.base.Preconditions;
 import org.janusgraph.core.schema.Parameter;
 import org.apache.commons.lang.StringUtils;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * @author Matthias Broecheler (me@matthiasb.com)
  */
@@ -43,10 +47,12 @@ public enum ParameterType {
     /** Analyzer for String Type with mapping TEXT**/
     TEXT_ANALYZER("text-analyzer"),
     ;
-    
+
+    private static final String CUSTOM_PARAMETER_PREFIX = "%`custom%`";
+
     private final String name;
 
-    private ParameterType(String name) {
+    ParameterType(String name) {
         Preconditions.checkArgument(StringUtils.isNotBlank(name));
         this.name=name;
     }
@@ -65,7 +71,7 @@ public enum ParameterType {
         for (Parameter p : parameters) {
             if (p.key().equalsIgnoreCase(name)) {
                 Object value = p.value();
-                Preconditions.checkArgument(value!=null,"Invalid mapping specified: %s",value);
+                Preconditions.checkNotNull(value, "Invalid mapping specified: %s",value);
                 Preconditions.checkArgument(result==null,"Multiple mappings specified");
                 result = (V)value;
             }
@@ -79,10 +85,19 @@ public enum ParameterType {
     }
 
     public<V> Parameter<V> getParameter(V value) {
-        return new Parameter<V>(name,value);
+        return new Parameter<>(name, value);
     }
 
+    public static String customParameterName(String name){
+        return CUSTOM_PARAMETER_PREFIX + name;
+    }
 
+    public static List<Parameter> getCustomParameters(Parameter[] parameters){
+
+        return Arrays.stream(parameters)
+            .filter(p -> p.key().startsWith(CUSTOM_PARAMETER_PREFIX))
+            .map(p -> new Parameter<>(p.key().substring(CUSTOM_PARAMETER_PREFIX.length()), p.value()))
+            .collect(Collectors.toList());
+    }
 
 }
-

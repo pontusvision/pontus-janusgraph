@@ -22,6 +22,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import org.janusgraph.diskstorage.keycolumnvalue.cache.KCVSCache;
 import org.janusgraph.diskstorage.log.kcvs.ExternalCachePersistor;
@@ -117,8 +118,7 @@ public class BackendTransaction implements LoggableTransaction {
     public IndexTransaction getIndexTransaction(String index) {
         Preconditions.checkArgument(StringUtils.isNotBlank(index));
         IndexTransaction itx = indexTx.get(index);
-        Preconditions.checkNotNull(itx, "Unknown index: " + index);
-        return itx;
+        return Preconditions.checkNotNull(itx, "Unknown index: " + index);
     }
 
     public void disableCache() {
@@ -134,12 +134,12 @@ public class BackendTransaction implements LoggableTransaction {
     }
 
     public Map<String,Throwable> commitIndexes() {
-        Map<String,Throwable> exceptions = new HashMap<String, Throwable>(indexTx.size());
-        for (Map.Entry<String,IndexTransaction> txentry : indexTx.entrySet()) {
+        final Map<String,Throwable> exceptions = new HashMap<>(indexTx.size());
+        for (Map.Entry<String,IndexTransaction> indexTransactionEntry : indexTx.entrySet()) {
             try {
-                txentry.getValue().commit();
+                indexTransactionEntry.getValue().commit();
             } catch (Throwable e) {
-                exceptions.put(txentry.getKey(),e);
+                exceptions.put(indexTransactionEntry.getKey(),e);
             }
         }
         return exceptions;
@@ -158,18 +158,18 @@ public class BackendTransaction implements LoggableTransaction {
      */
     @Override
     public void rollback() throws BackendException {
-        Throwable excep = null;
+        Throwable exception = null;
         for (IndexTransaction itx : indexTx.values()) {
             try {
                 itx.rollback();
             } catch (Throwable e) {
-                excep = e;
+                exception = e;
             }
         }
         storeTx.rollback();
-        if (excep!=null) { //throw any encountered index transaction rollback exceptions
-            if (excep instanceof BackendException) throw (BackendException)excep;
-            else throw new PermanentBackendException("Unexpected exception",excep);
+        if (exception!=null) { //throw any encountered index transaction rollback exceptions
+            if (exception instanceof BackendException) throw (BackendException)exception;
+            else throw new PermanentBackendException("Unexpected exception",exception);
         }
     }
 
@@ -218,9 +218,9 @@ public class BackendTransaction implements LoggableTransaction {
      * the key-value entry without taking a lock).
      * The expectedValue defines the value expected to match the value at the time the lock is acquired (or null if it is expected
      * that the key-column pair does not exist).
-     * <p/>
+     * <p>
      * If this method is called multiple times with the same key-column pair in the same transaction, all but the first invocation are ignored.
-     * <p/>
+     * <p>
      * The lock has to be released when the transaction closes (commits or aborts).
      *
      * @param key           Key on which to lock
@@ -242,9 +242,9 @@ public class BackendTransaction implements LoggableTransaction {
      * the key-value entry without taking a lock).
      * The expectedValue defines the value expected to match the value at the time the lock is acquired (or null if it is expected
      * that the key-column pair does not exist).
-     * <p/>
+     * <p>
      * If this method is called multiple times with the same key-column pair in the same transaction, all but the first invocation are ignored.
-     * <p/>
+     * <p>
      * The lock has to be released when the transaction closes (commits or aborts).
      *
      * @param key           Key on which to lock
@@ -294,7 +294,7 @@ public class BackendTransaction implements LoggableTransaction {
                 }
             });
         } else {
-            final Map<StaticBuffer,EntryList> results = new HashMap<StaticBuffer,EntryList>(keys.size());
+            final Map<StaticBuffer,EntryList> results = new HashMap<>(keys.size());
             if (threadPool == null || keys.size() < MIN_TASKS_TO_PARALLELIZE) {
                 for (StaticBuffer key : keys) {
                     results.put(key,edgeStoreQuery(new KeySliceQuery(key, query)));
@@ -408,12 +408,12 @@ public class BackendTransaction implements LoggableTransaction {
     }
 
 
-    public List<String> indexQuery(final String index, final IndexQuery query) {
+    public Stream<String> indexQuery(final String index, final IndexQuery query) {
         final IndexTransaction indexTx = getIndexTransaction(index);
-        return executeRead(new Callable<List<String>>() {
+        return executeRead(new Callable<Stream<String>>() {
             @Override
-            public List<String> call() throws Exception {
-                return indexTx.query(query);
+            public Stream<String> call() throws Exception {
+                return indexTx.queryStream(query);
             }
 
             @Override
@@ -423,12 +423,12 @@ public class BackendTransaction implements LoggableTransaction {
         });
     }
 
-    public Iterable<RawQuery.Result<String>> rawQuery(final String index, final RawQuery query) {
+    public Stream<RawQuery.Result<String>> rawQuery(final String index, final RawQuery query) {
         final IndexTransaction indexTx = getIndexTransaction(index);
-        return executeRead(new Callable<Iterable<RawQuery.Result<String>>>() {
+        return executeRead(new Callable<Stream<RawQuery.Result<String>>>() {
             @Override
-            public Iterable<RawQuery.Result<String>> call() throws Exception {
-                return indexTx.query(query);
+            public Stream<RawQuery.Result<String>> call() throws Exception {
+                return indexTx.queryStream(query);
             }
 
             @Override
@@ -464,7 +464,7 @@ public class BackendTransaction implements LoggableTransaction {
     }
 
 
-    private final <V> V executeRead(Callable<V> exe) throws JanusGraphException {
+    private <V> V executeRead(Callable<V> exe) throws JanusGraphException {
         try {
             return BackendOperation.execute(exe, maxReadTime);
         } catch (JanusGraphException e) {

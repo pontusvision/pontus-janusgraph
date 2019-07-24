@@ -15,11 +15,9 @@
 package org.janusgraph.graphdb.attribute;
 
 import org.janusgraph.core.attribute.Cmp;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
-
-import org.apache.commons.text.similarity.LevenshteinDistance;
+import static org.junit.jupiter.api.Assertions.*;
 
 import static org.janusgraph.core.attribute.Text.*;
 
@@ -77,7 +75,7 @@ public class TextTest {
 
         String name = "fully funny";
         //Cmp
-        assertTrue(Cmp.EQUAL.test(name.toString(), name));
+        assertTrue(Cmp.EQUAL.test(name, name));
         assertFalse(Cmp.NOT_EQUAL.test(name, name));
         assertFalse(Cmp.EQUAL.test("fullly funny", name));
         assertTrue(Cmp.NOT_EQUAL.test("fullly funny", name));

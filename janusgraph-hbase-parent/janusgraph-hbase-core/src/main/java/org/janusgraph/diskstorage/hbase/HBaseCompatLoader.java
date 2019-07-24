@@ -22,7 +22,7 @@ public class HBaseCompatLoader {
 
     private static final Logger log = LoggerFactory.getLogger(HBaseCompatLoader.class);
 
-    private static final String DEFAULT_HBASE_COMPAT_VERSION = "1.2";
+    private static final String DEFAULT_HBASE_COMPAT_VERSION = "1.3.1";
 
     private static final String HBASE_VERSION_1_STRING = "1.";
 
@@ -30,7 +30,7 @@ public class HBaseCompatLoader {
         "org.janusgraph.diskstorage.hbase.HBaseCompat1_0";
 
     private static final String[] HBASE_SUPPORTED_VERSIONS =
-        new String[] { "0.98", "1.0", "1.1", "1.2" };
+        new String[] { "1.0", "1.1", "1.2", "1.3", "1.4", "2.0", "2.1" };
 
     private static HBaseCompat cachedCompat;
 
@@ -52,13 +52,8 @@ public class HBaseCompatLoader {
             String hbaseVersion = VersionInfo.getVersion();
             for (String supportedVersion : HBASE_SUPPORTED_VERSIONS) {
                 if (hbaseVersion.startsWith(supportedVersion + ".")) {
-                    if (hbaseVersion.startsWith(HBASE_VERSION_1_STRING)) {
-                        // All HBase 1.x maps to HBaseCompat1_0 for now.
-                        className = DEFAULT_HBASE_COMPAT_CLASS_NAME;
-                    }
-                    else {
-                        className = "org.janusgraph.diskstorage.hbase.HBaseCompat" + supportedVersion.replaceAll("\\.", "_");
-                    }
+                    // All HBase 1.x and 2.x maps to HBaseCompat1_0 for now.
+                    className = DEFAULT_HBASE_COMPAT_CLASS_NAME;
                     classNameSource = "supporting runtime HBase version " + hbaseVersion;
                     break;
                 }
@@ -77,11 +72,7 @@ public class HBaseCompatLoader {
         try {
             compat = (HBaseCompat)Class.forName(className).newInstance();
             log.info("Instantiated HBase compatibility layer {}: {}", classNameSource, compat.getClass().getCanonicalName());
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e.getClass().getSimpleName() + errTemplate, e);
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e.getClass().getSimpleName() + errTemplate, e);
-        } catch (ClassNotFoundException e) {
+        } catch (IllegalAccessException | InstantiationException | ClassNotFoundException e) {
             throw new RuntimeException(e.getClass().getSimpleName() + errTemplate, e);
         }
 

@@ -15,7 +15,7 @@
 package org.janusgraph.graphdb.relations;
 
 import com.carrotsearch.hppc.cursors.LongObjectCursor;
-import com.google.common.base.Predicate;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import org.janusgraph.core.PropertyKey;
 import org.janusgraph.core.schema.ConsistencyModifier;
@@ -28,7 +28,6 @@ import org.janusgraph.graphdb.transaction.RelationConstructor;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.janusgraph.graphdb.types.system.ImplicitKey;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,7 +45,9 @@ public class CacheEdge extends AbstractEdge {
     }
 
     public Direction getVertexCentricDirection() {
-        return data.getCache().direction;
+        final RelationCache cache = data.getCache();
+        Preconditions.checkNotNull(cache, "Cache is null");
+        return cache.direction;
     }
 
     //############## Similar code as CacheProperty but be careful when copying #############################
@@ -61,12 +62,8 @@ public class CacheEdge extends AbstractEdge {
         if (startVertex.hasAddedRelations() && startVertex.hasRemovedRelations()) {
             //Test whether this relation has been replaced
             final long id = super.longId();
-            Iterable<InternalRelation> previous = startVertex.getAddedRelations(new Predicate<InternalRelation>() {
-                @Override
-                public boolean apply(@Nullable InternalRelation internalRelation) {
-                    return (internalRelation instanceof StandardEdge) && ((StandardEdge) internalRelation).getPreviousID() == id;
-                }
-            });
+            final Iterable<InternalRelation> previous = startVertex.getAddedRelations(
+                internalRelation -> (internalRelation instanceof StandardEdge) && ((StandardEdge) internalRelation).getPreviousID() == id);
             assert Iterables.size(previous) <= 1 || (isLoop() && Iterables.size(previous) == 2);
             it = Iterables.getFirst(previous, null);
         }

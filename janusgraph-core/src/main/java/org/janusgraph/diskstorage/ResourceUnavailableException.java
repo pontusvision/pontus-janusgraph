@@ -21,7 +21,7 @@ import org.apache.commons.lang.StringUtils;
 /**
  * This exception is thrown if a resource is being accessed that is unavailable.
  * The resource can be an external storage system, indexing system or other component.
- * <p/>
+ * <p>
  *
  * @author Matthias Broecheler (me@matthiasb.com)
  */
@@ -53,7 +53,7 @@ public class ResourceUnavailableException extends JanusGraphException {
         this("Attempting to access unavailable resource", cause);
     }
 
-    public static final void verifyOpen(boolean isOpen, String resourceName, String... resourceIdentifiers) {
+    public static void verifyOpen(boolean isOpen, String resourceName, String... resourceIdentifiers) {
         Preconditions.checkArgument(StringUtils.isNotBlank(resourceName));
         if (!isOpen) {
             StringBuilder msg = new StringBuilder();

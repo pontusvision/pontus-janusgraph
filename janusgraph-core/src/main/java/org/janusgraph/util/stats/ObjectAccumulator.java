@@ -20,7 +20,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 /**
- * This class counts arbitrary objects of type <K> and tries to do so efficiently in time and space.
+ * This class counts arbitrary objects of type &lt;K&gt; and tries to do so efficiently in time and space.
  * The class offers methods to increase the count of an object by a specified amount or default 1, as well
  * as retrieving the number of times and object has been counted.
  *
@@ -28,16 +28,16 @@ import java.util.Set;
  * @author Matthias Broecheler
  */
 
-public class ObjectAccumulator<K extends Object> {
+public class ObjectAccumulator<K> {
 
-    private HashMap<K, Counter> countMap;
+    final private HashMap<K, Counter> countMap;
 
     public ObjectAccumulator() {
-        countMap = new HashMap<K, Counter>();
+        countMap = new HashMap<>();
     }
 
     public ObjectAccumulator(int initialSize) {
-        countMap = new HashMap<K, Counter>(initialSize);
+        countMap = new HashMap<>(initialSize);
     }
 
     /**
@@ -48,11 +48,7 @@ public class ObjectAccumulator<K extends Object> {
      * @return
      */
     public double incBy(K o, double inc) {
-        Counter c = countMap.get(o);
-        if (c == null) {
-            c = new Counter();
-            countMap.put(o, c);
-        }
+        final Counter c = countMap.computeIfAbsent(o, k -> new Counter());
         c.count += inc;
         return c.count;
     }

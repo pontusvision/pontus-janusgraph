@@ -28,6 +28,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.step.map.EdgeOtherVertexSt
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.EdgeVertexStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.IdentityStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.util.EmptyStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
 import org.apache.tinkerpop.gremlin.process.traversal.strategy.AbstractTraversalStrategy;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
@@ -75,22 +76,23 @@ public class AdjacentVertexFilterOptimizerStrategy extends AbstractTraversalStra
                 if (direction != null && predicate.getBiPredicate() == Compare.eq && predicate.getValue() instanceof Vertex) {
                     JanusGraphVertex vertex = JanusGraphTraversalUtil.getJanusGraphVertex((Vertex) predicate.getValue());
 
-                    //Now, check that this step is preceeded by VertexStep that returns edges
+                    //Now, check that this step is preceded by VertexStep that returns edges
                     Step<?, ?> currentStep = originalStep.getPreviousStep();
-                    while (true) {
-                        if (currentStep instanceof HasStep || currentStep instanceof IdentityStep) {
-                            //We can jump over those steps as we move backward
-                        } else break;
+                    while (currentStep != EmptyStep.instance()) {
+                        if (!(currentStep instanceof HasStep) && !(currentStep instanceof IdentityStep)) {
+                            break;
+                        } //We can jump over other steps as we move backward
+                        currentStep = currentStep.getPreviousStep();
                     }
                     if (currentStep instanceof VertexStep) {
-                        VertexStep vstep = (VertexStep) currentStep;
-                        if (vstep.returnsEdge()
-                                && (direction == Direction.BOTH || direction.equals(vstep.getDirection().opposite()))) {
+                        VertexStep vertexStep = (VertexStep) currentStep;
+                        if (vertexStep.returnsEdge()
+                                && (direction == Direction.BOTH || direction.equals(vertexStep.getDirection().opposite()))) {
                             //Now replace the step with a has condition
                             TraversalHelper.replaceStep(originalStep,
-                                    new HasStep(traversal,
-                                            HasContainer.makeHasContainers(ImplicitKey.ADJACENT_ID.name(), P.eq(vertex))),
-                                    traversal);
+                                new HasStep(traversal,
+                                    new HasContainer(ImplicitKey.ADJACENT_ID.name(), P.eq(vertex))),
+                                traversal);
                         }
                     }
 

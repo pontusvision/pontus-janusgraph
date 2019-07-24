@@ -16,7 +16,7 @@
 	  </excludes>
 	</unpackOptions>
 	<includes>
-	  <include>org.janusgraph:janusgraph-hbase-*</include>
+	  <include>com.pontusvision:janusgraph-hbase-*</include>
 	</includes>
       </dependencySet>
     </dependencySets>

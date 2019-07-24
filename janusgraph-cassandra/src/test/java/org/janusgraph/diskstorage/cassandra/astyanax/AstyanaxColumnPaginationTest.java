@@ -17,7 +17,7 @@ package org.janusgraph.diskstorage.cassandra.astyanax;
 import org.janusgraph.diskstorage.BackendException;
 import org.janusgraph.diskstorage.configuration.Configuration;
 import org.janusgraph.diskstorage.configuration.ModifiableConfiguration;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.BeforeAll;
 
 import org.janusgraph.CassandraStorageSetup;
 import org.janusgraph.diskstorage.cassandra.AbstractCassandraStoreTest;
@@ -26,21 +26,26 @@ import org.janusgraph.core.JanusGraphFactory;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import org.junit.Test;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class AstyanaxColumnPaginationTest extends AbstractCassandraStoreTest {
 
     private static final int DEFAULT_READ_PAGE_SIZE = 4096;
 
-    @BeforeClass
+    @BeforeAll
     public static void startCassandra() {
         CassandraStorageSetup.startCleanEmbedded();
     }
 
     @Override
     public ModifiableConfiguration getBaseStorageConfiguration() {
-        return CassandraStorageSetup.getAstyanaxConfiguration(getClass().getSimpleName());
+        return getBaseStorageConfiguration(getClass().getSimpleName());
+    }
+
+    @Override
+    public ModifiableConfiguration getBaseStorageConfiguration(String keyspace) {
+        return CassandraStorageSetup.getAstyanaxConfiguration(keyspace);
     }
 
     @Override

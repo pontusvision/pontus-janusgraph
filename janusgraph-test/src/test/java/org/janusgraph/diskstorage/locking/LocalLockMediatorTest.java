@@ -21,12 +21,12 @@ import org.janusgraph.diskstorage.locking.consistentkey.ExpectedValueCheckingTra
 import org.janusgraph.diskstorage.util.KeyColumn;
 import org.janusgraph.diskstorage.util.StaticArrayBuffer;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class LocalLockMediatorTest {
@@ -41,15 +41,14 @@ public class LocalLockMediatorTest {
     private static final ExpectedValueCheckingTransaction mockTx2 = mock(ExpectedValueCheckingTransaction.class);
 
     @Test
-    public void testLockExpiration() throws InterruptedException {
+    public void testLockExpiration() {
         TimestampProvider times = TimestampProviders.MICRO;
-        LocalLockMediator<ExpectedValueCheckingTransaction> llm =
-                new LocalLockMediator<ExpectedValueCheckingTransaction>(LOCK_NAMESPACE, times);
+        LocalLockMediator<ExpectedValueCheckingTransaction> llm = new LocalLockMediator<>(LOCK_NAMESPACE, times);
 
         assertTrue(llm.lock(kc, mockTx1, Instant.EPOCH));
         assertTrue(llm.lock(kc, mockTx2, Instant.MAX));
 
-        llm = new LocalLockMediator<ExpectedValueCheckingTransaction>(LOCK_NAMESPACE, times);
+        llm = new LocalLockMediator<>(LOCK_NAMESPACE, times);
 
         assertTrue(llm.lock(kc, mockTx1, Instant.MAX));
         assertFalse(llm.lock(kc, mockTx2, Instant.MAX));

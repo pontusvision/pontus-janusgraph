@@ -33,6 +33,7 @@ public interface ConnectionMask extends Closeable
 
     /**
      * Retrieve the TableMask compatibility layer object for the supplied table name.
+     * @param name
      * @return The TableMask for the specified table.
      * @throws IOException in the case of backend exceptions.
      */
@@ -47,8 +48,9 @@ public interface ConnectionMask extends Closeable
 
     /**
      * Retrieve the RegionLocations for the supplied table name.
+     * @param tableName
      * @return A map of HRegionInfo to ServerName that describes the storage regions for the named table.
      * @throws IOException in the case of backend exceptions.
      */
-    List<HRegionLocation> getRegionLocations(String tablename) throws IOException;
+    List<HRegionLocation> getRegionLocations(String tableName) throws IOException;
 }

@@ -46,7 +46,7 @@ public class InMemoryStoreManager implements KeyColumnValueStoreManager {
 
     public InMemoryStoreManager(final Configuration configuration) {
 
-        stores = new ConcurrentHashMap<String, InMemoryKeyColumnValueStore>();
+        stores = new ConcurrentHashMap<>();
 
         features = new StandardStoreFeatures.Builder()
             .orderedScan(true)
@@ -88,6 +88,12 @@ public class InMemoryStoreManager implements KeyColumnValueStoreManager {
         for (InMemoryKeyColumnValueStore store : stores.values()) {
             store.clear();
         }
+        stores.clear();
+    }
+
+    @Override
+    public boolean exists() throws BackendException {
+        return !stores.isEmpty();
     }
 
     @Override

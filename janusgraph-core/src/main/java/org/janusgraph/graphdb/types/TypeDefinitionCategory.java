@@ -34,7 +34,7 @@ import java.util.Set;
  * @author Joshua Shinavier (http://fortytwo.net)
  */
 public enum TypeDefinitionCategory {
-
+    //Don't change the order because it breaks backward compatibility.
     //Relation Types
     INVISIBLE(Boolean.class),
     SORT_KEY(long[].class),
@@ -67,13 +67,16 @@ public enum TypeDefinitionCategory {
     //Schema Edges
     RELATIONTYPE_INDEX(),
     TYPE_MODIFIER(),
-    INDEX_FIELD(RelationCategory.EDGE,Parameter[].class),
-    INDEX_SCHEMA_CONSTRAINT();
+    INDEX_FIELD(RelationCategory.EDGE, Parameter[].class),
+    INDEX_SCHEMA_CONSTRAINT(),
+    PROPERTY_KEY_EDGE(),
+    CONNECTION_EDGE(RelationCategory.EDGE, String.class),
+    UPDATE_CONNECTION_EDGE();
 
     public static final Set<TypeDefinitionCategory> PROPERTYKEY_DEFINITION_CATEGORIES = ImmutableSet.of(STATUS, INVISIBLE, SORT_KEY, SORT_ORDER, SIGNATURE, MULTIPLICITY, DATATYPE);
     public static final Set<TypeDefinitionCategory> EDGELABEL_DEFINITION_CATEGORIES = ImmutableSet.of(STATUS, INVISIBLE, SORT_KEY, SORT_ORDER, SIGNATURE, MULTIPLICITY, UNIDIRECTIONAL);
     public static final Set<TypeDefinitionCategory> INDEX_DEFINITION_CATEGORIES = ImmutableSet.of(STATUS, ELEMENT_CATEGORY,INDEX_CARDINALITY,INTERNAL_INDEX, BACKING_INDEX,INDEXSTORE_NAME);
-    public static final Set<TypeDefinitionCategory> VERTEXLABEL_DEFINITION_CATEGORIES = ImmutableSet.of(PARTITIONED,STATIC);
+    public static final Set<TypeDefinitionCategory> VERTEXLABEL_DEFINITION_CATEGORIES = ImmutableSet.of(PARTITIONED, STATIC);
     public static final Set<TypeDefinitionCategory> TYPE_MODIFIER_DEFINITION_CATEGORIES;
 
     static {
@@ -87,15 +90,15 @@ public enum TypeDefinitionCategory {
     private final RelationCategory relationCategory;
     private final Class dataType;
 
-    private TypeDefinitionCategory() {
+    TypeDefinitionCategory() {
         this(RelationCategory.EDGE,null);
     }
 
-    private TypeDefinitionCategory(Class<?> dataType) {
+    TypeDefinitionCategory(Class<?> dataType) {
         this(RelationCategory.PROPERTY, dataType);
     }
 
-    private TypeDefinitionCategory(RelationCategory relCat, Class<?> dataType) {
+    TypeDefinitionCategory(RelationCategory relCat, Class<?> dataType) {
         Preconditions.checkArgument(relCat!=null && relCat.isProper());
         Preconditions.checkArgument(relCat==RelationCategory.EDGE || dataType !=null);
         this.relationCategory = relCat;
@@ -120,7 +123,7 @@ public enum TypeDefinitionCategory {
     }
 
     public boolean verifyAttribute(Object attribute) {
-        Preconditions.checkState(dataType !=null);
+        Preconditions.checkNotNull(dataType);
         return attribute != null && dataType.equals(attribute.getClass());
     }
 

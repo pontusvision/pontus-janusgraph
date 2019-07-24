@@ -28,7 +28,7 @@ import java.util.NoSuchElementException;
  * An implementation of {@link VertexListInternal} that stores only the vertex ids
  * and simply wraps an {@link LongArrayList} and keeps a boolean flag to remember whether this list is in sort order.
  * In addition, we need a transaction reference in order to construct actual vertex references on request.
- * </p>
+ * <p>
  * This is a more efficient way to represent a vertex result set but only applies to loaded vertices that have ids.
  * So, compared to {@link VertexArrayList} this is an optimization for the special use case that a vertex is loaded.
  *
@@ -99,22 +99,22 @@ public class VertexLongList implements VertexListInternal {
 
     @Override
     public void addAll(VertexList vertexlist) {
-        LongArrayList othervertexids = null;
+        final LongArrayList otherVertexIds;
         if (vertexlist instanceof VertexLongList) {
-            othervertexids = ((VertexLongList) vertexlist).vertices;
+            otherVertexIds = ((VertexLongList) vertexlist).vertices;
         } else if (vertexlist instanceof VertexArrayList) {
             VertexArrayList other = (VertexArrayList) vertexlist;
-            othervertexids = new LongArrayList(other.size());
-            for (int i = 0; i < other.size(); i++) othervertexids.add(other.getID(i));
+            otherVertexIds = new LongArrayList(other.size());
+            for (int i = 0; i < other.size(); i++) otherVertexIds.add(other.getID(i));
         } else {
             throw new IllegalArgumentException("Unsupported vertex-list: " + vertexlist.getClass());
         }
         if (sorted && vertexlist.isSorted()) {
             //Merge join
-            vertices = AbstractLongListUtil.mergeSort(vertices,othervertexids);
+            vertices = AbstractLongListUtil.mergeSort(vertices,otherVertexIds);
         } else {
             sorted = false;
-            vertices.add(othervertexids.buffer, 0, othervertexids.size());
+            vertices.add(otherVertexIds.buffer, 0, otherVertexIds.size());
         }
     }
 

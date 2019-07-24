@@ -15,8 +15,8 @@
 package org.janusgraph.graphdb;
 
 import static org.janusgraph.testutil.JanusGraphAssert.assertCount;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,22 +25,21 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.TestRule;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import org.janusgraph.core.PropertyKey;
 import org.janusgraph.core.JanusGraphEdge;
 import org.janusgraph.core.JanusGraphTransaction;
 import org.janusgraph.core.JanusGraphVertex;
-import org.janusgraph.testcategory.MemoryTests;
+import org.janusgraph.TestCategory;
 import org.janusgraph.testutil.JUnitBenchmarkProvider;
 import org.janusgraph.testutil.MemoryAssess;
-
 /**
  * These tests focus on the in-memory data structures of individual transactions and how they hold up to high memory pressure
  */
-@Category({ MemoryTests.class })
+@Tag(TestCategory.MEMORY_TESTS)
 public abstract class JanusGraphPerformanceMemoryTest extends JanusGraphBaseTest {
 
     @Rule
@@ -91,30 +90,27 @@ public abstract class JanusGraphPerformanceMemoryTest extends JanusGraphBaseTest
         Thread[] writeThreads = new Thread[4];
         long start = System.currentTimeMillis();
         for (int t = 0; t < writeThreads.length; t++) {
-            writeThreads[t] = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    for (int r = 0; r < rounds; r++) {
-                        JanusGraphTransaction tx = graph.newTransaction();
-                        JanusGraphVertex previous = null;
-                        for (int c = 0; c < commitSize; c++) {
-                            JanusGraphVertex v = tx.addVertex();
-                            long uid = uidCounter.incrementAndGet();
-                            v.property(VertexProperty.Cardinality.single, "uid",  uid);
-                            v.property(VertexProperty.Cardinality.single, "name",  "user" + uid);
-                            if (previous != null) {
-                                v.addEdge("friend", previous, "time", Math.abs(random.nextInt()));
-                            }
-                            previous = v;
+            writeThreads[t] = new Thread(() -> {
+                for (int r = 0; r < rounds; r++) {
+                    JanusGraphTransaction tx = graph.newTransaction();
+                    JanusGraphVertex previous = null;
+                    for (int c = 0; c < commitSize; c++) {
+                        JanusGraphVertex v = tx.addVertex();
+                        long uid = uidCounter.incrementAndGet();
+                        v.property(VertexProperty.Cardinality.single, "uid",  uid);
+                        v.property(VertexProperty.Cardinality.single, "name",  "user" + uid);
+                        if (previous != null) {
+                            v.addEdge("friend", previous, "time", Math.abs(random.nextInt()));
                         }
-                        tx.commit();
+                        previous = v;
                     }
+                    tx.commit();
                 }
             });
             writeThreads[t].start();
         }
-        for (int t = 0; t < writeThreads.length; t++) {
-            writeThreads[t].join();
+        for (final Thread writeThread : writeThreads) {
+            writeThread.join();
         }
         System.out.println("Write time for " + (rounds * commitSize * writeThreads.length) + " vertices & edges: " + (System.currentTimeMillis() - start));
 
@@ -124,31 +120,29 @@ public abstract class JanusGraphPerformanceMemoryTest extends JanusGraphBaseTest
         Thread[] readThreads = new Thread[Runtime.getRuntime().availableProcessors() * 2];
         start = System.currentTimeMillis();
         for (int t = 0; t < readThreads.length; t++) {
-            readThreads[t] = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    JanusGraphTransaction tx = graph.newTransaction();
-                    long ruid = random.nextInt(maxUID) + 1;
-                    getVertex(tx,"uid", ruid).property(VertexProperty.Cardinality.single, "name",  fixedName);
-                    for (int t = 1; t <= trials; t++) {
-                        JanusGraphVertex v = getVertex(tx,"uid", random.nextInt(maxUID) + 1);
-                        assertCount(2, v.properties());
-                        int count = 0;
-                        for (Object e : v.query().direction(Direction.BOTH).edges()) {
-                            count++;
-                            assertTrue(((JanusGraphEdge) e).<Integer>value("time") >= 0);
-                        }
-                        assertTrue(count <= 2);
-//                        if (t%(trials/10)==0) System.out.println(t);
+            readThreads[t] = new Thread(() -> {
+                JanusGraphTransaction tx = graph.newTransaction();
+                long randomUniqueId = random.nextInt(maxUID) + 1;
+                getVertex(tx,"uid", randomUniqueId).property(VertexProperty.Cardinality.single, "name",  fixedName);
+                for (int t1 = 1; t1 <= trials; t1++) {
+                    JanusGraphVertex v = getVertex(tx,"uid", random.nextInt(maxUID) + 1);
+                    assertCount(2, v.properties());
+                    int count = 0;
+                    for (Object e : v.query().direction(Direction.BOTH).edges()) {
+                        count++;
+                        assertTrue(((JanusGraphEdge) e).<Integer>value("time") >= 0);
                     }
-                    assertEquals(fixedName, getVertex(tx,"uid", ruid).value("name"));
-                    tx.commit();
+                    assertTrue(count <= 2);
+//                        if (t%(trials/10)==0) System.out.println(t);
+
                 }
+                assertEquals(getVertex(tx,"uid", randomUniqueId).value("name"), fixedName);
+                tx.commit();
             });
             readThreads[t].start();
         }
-        for (int t = 0; t < readThreads.length; t++) {
-            readThreads[t].join();
+        for (final Thread readThread : readThreads) {
+            readThread.join();
         }
         System.out.println("Read time for " + (trials * readThreads.length) + " vertex lookups: " + (System.currentTimeMillis() - start));
 

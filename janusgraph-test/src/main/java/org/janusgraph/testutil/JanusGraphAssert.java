@@ -14,49 +14,69 @@
 
 package org.janusgraph.testutil;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Element;
 
 import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.stream.Stream;
 
 /**
  * @author Matthias Broecheler (me@matthiasb.com)
  */
 public class JanusGraphAssert {
 
-    public static void assertCount(long expected, Object object) {
-        org.junit.Assert.assertEquals(expected, size(object));
+    public static void assertCount(int expected, Traversal traversal) {
+        assertEquals(expected, traversal.toList().size());
+    }
+
+    public static void assertCount(int expected, Collection collection) {
+        assertEquals(expected, collection.size());
+    }
+
+    public static void assertCount(int expected, Iterable iterable) {
+        assertEquals(expected, Iterables.size(iterable));
+    }
+
+    public static void assertCount(int expected, Iterator iterator) {
+        assertEquals(expected, Iterators.size(iterator));
+    }
+
+    public static void assertCount(long expected, Stream stream) {
+        assertEquals(expected, stream.count());
     }
 
     public static<V extends Element> void assertEmpty(Object object) {
-        org.junit.Assert.assertTrue(isEmpty(object));
+        assertTrue(isEmpty(object));
     }
 
     public static<V extends Element> void assertNotEmpty(Object object) {
-        org.junit.Assert.assertFalse(isEmpty(object));
+        assertFalse(isEmpty(object));
     }
 
-    public static int size(Object obj) {
-        Preconditions.checkArgument(obj != null);
-        if (obj instanceof Traversal) return size(((Traversal) obj).toList());
-        else if (obj instanceof Collection) return ((Collection)obj).size();
-        else if (obj instanceof Iterable) return Iterables.size((Iterable) obj);
-        else if (obj instanceof Iterator) return Iterators.size((Iterator)obj);
-        else if (obj.getClass().isArray()) return Array.getLength(obj);
-        throw new IllegalArgumentException("Cannot determine size of: " + obj);
+    public static<E extends Element> void assertTraversal(GraphTraversal<?, E> req, E... expectedElements) {
+        for (final E expectedElement : expectedElements) {
+            assertEquals(expectedElement, req.next());
+        }
+        assertFalse(req.hasNext());
     }
 
-    public static boolean isEmpty(Object obj) {
+    private static boolean isEmpty(Object obj) {
         Preconditions.checkArgument(obj != null);
         if (obj instanceof Traversal) return !((Traversal) obj).hasNext();
         else if (obj instanceof Collection) return ((Collection)obj).isEmpty();
         else if (obj instanceof Iterable) return Iterables.isEmpty((Iterable)obj);
         else if (obj instanceof Iterator) return !((Iterator)obj).hasNext();
+        else if (obj instanceof Stream) return ((Stream) obj).count() == 0;
         else if (obj.getClass().isArray()) return Array.getLength(obj)==0;
         throw new IllegalArgumentException("Cannot determine size of: " + obj);
     }

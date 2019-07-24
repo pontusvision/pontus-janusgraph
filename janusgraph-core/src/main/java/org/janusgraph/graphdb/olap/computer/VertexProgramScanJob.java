@@ -33,6 +33,8 @@ import org.janusgraph.graphdb.vertices.PreloadedVertex;
 import org.apache.tinkerpop.gremlin.process.computer.MessageCombiner;
 import org.apache.tinkerpop.gremlin.process.computer.MessageScope;
 import org.apache.tinkerpop.gremlin.process.computer.VertexProgram;
+import org.apache.tinkerpop.gremlin.process.computer.clustering.connected.ConnectedComponentVertexProgram;
+import org.apache.tinkerpop.gremlin.process.computer.search.path.ShortestPathVertexProgram;
 import org.apache.tinkerpop.gremlin.process.computer.traversal.TraversalVertexProgram;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -40,12 +42,14 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import java.io.Closeable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Matthias Broecheler (me@matthiasb.com)
  */
 public class VertexProgramScanJob<M> implements VertexScanJob {
 
+    private final static MessageScope.Global globalScope = MessageScope.Global.instance();
     private final IDManager idManager;
     private final FulgoraMemory memory;
     private final FulgoraVertexMemory<M> vertexMemory;
@@ -94,8 +98,8 @@ public class VertexProgramScanJob<M> implements VertexScanJob {
             for (MessageScope scope : vertexMemory.getPreviousScopes()) {
                 if (scope instanceof MessageScope.Local) {
                     M combinedMsg = null;
-                    for (Iterator<M> msgIter = vh.receiveMessages(scope).iterator(); msgIter.hasNext(); ) {
-                        M msg = msgIter.next();
+                    for (Iterator<M> messageIterator = vh.receiveMessages(scope).iterator(); messageIterator.hasNext(); ) {
+                        M msg = messageIterator.next();
                         if (combinedMsg==null) combinedMsg=msg;
                         else combinedMsg = combiner.combine(combinedMsg,msg);
                     }
@@ -116,20 +120,21 @@ public class VertexProgramScanJob<M> implements VertexScanJob {
 
     @Override
     public void getQueries(QueryContainer queries) {
-        if (vertexProgram instanceof TraversalVertexProgram) {
+        Set<MessageScope> previousScopes = vertexMemory.getPreviousScopes();
+        if (vertexProgram instanceof TraversalVertexProgram || vertexProgram instanceof ShortestPathVertexProgram ||
+            vertexProgram instanceof ConnectedComponentVertexProgram || previousScopes.contains(globalScope)) {
             //TraversalVertexProgram currently makes the assumption that the entire star-graph around a vertex
             //is available (in-memory). Hence, this special treatment here.
             //TODO: After TraversalVertexProgram is adjusted, remove this
+            //Special handling for ShortestPathVertexProgram necessary until TINKERPOP-2187 is resolved
+            //Apparently, ConnectedComponentVertexProgram also needs this special handling
             queries.addQuery().direction(Direction.BOTH).edges();
-            return;
         }
 
-        for (MessageScope scope : vertexMemory.getPreviousScopes()) {
-            if (scope instanceof MessageScope.Global) {
-                queries.addQuery().direction(Direction.BOTH).edges();
-            } else {
-                assert scope instanceof MessageScope.Local;
-                JanusGraphVertexStep<Vertex> startStep = FulgoraUtil.getReverseJanusGraphVertexStep((MessageScope.Local) scope,queries.getTransaction());
+        for (MessageScope scope : previousScopes) {
+            if (scope instanceof MessageScope.Local) {
+                JanusGraphVertexStep<Vertex> startStep =
+                    FulgoraUtil.getReverseJanusGraphVertexStep((MessageScope.Local) scope, queries.getTransaction());
                 QueryContainer.QueryBuilder qb = queries.addQuery();
                 startStep.makeQuery(qb);
                 qb.edges();
@@ -140,7 +145,7 @@ public class VertexProgramScanJob<M> implements VertexScanJob {
 
     public static<M> Executor getVertexProgramScanJob(StandardJanusGraph graph, FulgoraMemory memory,
                                                   FulgoraVertexMemory vertexMemory, VertexProgram<M> vertexProgram) {
-        VertexProgramScanJob<M> job = new VertexProgramScanJob<M>(graph.getIDManager(),memory,vertexMemory,vertexProgram);
+        final VertexProgramScanJob<M> job = new VertexProgramScanJob<>(graph.getIDManager(), memory, vertexMemory, vertexProgram);
         return new Executor(graph,job);
     }
 

@@ -31,13 +31,12 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import java.io.File;
 
 /**
  * Example Graph factory that creates a {@link JanusGraph} based on roman mythology.
  * Used in the documentation examples and tutorials.
  *
- * @author Marko A. Rodriguez (http://markorodriguez.com)
+ * @author Marko A. Rodriguez (https://markorodriguez.com)
  */
 public class GraphOfTheGodsFactory {
 
@@ -67,7 +66,7 @@ public class GraphOfTheGodsFactory {
     }
 
     private static boolean mixedIndexNullOrExists(StandardJanusGraph graph, String indexName) {
-        return indexName == null || graph.getIndexSerializer().containsIndex(indexName) == true;
+        return indexName == null || graph.getIndexSerializer().containsIndex(indexName);
     }
 
     public static void load(final JanusGraph graph, String mixedIndexName, boolean uniqueNameCompositeIndex) {
@@ -77,39 +76,39 @@ public class GraphOfTheGodsFactory {
         }
 
         //Create Schema
-        JanusGraphManagement mgmt = graph.openManagement();
-        final PropertyKey name = mgmt.makePropertyKey("name").dataType(String.class).make();
-        JanusGraphManagement.IndexBuilder nameIndexBuilder = mgmt.buildIndex("name", Vertex.class).addKey(name);
+        JanusGraphManagement management = graph.openManagement();
+        final PropertyKey name = management.makePropertyKey("name").dataType(String.class).make();
+        JanusGraphManagement.IndexBuilder nameIndexBuilder = management.buildIndex("name", Vertex.class).addKey(name);
         if (uniqueNameCompositeIndex)
             nameIndexBuilder.unique();
-        JanusGraphIndex namei = nameIndexBuilder.buildCompositeIndex();
-        mgmt.setConsistency(namei, ConsistencyModifier.LOCK);
-        final PropertyKey age = mgmt.makePropertyKey("age").dataType(Integer.class).make();
+        JanusGraphIndex nameIndex = nameIndexBuilder.buildCompositeIndex();
+        management.setConsistency(nameIndex, ConsistencyModifier.LOCK);
+        final PropertyKey age = management.makePropertyKey("age").dataType(Integer.class).make();
         if (null != mixedIndexName)
-            mgmt.buildIndex("vertices", Vertex.class).addKey(age).buildMixedIndex(mixedIndexName);
+            management.buildIndex("vertices", Vertex.class).addKey(age).buildMixedIndex(mixedIndexName);
 
-        final PropertyKey time = mgmt.makePropertyKey("time").dataType(Integer.class).make();
-        final PropertyKey reason = mgmt.makePropertyKey("reason").dataType(String.class).make();
-        final PropertyKey place = mgmt.makePropertyKey("place").dataType(Geoshape.class).make();
+        final PropertyKey time = management.makePropertyKey("time").dataType(Integer.class).make();
+        final PropertyKey reason = management.makePropertyKey("reason").dataType(String.class).make();
+        final PropertyKey place = management.makePropertyKey("place").dataType(Geoshape.class).make();
         if (null != mixedIndexName)
-            mgmt.buildIndex("edges", Edge.class).addKey(reason).addKey(place).buildMixedIndex(mixedIndexName);
+            management.buildIndex("edges", Edge.class).addKey(reason).addKey(place).buildMixedIndex(mixedIndexName);
 
-        mgmt.makeEdgeLabel("father").multiplicity(Multiplicity.MANY2ONE).make();
-        mgmt.makeEdgeLabel("mother").multiplicity(Multiplicity.MANY2ONE).make();
-        EdgeLabel battled = mgmt.makeEdgeLabel("battled").signature(time).make();
-        mgmt.buildEdgeIndex(battled, "battlesByTime", Direction.BOTH, Order.decr, time);
-        mgmt.makeEdgeLabel("lives").signature(reason).make();
-        mgmt.makeEdgeLabel("pet").make();
-        mgmt.makeEdgeLabel("brother").make();
+        management.makeEdgeLabel("father").multiplicity(Multiplicity.MANY2ONE).make();
+        management.makeEdgeLabel("mother").multiplicity(Multiplicity.MANY2ONE).make();
+        EdgeLabel battled = management.makeEdgeLabel("battled").signature(time).make();
+        management.buildEdgeIndex(battled, "battlesByTime", Direction.BOTH, Order.desc, time);
+        management.makeEdgeLabel("lives").signature(reason).make();
+        management.makeEdgeLabel("pet").make();
+        management.makeEdgeLabel("brother").make();
 
-        mgmt.makeVertexLabel("titan").make();
-        mgmt.makeVertexLabel("location").make();
-        mgmt.makeVertexLabel("god").make();
-        mgmt.makeVertexLabel("demigod").make();
-        mgmt.makeVertexLabel("human").make();
-        mgmt.makeVertexLabel("monster").make();
+        management.makeVertexLabel("titan").make();
+        management.makeVertexLabel("location").make();
+        management.makeVertexLabel("god").make();
+        management.makeVertexLabel("demigod").make();
+        management.makeVertexLabel("human").make();
+        management.makeVertexLabel("monster").make();
 
-        mgmt.commit();
+        management.commit();
 
         JanusGraphTransaction tx = graph.newTransaction();
         // vertices
@@ -161,7 +160,7 @@ public class GraphOfTheGodsFactory {
      * {@link #load(org.janusgraph.core.JanusGraph)} on the opened graph,
      * then calls {@link org.janusgraph.core.JanusGraph#close()}
      * and returns.
-     * <p/>
+     * <p>
      * This method may call {@link System#exit(int)} if it encounters an error, such as
      * failure to parse its arguments.  Only use this method when executing main from
      * a command line.  Use one of the other methods on this class ({@link #create(String)}

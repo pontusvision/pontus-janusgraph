@@ -8,7 +8,7 @@ The release process has only been tested on Linux.  The following
 tools must be installed.
 
 * [expect](http://expect.sourceforge.net/)
-* [gpg](http://www.gnupg.org/) with a running agent
+* [gpg](https://www.gnupg.org/) with a running agent
 
 ~/.m2/settings.xml will need the following entries.
 
@@ -16,12 +16,7 @@ tools must be installed.
 <settings>
   <servers>
     <server>
-      <id>sonatype-nexus-snapshots</id>
-      <username>...</username>
-      <password>...</password>
-    </server>
-    <server>
-      <id>sonatype-nexus-staging</id>
+      <id>ossrh</id>
       <username>...</username>
       <password>...</password>
     </server>
@@ -35,25 +30,20 @@ Release Steps
 ### Preparing Documentation
 
 Update version-sensitive files in the root and documentation sources
-in the docs/ subdirectory off the root.
+in the `docs` subdirectory:
 
-Documentation pages:
+* `docs/changelog.txt`
+* `docs/versions.txt`
+* `docs/upgrade.txt`
 
-* changelog.txt
-* versions.txt
-* upgrade.txt
+Use the [`docs/build-and-copy-docs.sh`](docs/build-and-copy-docs.sh) script to
+build a set of docs for this release and copy them to the cloned
+`docs.janusgraph.org` repo which you will update later.
 
-Files in the main repo:
+You may also need to update the following files in the main repo for any new
+or updated dependencies:
 
-* CHANGELOG.asc
-* NOTICE.txt
-* UPGRADE.asc
-* janusgraph-site/src/site-resources/index.html
-  (this template generates a new root index page)
-
-Some of these updates could potentially be automated, but tweaking
-documentation before a release will always require at least human in
-the loop.
+* `NOTICE.txt`
 
 ### Preparing the Local Repository
 
@@ -104,7 +94,7 @@ earlier.  It will appear on Maven Central in an hour or two.
 
 Finally, push your local changes to Github:
 
-```bash 
+```bash
 # cd to the janusgraph repository root if not already there
 git push origin $BRANCH_NAME
 git push origin refs/tags/$RELEASE_VERSION
@@ -124,5 +114,5 @@ SNAPSHOT version's artifacts to the Sonatype OSS snapshots repository.
 ```bash
 # From the repository root
 git checkout $BRANCH_NAME
-mvn clean deploy
+mvn clean deploy -Pjanusgraph-release
 ```

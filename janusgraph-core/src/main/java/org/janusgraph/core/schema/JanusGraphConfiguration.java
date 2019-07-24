@@ -24,13 +24,13 @@ public interface JanusGraphConfiguration {
 
     /**
      * Returns a string representation of the provided configuration option or namespace for inspection.
-     * <p />
+     * <p>
      * An exception is thrown if the path is invalid.
      *
      * @param path
      * @return
      */
-    public String get(String path);
+    String get(String path);
 
     /**
      * Sets the configuration option identified by the provided path to the given value.
@@ -38,6 +38,6 @@ public interface JanusGraphConfiguration {
      * @param path
      * @param value
      */
-    public JanusGraphConfiguration set(String path, Object value);
+    JanusGraphConfiguration set(String path, Object value);
 
 }

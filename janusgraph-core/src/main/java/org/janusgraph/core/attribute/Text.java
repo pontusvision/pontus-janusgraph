@@ -19,9 +19,14 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.lucene.util.automaton.Automaton;
+import org.apache.lucene.util.automaton.Operations;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.text.similarity.LevenshteinDistance;
+import org.apache.lucene.util.automaton.RegExp;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.janusgraph.graphdb.query.JanusGraphPredicate;
 import org.slf4j.Logger;
@@ -46,9 +51,8 @@ public enum Text implements JanusGraphPredicate {
 
         @Override
         public boolean test(Object value, Object condition) {
-            this.preevaluate(value,condition);
-            if (value == null) return false;
-            return evaluateRaw(value.toString(),(String)condition);
+            this.preevaluate(value, condition);
+            return value != null && evaluateRaw(value.toString(), (String) condition);
         }
 
         @Override
@@ -66,9 +70,7 @@ public enum Text implements JanusGraphPredicate {
 
         @Override
         public boolean isValidCondition(Object condition) {
-            if (condition == null) return false;
-            else if (condition instanceof String && StringUtils.isNotBlank((String) condition)) return true;
-            else return false;
+            return condition != null && condition instanceof String && StringUtils.isNotBlank((String) condition);
         }
         @Override
         public String toString() {
@@ -82,9 +84,8 @@ public enum Text implements JanusGraphPredicate {
     CONTAINS_PREFIX {
         @Override
         public boolean test(Object value, Object condition) {
-            this.preevaluate(value,condition);
-            if (value == null) return false;
-            return evaluateRaw(value.toString(),(String)condition);
+            this.preevaluate(value, condition);
+            return value != null && evaluateRaw(value.toString(), (String) condition);
         }
 
         @Override
@@ -113,14 +114,16 @@ public enum Text implements JanusGraphPredicate {
     CONTAINS_REGEX {
         @Override
         public boolean test(Object value, Object condition) {
-            this.preevaluate(value,condition);
-            if (value == null) return false;
-            return evaluateRaw(value.toString(),(String)condition);
+            this.preevaluate(value, condition);
+            return value != null && evaluateRaw(value.toString(), (String) condition);
         }
 
         @Override
         public boolean evaluateRaw(String value, String regex) {
-            for (String token : tokenize(value.toLowerCase())) {
+            // LPPM - CDMP-1745 - attempt to fix regex inconsistencies in queries where containsRegex is used repeatedly in the
+            // same statement (e.g. inside union())
+//            for (String token : tokenize(value.toLowerCase())) {
+            for (String token : tokenize(value)) {
                 if (REGEX.evaluateRaw(token,regex)) return true;
             }
             return false;
@@ -144,9 +147,8 @@ public enum Text implements JanusGraphPredicate {
     PREFIX {
         @Override
         public boolean test(Object value, Object condition) {
-            this.preevaluate(value,condition);
-            if (value==null) return false;
-            return evaluateRaw(value.toString(),(String)condition);
+            this.preevaluate(value, condition);
+            return value != null && evaluateRaw(value.toString(), (String) condition);
         }
 
         @Override
@@ -172,13 +174,18 @@ public enum Text implements JanusGraphPredicate {
     REGEX {
         @Override
         public boolean test(Object value, Object condition) {
-            this.preevaluate(value,condition);
-            if (value == null) return false;
-            return evaluateRaw(value.toString(),(String)condition);
+            this.preevaluate(value, condition);
+            return value != null && evaluateRaw(value.toString(), (String) condition);
         }
 
         public boolean evaluateRaw(String value, String regex) {
-            return value.matches(regex);
+
+            // LPPM - CDMP-1745 -  use the regexp automaton to make sure that the regex string is the same regardless
+            // of whether we run this in elastic search or locally.
+            Automaton regExpAutomaton = new RegExp(regex).toAutomaton();
+            return Operations.run(regExpAutomaton,value);
+
+//            return value.matches(regex);
         }
 
         @Override
@@ -191,8 +198,8 @@ public enum Text implements JanusGraphPredicate {
             return "textRegex";
         }
 
-    }, 
-    
+    },
+
     /**
      * Whether the text is at X Lenvenstein of a token (case sensitive)
      * with X=:
@@ -204,9 +211,7 @@ public enum Text implements JanusGraphPredicate {
         @Override
         public boolean test(Object value, Object condition) {
             this.preevaluate(value, condition);
-            if (value == null)
-                return false;
-            return evaluateRaw(value.toString(), (String) condition);
+            return value != null && evaluateRaw(value.toString(), (String) condition);
         }
 
         @Override
@@ -223,8 +228,8 @@ public enum Text implements JanusGraphPredicate {
             return "textFuzzy";
         }
 
-    }, 
-    
+    },
+
     /**
      * Whether the text contains a token is at X Lenvenstein of a token (case insensitive)
      * with X=:
@@ -236,9 +241,7 @@ public enum Text implements JanusGraphPredicate {
         @Override
         public boolean test(Object value, Object condition) {
             this.preevaluate(value, condition);
-            if (value == null)
-                return false;
-            return evaluateRaw(value.toString(), (String) condition);
+            return value != null && evaluateRaw(value.toString(), (String) condition);
         }
 
         @Override
@@ -261,14 +264,14 @@ public enum Text implements JanusGraphPredicate {
     };
 
     /**
-     * Whether {@code term} is at X Lenvenstein of a {@code value} 
+     * Whether {@code term} is at X Lenvenstein of a {@code value}
      * with X=:
      * - 0 for strings of one or two characters
      * - 1 for strings of three, four or five characters
      * - 2 for strings of more than five characters
      * @param value
      * @param term
-     * @return true if {@code term} is similar to {@code value} 
+     * @return true if {@code term} is similar to {@code value}
      */
     private static boolean isFuzzy(String term, String value){
         int distance;
@@ -295,7 +298,7 @@ public enum Text implements JanusGraphPredicate {
     private static final int MIN_TOKEN_LENGTH = 1;
 
     public static List<String> tokenize(String str) {
-        ArrayList<String> tokens = new ArrayList<String>();
+        final ArrayList<String> tokens = new ArrayList<>();
         int previous = 0;
         for (int p = 0; p < str.length(); p++) {
             if (!Character.isLetterOrDigit(str.charAt(p))) {

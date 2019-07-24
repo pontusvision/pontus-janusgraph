@@ -43,14 +43,14 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 public interface JanusGraphElement extends Element, Idfiable, Removable {
 
     @Override
-    public JanusGraphTransaction graph();
+    JanusGraphTransaction graph();
 
     /**
      * Returns a unique identifier for this entity.
-     * <p/>
+     * <p>
      * The unique identifier may only be set when the transaction in which entity is created commits.
      * Some entities are never assigned a unique identifier if they depend on a parent entity.
-     * <p/>
+     * <p>
      * JanusGraph allocates blocks of identifiers and automatically assigns identifiers to elements
      * automatically be default.  This behavior can be partially overridden by setting
      * {@link org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration#ALLOW_SETTING_VERTEX_ID}
@@ -60,7 +60,7 @@ public interface JanusGraphElement extends Element, Idfiable, Removable {
      * @see #hasId
      */
     @Override
-    public default Object id() {
+    default Object id() {
         return longId();
     }
 
@@ -71,28 +71,28 @@ public interface JanusGraphElement extends Element, Idfiable, Removable {
      * @return Unique long id
      */
     @Override
-    public long longId();
+    long longId();
 
     /**
      * Checks whether this entity has a unique identifier.
-     * <p/>
+     * <p>
      * Note that some entities may never be assigned an identifier and others will only be
      * assigned an identifier at the end of a transaction.
      *
      * @return true if this entity has been assigned a unique id, else false
      * @see #longId()
      */
-    public boolean hasId();
+    boolean hasId();
 
     /**
      * Deletes this entity and any incident edges or properties from the graph.
-     * <p/>
+     * <p>
      *
      * @throws IllegalStateException if the entity cannot be deleted or if the user does not
      *                               have permission to remove the entity
      */
     @Override
-    public void remove();
+    void remove();
 
     /**
      * Sets the value for the given key on this element.
@@ -102,18 +102,18 @@ public interface JanusGraphElement extends Element, Idfiable, Removable {
      * @param value the object value
      */
     @Override
-    public<V> Property<V> property(String key, V value);
+    <V> Property<V> property(String key, V value);
 
     /**
      * Retrieves the value associated with the given key on this element and casts it to the specified type.
      * If the key has cardinality SINGLE, then there can be at most one value and this value is returned (or null).
      * Otherwise a list of all associated values is returned, or an empty list if non exist.
-     * <p/>
+     * <p>
      *
      * @param key key
      * @return value or list of values associated with key
      */
-    public <V> V valueOrNull(PropertyKey key);
+    <V> V valueOrNull(PropertyKey key);
 
     //########### LifeCycle Status ##########
 
@@ -122,20 +122,20 @@ public interface JanusGraphElement extends Element, Idfiable, Removable {
      *
      * @return True, if entity has been newly created, else false.
      */
-    public boolean isNew();
+    boolean isNew();
 
     /**
      * Checks whether this entity has been loaded into the current transaction and not yet modified.
      *
      * @return True, has been loaded and not modified, else false.
      */
-    public boolean isLoaded();
+    boolean isLoaded();
 
     /**
      * Checks whether this entity has been deleted into the current transaction.
      *
      * @return True, has been deleted, else false.
      */
-    public boolean isRemoved();
+    boolean isRemoved();
 
 }

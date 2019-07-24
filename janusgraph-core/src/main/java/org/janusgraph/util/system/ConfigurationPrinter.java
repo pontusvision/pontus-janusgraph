@@ -14,12 +14,11 @@
 
 package org.janusgraph.util.system;
 
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import com.google.common.base.Function;
@@ -30,6 +29,8 @@ import org.janusgraph.core.util.ReflectiveConfigOptionLoader;
 import org.janusgraph.diskstorage.configuration.ConfigElement;
 import org.janusgraph.diskstorage.configuration.ConfigNamespace;
 import org.janusgraph.diskstorage.configuration.ConfigOption;
+
+import static org.janusgraph.util.encoding.StringEncoding.UTF8_ENCODING;
 
 /**
  * Recursively dump the root configuration namespace to either System.out or the
@@ -43,14 +44,13 @@ public class ConfigurationPrinter {
     private static final String DELIM = "|";
     private static final String DELIM_PADDING = " ";
     private static final String TABLE_FOOTER_LINES = "|=====\n";
-    private static boolean DELIM_AT_LINE_START = true;
-    private static boolean DELIM_AT_LINE_END = false;
+    private static final boolean DELIM_AT_LINE_START = true;
+    private static final boolean DELIM_AT_LINE_END = false;
 
     private final boolean showMutability;
     private final PrintStream stream;
 
-    public static void main(String args[]) throws FileNotFoundException, IllegalAccessException,
-            NoSuchFieldException, ClassNotFoundException {
+    public static void main(String args[]) throws IOException, ReflectiveOperationException {
 
         ReflectiveConfigOptionLoader.INSTANCE.loadStandard(ConfigurationPrinter.class);
 
@@ -62,7 +62,7 @@ public class ConfigurationPrinter {
         }
 
         final ConfigNamespace root = stringToNamespace(args[0]);
-        final PrintStream stream = new PrintStream(new FileOutputStream(args[1]));
+        final PrintStream stream = new PrintStream(new FileOutputStream(args[1]), false, UTF8_ENCODING);
         final boolean mutability = Boolean.valueOf(args[2]);
 
         new ConfigurationPrinter(stream, mutability).write(root);
@@ -132,26 +132,16 @@ public class ConfigurationPrinter {
     }
 
     private List<ConfigOption<?>> getSortedChildOptions(ConfigNamespace n) {
-        return getSortedChildren(n, new Function<ConfigElement, Boolean>() {
-            @Override
-            public Boolean apply(ConfigElement arg0) {
-                return arg0.isOption() && !((ConfigOption)arg0).isHidden();
-            }
-        });
+        return getSortedChildren(n, arg0 -> arg0.isOption() && !((ConfigOption)arg0).isHidden());
     }
 
     private List<ConfigNamespace> getSortedChildNamespaces(ConfigNamespace n) {
-        return getSortedChildren(n, new Function<ConfigElement, Boolean>() {
-            @Override
-            public Boolean apply(ConfigElement arg0) {
-                return arg0.isNamespace();
-            }
-        });
+        return getSortedChildren(n, ConfigElement::isNamespace);
     }
 
     private String getTableLineForOption(ConfigOption o, String prefix) {
 
-        List<String> colData = new ArrayList<String>(10);
+        final List<String> colData = new ArrayList<>(10);
         String name = prefix + o.getName();
         if (o.isDeprecated()) {
             ConfigOption<?> successor = o.getDeprecationReplacement();
@@ -192,24 +182,19 @@ public class ConfigurationPrinter {
         }
         return "[role=\"tss-config-table\",cols=\"" + colWidths + "\",options=\"header\",width=\"100%\"]\n" +
                 "|=====\n" +
-                "| " + colNames; // no terminal newline reqd
+                "| " + colNames; // no terminal newline required
     }
 
     @SuppressWarnings("unchecked")
     private <E> List<E> getSortedChildren(ConfigNamespace n, Function<ConfigElement, Boolean> predicate) {
-        List<ConfigElement> sortedElements = new ArrayList<ConfigElement>();
+        final List<ConfigElement> sortedElements = new ArrayList<>();
 
         for (ConfigElement e : n.getChildren()) {
             if (predicate.apply(e)) {
                 sortedElements.add(e);
             }
         }
-        Collections.sort(sortedElements, new Comparator<ConfigElement>() {
-            @Override
-            public int compare(ConfigElement o1, ConfigElement o2) {
-                return o1.getName().compareTo(o2.getName());
-            }
-        });
+        sortedElements.sort(Comparator.comparing(ConfigElement::getName));
 
         return (List<E>)sortedElements;
     }

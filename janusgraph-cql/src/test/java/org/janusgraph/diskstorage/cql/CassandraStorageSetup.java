@@ -15,11 +15,11 @@
 package org.janusgraph.diskstorage.cql;
 
 import static org.janusgraph.diskstorage.cql.CQLConfigOptions.KEYSPACE;
-import static org.janusgraph.diskstorage.cql.CQLConfigOptions.PROTOCOL_VERSION;
 import static org.janusgraph.diskstorage.cql.CQLConfigOptions.SSL_ENABLED;
 import static org.janusgraph.diskstorage.cql.CQLConfigOptions.SSL_TRUSTSTORE_LOCATION;
 import static org.janusgraph.diskstorage.cql.CQLConfigOptions.SSL_TRUSTSTORE_PASSWORD;
 import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.CONNECTION_TIMEOUT;
+import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.DROP_ON_CLEAR;
 import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.PAGE_SIZE;
 import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.STORAGE_BACKEND;
 import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.STORAGE_HOSTS;
@@ -96,7 +96,7 @@ public class CassandraStorageSetup {
             s = Joiner.on(File.separator).join(System.getProperty("user.dir"), "target", "cassandra", "byteorderedpartitioner", name);
             LOGGER.info("Set default Cassandra {} directory path {}", name, s);
         } else {
-            LOGGER.info("Loaded Cassandra {} directory path {} from system property {}", new Object[] { name, s, prop });
+            LOGGER.info("Loaded Cassandra {} directory path {} from system property {}", name, s, prop);
         }
 
         if (mustExistAndBeAbsolute) {
@@ -116,6 +116,7 @@ public class CassandraStorageSetup {
         config.set(CONNECTION_TIMEOUT, Duration.ofSeconds(60L));
         config.set(STORAGE_BACKEND, "cql");
         if (HOSTNAME != null) config.set(STORAGE_HOSTS, new String[]{HOSTNAME});
+        config.set(DROP_ON_CLEAR, false);
         return config;
     }
 

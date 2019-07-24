@@ -44,6 +44,7 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
 
     private static final int QUEUE_SIZE = 1000;
     private static final int TIMEOUT_MS = 180000; // 60 seconds
+    private static final int TIME_PER_TRY = 10; // 10 milliseconds
     private static final int MAX_KEY_LENGTH = 128; //in bytes
 
     private final ScanJob job;
@@ -60,8 +61,6 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
     private boolean hasCompleted = false;
     private boolean interrupted = false;
 
-    private List<SliceQuery> queries;
-    private int numQueries;
     private List<BlockingQueue<SliceResult>> dataQueues;
     private DataPuller[] pullThreads;
 
@@ -85,8 +84,8 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
 
     }
 
-    private final DataPuller addDataPuller(SliceQuery sq, StoreTransaction stx) throws BackendException {
-        BlockingQueue<SliceResult> queue = new LinkedBlockingQueue<SliceResult>(QUEUE_SIZE);
+    private DataPuller addDataPuller(SliceQuery sq, StoreTransaction stx) throws BackendException {
+        final BlockingQueue<SliceResult> queue = new LinkedBlockingQueue<>(QUEUE_SIZE);
         dataQueues.add(queue);
 
         DataPuller dp = new DataPuller(sq, queue,
@@ -97,13 +96,15 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
 
     @Override
     public void run() {
+        final List<SliceQuery> queries;
+        final int numQueries;
         try {
             job.workerIterationStart(jobConfiguration, graphConfiguration, metrics);
 
             queries = job.getQueries();
             numQueries = queries.size();
-            Preconditions.checkArgument(numQueries>0,"Must at least specify one query for job: %s",job);
-            if (numQueries>1) {
+            Preconditions.checkArgument(numQueries > 0,"Must at least specify one query for job: %s",job);
+            if (numQueries > 1) {
                 //It is assumed that the first query is the grounding query if multiple queries exist
                 SliceQuery ground = queries.get(0);
                 StaticBuffer start = ground.getSliceStart();
@@ -113,10 +114,10 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
                 Preconditions.checkArgument(end.equals(BufferUtil.oneBuffer(end.length())),
                         "Expected end of first query to be all 1s: %s",end);
             }
-            dataQueues = new ArrayList<BlockingQueue<SliceResult>>(numQueries);
+            dataQueues = new ArrayList<>(numQueries);
             pullThreads = new DataPuller[numQueries];
 
-            for (int pos=0;pos<numQueries;pos++) {
+            for (int pos = 0; pos< numQueries; pos++) {
                 pullThreads[pos]=addDataPuller(queries.get(pos),storeTx);
             }
         }  catch (Throwable e) {
@@ -142,10 +143,14 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
                     if (currentResults[i]!=null) continue;
                     BlockingQueue<SliceResult> queue = dataQueues.get(i);
 
-                    SliceResult qr = queue.poll(10,TimeUnit.MILLISECONDS); //Try very short time to see if we are done
+                    SliceResult qr = queue.poll(TIME_PER_TRY,TimeUnit.MILLISECONDS); //Try very short time to see if we are done
                     if (qr==null) {
                         if (pullThreads[i].isFinished()) continue; //No more data to be expected
-                        qr = queue.poll(TIMEOUT_MS,TimeUnit.MILLISECONDS); //otherwise, give it more time
+                        int retryCount = 0;
+                        while (!pullThreads[i].isFinished() && retryCount < TIMEOUT_MS / TIME_PER_TRY && qr == null) {
+                            retryCount ++;
+                            qr = queue.poll(TIME_PER_TRY, TimeUnit.MILLISECONDS);
+                        }
                         if (qr==null && !pullThreads[i].isFinished())
                             throw new TemporaryBackendException("Timed out waiting for next row data - storage error likely");
                     }
@@ -177,13 +182,18 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
                 }
             }
 
-            for (int i=0; i<processors.length;i++) {
-                processors[i].finish();
+            for (Processor processor : processors) {
+                processor.finish();
             }
             if (!Threads.waitForCompletion(processors,TIMEOUT_MS)) log.error("Processor did not terminate in time");
 
             cleanup();
-            job.workerIterationEnd(metrics);
+            try {
+                job.workerIterationEnd(metrics);
+            } catch (IllegalArgumentException e) {
+                // https://github.com/JanusGraph/janusgraph/pull/891
+                log.warn("Exception occurred processing worker iteration end. See PR 891.", e);
+            }
 
             if (interrupted) {
                 setException(new InterruptedException("Scanner got interrupted"));
@@ -192,7 +202,7 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
                 set(metrics);
             }
         } catch (Throwable e) {
-            log.error("Exception occured during job execution: {}",e);
+            log.error("Exception occurred during job execution: {}",e);
             job.workerIterationEnd(metrics);
             setException(e);
         } finally {
@@ -210,9 +220,9 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
         if (!hasCompleted) {
             hasCompleted = true;
             if (pullThreads!=null) {
-                for (int i = 0; i < pullThreads.length; i++) {
-                    if (pullThreads[i].isAlive()) {
-                        pullThreads[i].interrupt();
+                for (DataPuller pullThread : pullThreads) {
+                    if (pullThread.isAlive()) {
+                        pullThread.interrupt();
                     }
                 }
             }
@@ -305,16 +315,16 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
     private static class DataPuller extends Thread {
 
         private final BlockingQueue<SliceResult> queue;
-        private final KeyIterator keyIter;
+        private final KeyIterator keyIterator;
         private final SliceQuery query;
         private final Predicate<StaticBuffer> keyFilter;
         private volatile boolean finished;
 
         private DataPuller(SliceQuery query, BlockingQueue<SliceResult> queue,
-                           KeyIterator keyIter, Predicate<StaticBuffer> keyFilter) {
+                           KeyIterator keyIterator, Predicate<StaticBuffer> keyFilter) {
             this.query = query;
             this.queue = queue;
-            this.keyIter = keyIter;
+            this.keyIterator = keyIterator;
             this.keyFilter = keyFilter;
             this.finished = false;
         }
@@ -322,9 +332,9 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
         @Override
         public void run() {
             try {
-                while (keyIter.hasNext()) {
-                    StaticBuffer key = keyIter.next();
-                    RecordIterator<Entry> entries = keyIter.getEntries();
+                while (keyIterator.hasNext()) {
+                    StaticBuffer key = keyIterator.next();
+                    RecordIterator<Entry> entries = keyIterator.getEntries();
                     if (!keyFilter.test(key)) continue;
                     EntryList entryList = StaticArrayEntryList.ofStaticBuffer(entries, StaticArrayEntry.ENTRY_GETTER);
                     queue.put(new SliceResult(query, key, entryList));
@@ -336,7 +346,7 @@ class StandardScannerExecutor extends AbstractFuture<ScanMetrics> implements Jan
                 log.error("Could not load data from storage: {}",e);
             } finally {
                 try {
-                    keyIter.close();
+                    keyIterator.close();
                 } catch (IOException e) {
                     log.warn("Could not close storage iterator ", e);
                 }

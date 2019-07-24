@@ -27,6 +27,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,7 @@ import com.carrotsearch.junitbenchmarks.IResultsConsumer;
 import com.carrotsearch.junitbenchmarks.Result;
 import com.carrotsearch.junitbenchmarks.WriterConsumer;
 import com.carrotsearch.junitbenchmarks.XMLConsumer;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -156,20 +158,10 @@ public class JUnitBenchmarkProvider {
             return ImmutableMap.of();
         }
 
-        BufferedReader reader = null;
-        try {
-            reader = new BufferedReader(new FileReader(file));
+        try (final BufferedReader reader = new BufferedReader(new FileReader(file))) {
             return loadScalarsUnsafe(file, reader);
         } catch (IOException e) {
             throw new RuntimeException(e);
-        } finally {
-            if (null != reader) {
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
         }
     }
 
@@ -182,7 +174,7 @@ public class JUnitBenchmarkProvider {
     }
 
     private static IResultsConsumer[] getConsumersUnsafe(IResultsConsumer... additional) throws IOException {
-        List<IResultsConsumer> consumers = new ArrayList<IResultsConsumer>();
+        final List<IResultsConsumer> consumers = new ArrayList<>();
         consumers.add(new XMLConsumer(new File("jub." + Math.abs(System.nanoTime()) + ".xml")));
         consumers.add(new WriterConsumer()); // defaults to System.out
         consumers.add(new CsvConsumer("target/jub.csv"));
@@ -194,9 +186,7 @@ public class JUnitBenchmarkProvider {
             consumers.add(new TimeScaleConsumer(writer));
         }
 
-        for (IResultsConsumer c : additional) {
-            consumers.add(c);
-        }
+        consumers.addAll(Arrays.asList(additional));
 
         return consumers.toArray(new IResultsConsumer[consumers.size()]);
     }
@@ -215,48 +205,46 @@ public class JUnitBenchmarkProvider {
         String line;
         int ln = 0;
         final int tokensPerLine = 2;
-        final ImmutableMap.Builder<String, Integer> builder = new ImmutableMap.Builder<String, Integer>();
+        final ImmutableMap.Builder<String, Integer> builder = new ImmutableMap.Builder<>();
 
         while (null != (line = reader.readLine())) {
             ln++;
             String[] tokens = line.split(" ");
             if (tokensPerLine != tokens.length) {
                 log.warn("Parse error at {}:{}: required {} tokens, but found {} (skipping this line)",
-                        new Object[] { filename, ln, tokensPerLine, tokens.length });
+                    filename, ln, tokensPerLine, tokens.length);
                 continue;
             }
 
             int t = 0;
             String name       = tokens[t++];
             String rawscalar  = tokens[t++];
-            assert tokensPerLine == t;
+            Preconditions.checkState(tokensPerLine == t);
 
-            assert null != name;
+            Preconditions.checkNotNull(name);
 
             if (0 == name.length()) {
                 log.warn("Parse error at {}:{}: zero-length method name (skipping this line)", filename, ln);
                 continue;
             }
 
-            assert 0 < name.length();
+            Preconditions.checkState(0 < name.length());
 
             Double scalar;
             try {
                 scalar = Double.valueOf(rawscalar);
             } catch (Exception e) {
                 log.warn("Parse error at {}:{}: failed to convert string \"{}\" to a double (skipping this line)",
-                        new Object[] { filename, ln, rawscalar });
+                    filename, ln, rawscalar);
                 log.warn("Double parsing exception stacktrace follows", e);
                 continue;
             }
 
             if (0 > scalar) {
                 log.warn("Parse error at {}:{}: read negative method scalar {} (skipping this line)",
-                        new Object[] { filename, ln, scalar });
+                    filename, ln, scalar);
                 continue;
             }
-
-            assert null != scalar;
 
             builder.put(name, Double.valueOf(Math.ceil(scalar)).intValue());
         }
@@ -269,7 +257,7 @@ public class JUnitBenchmarkProvider {
      */
     private static class TimeScaleConsumer extends AutocloseConsumer implements Closeable {
 
-        Writer writer;
+        final Writer writer;
 
         public TimeScaleConsumer(Writer writer) {
             this.writer = writer;
@@ -348,7 +336,7 @@ public class JUnitBenchmarkProvider {
             Collection<Annotation> annotations = description.getAnnotations();
             final int rounds = getRoundsForFullMethodName(clazz.getCanonicalName() + "." + mname);
 
-            List<Annotation> modifiedAnnotations = new ArrayList<Annotation>(annotations.size());
+            final List<Annotation> modifiedAnnotations = new ArrayList<>(annotations.size());
 
             boolean hit = false;
 
@@ -362,7 +350,7 @@ public class JUnitBenchmarkProvider {
                 } else {
                     modifiedAnnotations.add(a);
                     log.debug("Kept annotation {} with annotation type {} on {}",
-                            new Object[] { a, a.annotationType(), mname });
+                        a, a.annotationType(), mname);
                 }
             }
 
@@ -370,7 +358,7 @@ public class JUnitBenchmarkProvider {
                 BenchmarkOptions opts = getDefaultBenchmarkOptions(rounds);
                 modifiedAnnotations.add(opts);
                 log.debug("Added BenchmarkOptions {} with annotation type {} to {}",
-                        new Object[] { opts, opts.annotationType(), mname });
+                    opts, opts.annotationType(), mname);
             }
 
             Description roundsAdjustedDesc =
@@ -402,8 +390,7 @@ public class JUnitBenchmarkProvider {
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args)
-                throws IllegalAccessException, IllegalArgumentException,
-                InvocationTargetException {
+                throws IllegalArgumentException {
             if (method.getName().equals("benchmarkRounds")) {
                 log.trace("Intercepted benchmarkRounds() invocation: returning {}", rounds);
                 return rounds;

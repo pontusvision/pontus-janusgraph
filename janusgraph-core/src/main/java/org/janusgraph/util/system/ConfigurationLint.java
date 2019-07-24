@@ -40,7 +40,7 @@ public class ConfigurationLint {
             System.exit(1);
         }
 
-        log.info("Checking " + args[0]);
+        log.info("Checking " + LoggerUtil.sanitizeAndLaunder(args[0]));
         Status s = validate(args[0]);
         if (0 == s.errors) {
             log.info(s.toString());
@@ -51,9 +51,8 @@ public class ConfigurationLint {
     }
 
     public static Status validate(String filename) throws IOException {
-        Properties p = new Properties();
-        try(FileInputStream fis = new FileInputStream(filename)) {
-            p.load(fis);
+        try (final FileInputStream fis = new FileInputStream(filename)) {
+            new Properties().load(fis);
         }
 
         final PropertiesConfiguration apc;
@@ -66,20 +65,20 @@ public class ConfigurationLint {
 //        new ModifiableConfiguration(GraphDatabaseConfiguration.ROOT_NS,
 //                , BasicConfiguration.Restriction.NONE);
 
-        Iterator<String> iter = apc.getKeys();
+        Iterator<String> iterator = apc.getKeys();
 
         int totalKeys = 0;
         int keysVerified = 0;
 
-        while (iter.hasNext()) {
+        while (iterator.hasNext()) {
             totalKeys++;
-            String key = iter.next();
+            String key = iterator.next();
             String value = apc.getString(key);
             try {
                 ConfigElement.PathIdentifier pid = ConfigElement.parse(GraphDatabaseConfiguration.ROOT_NS, key);
                 // ConfigElement shouldn't return null; failure here probably relates to janusgraph-core, not the file
-                Preconditions.checkState(null != pid);
-                Preconditions.checkState(null != pid.element);
+                Preconditions.checkNotNull(pid);
+                Preconditions.checkNotNull(pid.element);
                 if (!pid.element.isOption()) {
                     log.warn("Config key {} is a namespace (only options can be keys)", key);
                     continue;

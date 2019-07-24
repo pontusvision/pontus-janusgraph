@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.janusgraph.diskstorage.es.IndexMappings.IndexMapping;
+
 public interface ElasticSearchClient extends Closeable {
 
     ElasticMajorVersion getMajorVersion();
@@ -37,13 +39,17 @@ public interface ElasticSearchClient extends Closeable {
 
     void createMapping(String indexName, String typeName, Map<String,Object> mapping) throws IOException;
 
-    Map getMapping(String indexName, String typeName) throws IOException;
+    IndexMapping getMapping(String indexName, String typeName) throws IOException;
 
     void deleteIndex(String indexName) throws IOException;
 
-    void bulkRequest(List<ElasticSearchMutation> requests) throws IOException;
+    void bulkRequest(List<ElasticSearchMutation> requests, String ingestPipeline) throws IOException;
 
-    ElasticSearchResponse search(String indexName, String type, Map<String,Object> request) throws IOException;
+    ElasticSearchResponse search(String indexName, String type, Map<String,Object> request, boolean useScroll) throws IOException;
+
+    ElasticSearchResponse search(String scrollId) throws IOException;
+
+    void deleteScroll(String scrollId) throws IOException;
 
     void addAlias(String alias, String index) throws IOException;
 

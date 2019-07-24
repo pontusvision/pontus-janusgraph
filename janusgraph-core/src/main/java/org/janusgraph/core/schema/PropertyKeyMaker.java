@@ -32,26 +32,26 @@ public interface PropertyKeyMaker extends RelationTypeMaker {
      * @param cardinality
      * @return this PropertyKeyMaker
      */
-    public PropertyKeyMaker cardinality(Cardinality cardinality);
+    PropertyKeyMaker cardinality(Cardinality cardinality);
 
     /**
      * Configures the data type for this property key.
-     * <p/>
+     * <p>
      * Property instances for this key will only accept values that are instances of this class.
      * Every property key must have its data type configured. Setting the data type to Object.class allows
      * any type of value but comes at the expense of longer serialization because class information
      * is stored with the value.
-     * <p/>
+     * <p>
      * It is strongly advised to pick an appropriate data type class so JanusGraph can enforce it throughout the database.
      *
      * @param clazz Data type to be configured.
      * @return this PropertyKeyMaker
      * @see org.janusgraph.core.PropertyKey#dataType()
      */
-    public PropertyKeyMaker dataType(Class<?> clazz);
+    PropertyKeyMaker dataType(Class<?> clazz);
 
     @Override
-    public PropertyKeyMaker signature(PropertyKey... types);
+    PropertyKeyMaker signature(PropertyKey... types);
 
 
     /**
@@ -60,5 +60,5 @@ public interface PropertyKeyMaker extends RelationTypeMaker {
      * @return the created {@link PropertyKey}
      */
     @Override
-    public PropertyKey make();
+    PropertyKey make();
 }

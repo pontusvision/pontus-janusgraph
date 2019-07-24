@@ -26,11 +26,11 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 /**
  * AbstractElement is the base class for all elements in JanusGraph.
  * It is defined and uniquely identified by its id.
- * </p>
+ * <p>
  * For the id, it holds that:
- * id<0: Temporary id, will be assigned id>0 when the transaction is committed
+ * id&lt;0: Temporary id, will be assigned id&gt;0 when the transaction is committed
  * id=0: Virtual or implicit element that does not physically exist in the database
- * id>0: Physically persisted element
+ * id&gt;0: Physically persisted element
  *
  * @author Matthias Broecheler (me@matthiasb.com)
  */
@@ -67,11 +67,11 @@ public abstract class AbstractElement implements InternalElement, Comparable<Jan
             return getCompareId()==((AbstractElement)other).getCompareId();
         } else if (other instanceof JanusGraphElement) {
             return ((JanusGraphElement) other).hasId() && getCompareId()==((JanusGraphElement)other).longId();
-        } else if (other instanceof Element) {
+        } else {
             Object otherId = ((Element)other).id();
             if (otherId instanceof RelationIdentifier) return ((RelationIdentifier) otherId).getRelationId()==getCompareId();
             else return otherId.equals(getCompareId());
-        } else return false;
+        }
     }
 
 

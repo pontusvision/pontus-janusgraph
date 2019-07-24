@@ -39,16 +39,16 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 /**
- * @author Marko A. Rodriguez (http://markorodriguez.com)
+ * @author Marko A. Rodriguez (https://markorodriguez.com)
  * @author Matthias Broecheler (me@matthiasb.com)
  */
 public class FulgoraMemory implements Memory.Admin {
 
     public final Map<String, MemoryComputeKey> memoryKeys = new HashMap<>();
     public Map<String, Object> previousMap;
-    public Map<String, Object> currentMap;
+    public final Map<String, Object> currentMap;
     private final AtomicInteger iteration = new AtomicInteger(0);
-    private final AtomicLong runtime = new AtomicLong(0l);
+    private final AtomicLong runtime = new AtomicLong(0L);
     private volatile boolean inExecute = false;
 
     public FulgoraMemory(final VertexProgram<?> vertexProgram, final Set<MapReduce> mapReducers) {
@@ -156,7 +156,7 @@ public class FulgoraMemory implements Memory.Admin {
     }
 
     private static void attachReferenceElements(TraverserSet<Object> toProcessTraversers, Graph graph) {
-        toProcessTraversers.stream().forEach(traverser -> {
+        toProcessTraversers.forEach(traverser -> {
             Object value = traverser.get();
             if (value instanceof ReferenceVertex) {
                 Vertex vertex = ((ReferenceVertex) value).attach(Attachable.Method.get(graph));

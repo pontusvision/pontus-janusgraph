@@ -18,25 +18,16 @@ import org.janusgraph.HBaseStorageSetup;
 import org.janusgraph.diskstorage.configuration.WriteConfiguration;
 import org.janusgraph.graphdb.JanusGraphTest;
 
-import org.apache.hadoop.hbase.util.VersionInfo;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
 public class HBaseGraphTest extends JanusGraphTest {
-    @BeforeClass
+    @BeforeAll
     public static void startHBase() throws IOException {
         HBaseStorageSetup.startHBase();
-    }
-
-    @AfterClass
-    public static void stopHBase() {
-        // Workaround for https://issues.apache.org/jira/browse/HBASE-10312
-        if (VersionInfo.getVersion().startsWith("0.96"))
-            HBaseStorageSetup.killIfRunning();
     }
 
     @Override
@@ -44,10 +35,10 @@ public class HBaseGraphTest extends JanusGraphTest {
         return HBaseStorageSetup.getHBaseGraphConfiguration();
     }
 
-    @Override @Test @Ignore("HBase does not support retrieving cell TTL by client")
+    @Override @Test @Disabled("HBase does not support retrieving cell TTL by client")
     public void testVertexTTLImplicitKey() { }
 
-    @Override @Test @Ignore("HBase does not support retrieving cell TTL by client")
+    @Override @Test @Disabled("HBase does not support retrieving cell TTL by client")
     public void testEdgeTTLImplicitKey() { }
 
 }

@@ -29,7 +29,7 @@ public interface OrderedKeyValueStoreManager extends KeyValueStoreManager {
     /**
      * Opens an ordered database by the given name. If the database does not exist, it is
      * created. If it has already been opened, the existing handle is returned.
-     * <p/>
+     * <p>
      *
      * @param name Name of database
      * @return Database Handle
@@ -37,7 +37,7 @@ public interface OrderedKeyValueStoreManager extends KeyValueStoreManager {
      *
      */
     @Override
-    public OrderedKeyValueStore openDatabase(String name) throws BackendException;
+    OrderedKeyValueStore openDatabase(String name) throws BackendException;
 
 
     /**
@@ -50,6 +50,6 @@ public interface OrderedKeyValueStoreManager extends KeyValueStoreManager {
      * @param txh
      * @throws org.janusgraph.diskstorage.BackendException
      */
-    public void mutateMany(Map<String, KVMutation> mutations, StoreTransaction txh) throws BackendException;
+    void mutateMany(Map<String, KVMutation> mutations, StoreTransaction txh) throws BackendException;
 
 }

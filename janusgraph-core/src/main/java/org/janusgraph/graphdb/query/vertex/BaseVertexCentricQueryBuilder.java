@@ -17,7 +17,6 @@ package org.janusgraph.graphdb.query.vertex;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import org.janusgraph.core.BaseVertexQuery;
-import org.janusgraph.core.Cardinality;
 import org.janusgraph.core.PropertyKey;
 import org.janusgraph.core.RelationType;
 import org.janusgraph.core.JanusGraphRelation;
@@ -71,7 +70,7 @@ public abstract class BaseVertexCentricQueryBuilder<Q extends BaseVertexQuery<Q>
     /**
      * The order in which the relations should be returned. None by default.
      */
-    protected OrderList orders = new OrderList();
+    protected final OrderList orders = new OrderList();
     /**
      * The limit of this query. No limit by default.
      */
@@ -85,7 +84,7 @@ public abstract class BaseVertexCentricQueryBuilder<Q extends BaseVertexQuery<Q>
 
     protected abstract Q getThis();
 
-    protected abstract JanusGraphVertex getVertex(long vertexid);
+    protected abstract JanusGraphVertex getVertex(long vertexId);
 
 
     /* ---------------------------------------------------------------
@@ -96,13 +95,14 @@ public abstract class BaseVertexCentricQueryBuilder<Q extends BaseVertexQuery<Q>
 
     @Override
     public Q adjacent(Vertex vertex) {
-        Preconditions.checkArgument(vertex != null && (vertex instanceof JanusGraphVertex), "Not a valid vertex provided for adjacency constraint");
+        Preconditions.checkArgument(vertex instanceof JanusGraphVertex, "Not a valid vertex provided for adjacency constraint");
         this.adjacentVertex = (JanusGraphVertex) vertex;
         return getThis();
     }
 
     private Q addConstraint(String type, JanusGraphPredicate rel, Object value) {
-        Preconditions.checkArgument(type != null && StringUtils.isNotBlank(type) && rel != null);
+        Preconditions.checkArgument(StringUtils.isNotBlank(type));
+        Preconditions.checkNotNull(rel);
         //Treat special cases
         if (type.equals(ImplicitKey.ADJACENT_ID.name())) {
             Preconditions.checkArgument(rel == Cmp.EQUAL, "Only equality constraints are supported for %s", type);
@@ -111,13 +111,13 @@ public abstract class BaseVertexCentricQueryBuilder<Q extends BaseVertexQuery<Q>
             return adjacent(getVertex(vertexId));
         } else if (type.equals(ImplicitKey.ID.name())) {
             RelationIdentifier rid = ElementUtils.getEdgeId(value);
-            Preconditions.checkArgument(rid != null, "Expected valid relation id: %s", value);
+            Preconditions.checkNotNull(rid, "Expected valid relation id: %s", value);
             return addConstraint(ImplicitKey.JANUSGRAPHID.name(), rel, rid.getRelationId());
         } else {
             Preconditions.checkArgument(rel.isValidCondition(value), "Invalid condition provided: " + value);
         }
-        if (constraints == NO_CONSTRAINTS) constraints = new ArrayList<PredicateCondition<String, JanusGraphRelation>>(5);
-        constraints.add(new PredicateCondition<String, JanusGraphRelation>(type, rel, value));
+        if (constraints == NO_CONSTRAINTS) constraints = new ArrayList<>(5);
+        constraints.add(new PredicateCondition<>(type, rel, value));
         return getThis();
     }
 
@@ -133,12 +133,12 @@ public abstract class BaseVertexCentricQueryBuilder<Q extends BaseVertexQuery<Q>
 
     @Override
     public Q has(String key) {
-        return has(key, Cmp.NOT_EQUAL, (Object) null);
+        return has(key, Cmp.NOT_EQUAL, null);
     }
 
     @Override
     public Q hasNot(String key) {
-        return has(key, Cmp.EQUAL, (Object) null);
+        return has(key, Cmp.EQUAL, null);
     }
 
     @Override
@@ -233,7 +233,7 @@ public abstract class BaseVertexCentricQueryBuilder<Q extends BaseVertexQuery<Q>
 
     /**
      * Whether this query is asking for the value of an {@link org.janusgraph.graphdb.types.system.ImplicitKey}.
-     * </p>
+     * <p>
      * Handling of implicit keys is completely distinct from "normal" query execution and handled extra
      * for completeness reasons.
      *
@@ -241,8 +241,7 @@ public abstract class BaseVertexCentricQueryBuilder<Q extends BaseVertexQuery<Q>
      * @return
      */
     protected final boolean isImplicitKeyQuery(RelationCategory returnType) {
-        if (returnType == RelationCategory.EDGE || types.length != 1 || !constraints.isEmpty()) return false;
-        return schemaInspector.getRelationType(types[0]) instanceof ImplicitKey;
+        return returnType != RelationCategory.EDGE && types.length == 1 && constraints.isEmpty() && schemaInspector.getRelationType(types[0]) instanceof ImplicitKey;
     }
 
 

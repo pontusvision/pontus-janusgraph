@@ -3,17 +3,9 @@ target/
 .idea/
 *.iml
 *.DS_Store
-/bin/
+.vscode/
 /_bsp/
-/conf/
-/data/
-/db/
-/ext/
-/lib/
-/log/
 /output/
-/scripts/
-/elasticsearch/
 /docker/*.zip
 # When executing tests in alphabetical order, Maven generates temporary
 # files with names like this:
@@ -28,12 +20,18 @@ target/
 /.settings/
 /.project
 /.classpath
+/.metadata
+/.recommenders
+/RemoteSystemsTempFiles
 /janusgraph-*/.classpath
 /janusgraph-*/.project
 /janusgraph-*/.settings/
 /janusgraph-*/janusgraph-*/.classpath
 /janusgraph-*/janusgraph-*/.project
 /janusgraph-*/janusgraph-*/.settings/
+/janusgraph-examples/example-*/.classpath
+/janusgraph-examples/example-*/.project
+/janusgraph-examples/example-*/.settings
 # End of Eclipse junk
 # HBase testing stuff
 janusgraph-hbase/logs

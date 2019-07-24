@@ -14,106 +14,94 @@
 
 package org.janusgraph.graphdb;
 
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
-import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONVersion;
-import org.apache.tinkerpop.gremlin.structure.io.graphson.TypeInfo;
-import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
-import org.janusgraph.core.JanusGraphTransaction;
-import org.janusgraph.core.attribute.Geoshape;
-import org.janusgraph.core.attribute.JtsGeoshapeHelper;
-import org.janusgraph.core.schema.JanusGraphManagement;
-import org.janusgraph.example.GraphOfTheGodsFactory;
-
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.Polygon;
-
-import org.apache.tinkerpop.gremlin.structure.io.GraphReader;
-import org.apache.tinkerpop.gremlin.structure.io.GraphWriter;
-import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import org.janusgraph.graphdb.tinkerpop.io.graphson.JanusGraphSONModule;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.function.Function;
+import java.util.stream.Stream;
+
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.io.GraphReader;
+import org.apache.tinkerpop.gremlin.structure.io.GraphWriter;
+import org.apache.tinkerpop.gremlin.structure.io.IoCore;
+import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONMapper;
+import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONReader;
+import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONVersion;
+import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONWriter;
+import org.apache.tinkerpop.gremlin.structure.io.graphson.TypeInfo;
+import org.janusgraph.core.JanusGraphTransaction;
+import org.janusgraph.core.attribute.Geoshape;
+import org.janusgraph.core.attribute.JtsGeoshapeHelper;
+import org.janusgraph.core.schema.JanusGraphManagement;
+import org.janusgraph.example.GraphOfTheGodsFactory;
+import org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry;
+import org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistryV1d0;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.Polygon;
 
 /**
  * Tests JanusGraph specific serialization classes not covered by the TinkerPop suite.
  *
- * @author Stephen Mallette (http://stephen.genoprime.com)
+ * @author Stephen Mallette (https://stephen.genoprime.com)
  */
-@RunWith(Parameterized.class)
 public abstract class JanusGraphIoTest extends JanusGraphBaseTest {
 
     private static final GeometryFactory GF = new GeometryFactory();
 
     private static final JtsGeoshapeHelper HELPER = new JtsGeoshapeHelper();
 
-    @Parameterized.Parameters(name = "{0}")
-    public static Iterable<Object[]> data() {
-        // clear geoshape serializers from default registry for testing
-        JanusGraphSONModule.getInstance().addSerializer(Geoshape.class, null);
-        JanusGraphSONModule.getInstance().addDeserializer(Geoshape.class, null);
+    static Stream<Arguments> data() {
+        final GraphSONMapper v1mapper = GraphSONMapper.build().version(GraphSONVersion.V1_0).typeInfo(TypeInfo.PARTIAL_TYPES).addRegistry(JanusGraphIoRegistryV1d0.getInstance()).create();
+        final GraphSONMapper v2mapper = GraphSONMapper.build().version(GraphSONVersion.V2_0).typeInfo(TypeInfo.PARTIAL_TYPES).addRegistry(JanusGraphIoRegistry.getInstance()).create();
+        final GraphSONMapper v3mapper = GraphSONMapper.build().version(GraphSONVersion.V3_0).typeInfo(TypeInfo.PARTIAL_TYPES).addRegistry(JanusGraphIoRegistry.getInstance()).create();
 
-        final SimpleModule moduleV1d0 = new SimpleModule();
-        moduleV1d0.addSerializer(Geoshape.class, new Geoshape.GeoshapeGsonSerializerV1d0());
-        moduleV1d0.addDeserializer(Geoshape.class, new Geoshape.GeoshapeGsonDeserializerV1d0());
-
-        final SimpleModule moduleV2d0 = new SimpleModule();
-        moduleV2d0.addSerializer(Geoshape.class, new Geoshape.GeoshapeGsonSerializerV2d0());
-        moduleV2d0.addDeserializer(Geoshape.class, new Geoshape.GeoshapeGsonDeserializerV2d0());
-
-        return Arrays.asList(new Object[][]{
-            {"graphson-v1-embedded",
-                (Function<Graph, GraphReader>) g -> g.io(IoCore.graphson()).reader().mapper(g.io(GraphSONIo.build(GraphSONVersion.V1_0)).mapper().addCustomModule(moduleV1d0).typeInfo(TypeInfo.PARTIAL_TYPES).create()).create(),
-                (Function<Graph, GraphWriter>) g -> g.io(IoCore.graphson()).writer().mapper(g.io(GraphSONIo.build(GraphSONVersion.V1_0)).mapper().addCustomModule(moduleV1d0).typeInfo(TypeInfo.PARTIAL_TYPES).create()).create()},
-            {"graphson-v2-embedded",
-                (Function<Graph, GraphReader>) g -> g.io(IoCore.graphson()).reader().mapper(g.io(GraphSONIo.build(GraphSONVersion.V2_0)).mapper().addCustomModule(moduleV2d0).typeInfo(TypeInfo.PARTIAL_TYPES).create()).create(),
-                (Function<Graph, GraphWriter>) g -> g.io(IoCore.graphson()).writer().mapper(g.io(GraphSONIo.build(GraphSONVersion.V2_0)).mapper().addCustomModule(moduleV2d0).typeInfo(TypeInfo.PARTIAL_TYPES).create()).create()},
-            {"gryo",
+        return Stream.of(
+            arguments("graphson-v1-embedded",
+                (Function<Graph, GraphReader>) g -> GraphSONReader.build().mapper(v1mapper).create(),
+                (Function<Graph, GraphWriter>) g -> GraphSONWriter.build().mapper(v1mapper).create()),
+            arguments("graphson-v2-embedded",
+                (Function<Graph, GraphReader>) g -> GraphSONReader.build().mapper(v2mapper).create(),
+                (Function<Graph, GraphWriter>) g -> GraphSONWriter.build().mapper(v2mapper).create()),
+            arguments("graphson-v3",
+                (Function<Graph, GraphReader>) g -> GraphSONReader.build().mapper(v3mapper).create(),
+                (Function<Graph, GraphWriter>) g -> GraphSONWriter.build().mapper(v3mapper).create()),
+            arguments("gryo",
                 (Function<Graph, GraphReader>) g -> g.io(IoCore.gryo()).reader().mapper(g.io(IoCore.gryo()).mapper().create()).create(),
-                (Function<Graph, GraphWriter>) g -> g.io(IoCore.gryo()).writer().mapper(g.io(IoCore.gryo()).mapper().create()).create()}
-        });
+                (Function<Graph, GraphWriter>) g -> g.io(IoCore.gryo()).writer().mapper(g.io(IoCore.gryo()).mapper().create()).create())
+        );
     }
 
-    @Parameterized.Parameter(value = 0)
-    public String ioType;
-
-    @Parameterized.Parameter(value = 1)
-    public Function<Graph, GraphReader> readerMaker;
-
-    @Parameterized.Parameter(value = 2)
-    public Function<Graph, GraphWriter> writerMaker;
-
-    @Before
+    @BeforeEach
     public void setup() {
         GraphOfTheGodsFactory.loadWithoutMixedIndex(graph, true);
-        JanusGraphManagement mgmt = graph.openManagement();
-        mgmt.makePropertyKey("shape").dataType(Geoshape.class).make();
-        mgmt.commit();
+        JanusGraphManagement management = graph.openManagement();
+        management.makePropertyKey("shape").dataType(Geoshape.class).make();
+        management.commit();
     }
 
-    @Test
-    public void testSerialization() throws Exception {
-        testSerialization(null);
-        testSerialization(makeLine);
-        testSerialization(makePoly);
-        testSerialization(makeMultiPoint);
-        testSerialization(makeMultiLine);
-        testSerialization(makeMultiPolygon);
+    @ParameterizedTest
+    @MethodSource("data")
+    public void testSerialization(String name, Function<Graph, GraphReader> readerMaker, Function<Graph, GraphWriter> writerMaker) throws Exception {
+        testSerializationSpecialized("nullFunction", null, readerMaker, writerMaker);
+        testSerializationSpecialized("makeLine", makeLine,readerMaker, writerMaker);
+        testSerializationSpecialized("makePoly", makePoly,readerMaker, writerMaker);
+        testSerializationSpecialized("makeMultiPoint", makeMultiPoint,readerMaker, writerMaker);
+        testSerializationSpecialized("makeMultiLine", makeMultiLine,readerMaker, writerMaker);
+        testSerializationSpecialized("makeMultiPolygon", makeMultiPolygon,readerMaker, writerMaker);
     }
 
-    private void testSerialization(Function<Geoshape,Geoshape> makeGeoshape) throws Exception {
+    private void testSerializationSpecialized(String functionName, Function<Geoshape,Geoshape> makeGeoshape, Function<Graph, GraphReader> readerMaker, Function<Graph, GraphWriter> writerMaker) throws Exception {
         if (makeGeoshape != null) {
             addGeoshape(makeGeoshape);
         }
@@ -130,26 +118,26 @@ public abstract class JanusGraphIoTest extends JanusGraphBaseTest {
 
         JanusGraphIndexTest.assertGraphOfTheGods(graph);
         if (makeGeoshape != null) {
-            assertGeoshape(makeGeoshape);
+            assertGeoshape(makeGeoshape, functionName);
         }
     }
 
     private void addGeoshape(Function<Geoshape,Geoshape> makeGeoshape) {
         JanusGraphTransaction tx = graph.newTransaction();
-        graph.traversal().E().has("place").toList().stream().forEach(e-> {
+        graph.traversal().E().has("place").toList().forEach(e-> {
             Geoshape place = (Geoshape) e.property("place").value();
             e.property("shape", makeGeoshape.apply(place));
         });
         tx.commit();
     }
 
-    private void assertGeoshape(Function<Geoshape,Geoshape> makeGeoshape) {
-        graph.traversal().E().has("place").toList().stream().forEach(e-> {
-            assertTrue(e.property("shape").isPresent());
+    private void assertGeoshape(Function<Geoshape,Geoshape> makeGeoshape, String functionName) {
+        graph.traversal().E().has("place").toList().forEach(e-> {
+            assertTrue(e.property("shape").isPresent(), functionName);
             Geoshape place = (Geoshape) e.property("place").value();
             Geoshape expected = makeGeoshape.apply(place);
             Geoshape actual = (Geoshape) e.property("shape").value();
-            assertEquals(expected, actual);
+            assertEquals(expected, actual, functionName);
         });
     }
 

@@ -1,14 +1,29 @@
+// Copyright 2019 JanusGraph Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package org.janusgraph.graphdb
 
+import org.janusgraph.TestCategory
 import org.janusgraph.diskstorage.configuration.WriteConfiguration
 import org.janusgraph.graphdb.util.ElementHelper
+import org.junit.jupiter.api.Tag
 
 import static org.junit.Assert.*
 
-import org.junit.FixMethodOrder;
+import org.junit.FixMethodOrder
 import org.junit.Rule
 import org.junit.Test
-import org.junit.experimental.categories.Category
 import org.junit.rules.TestRule
 import org.junit.runners.MethodSorters
 import org.slf4j.Logger
@@ -18,9 +33,8 @@ import com.carrotsearch.junitbenchmarks.BenchmarkOptions
 import com.google.common.base.Preconditions
 import com.google.common.collect.Iterables
 import org.janusgraph.core.JanusGraphEdge
-import org.janusgraph.core.JanusGraphTransaction;
+import org.janusgraph.core.JanusGraphTransaction
 import org.janusgraph.core.JanusGraphVertex
-import org.janusgraph.testcategory.PerformanceTests
 import org.janusgraph.testutil.JUnitBenchmarkProvider
 import org.janusgraph.diskstorage.BackendException
 
@@ -32,8 +46,8 @@ import org.janusgraph.diskstorage.BackendException
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 @BenchmarkOptions(warmupRounds = 1, benchmarkRounds = 1)
-@Category([PerformanceTests.class])
-public abstract class JanusGraphSpeedTest extends GroovySpeedTestSupport {
+@Tag(TestCategory.PERFORMANCE_TESTS)
+abstract class JanusGraphSpeedTest extends GroovySpeedTestSupport {
 
     private static final Logger log = LoggerFactory.getLogger(JanusGraphSpeedTest)
 
@@ -112,8 +126,8 @@ public abstract class JanusGraphSpeedTest extends GroovySpeedTestSupport {
     @Test
     void testVertexCentricIndexQuery() {
 
-        final long maxUid = 1000L; // exclusive
-        final long minUid = 1L;    // inclusive
+        final long maxUid = 1000L // exclusive
+        final long minUid = 1L    // inclusive
 
         Preconditions.checkArgument(maxUid - minUid <= VERTEX_COUNT)
 
@@ -205,22 +219,22 @@ public abstract class JanusGraphSpeedTest extends GroovySpeedTestSupport {
     }
 
     @Test
-    public void testMultiVertexQuery() {
+    void testMultiVertexQuery() {
         chunkedSequentialUidTask(50, 50, this.&multiVertexQueryTask)
     }
 
     @Test
-    public void testPathologicalMultiVertexQuery() {
+    void testPathologicalMultiVertexQuery() {
         chunkedSequentialUidTask(1, 50, this.&multiVertexQueryTask)
     }
 
     @Test
-    public void testSingleVertexQuery() {
+    void testSingleVertexQuery() {
         sequentialUidTask(50, this.&singleVertexQueryTask)
     }
 
     @Test
-    public void testSingleVertexMultiProperty() {
+    void testSingleVertexMultiProperty() {
         sequentialUidTask(50, { tx, v ->
             int c = 0
             for (int i = 0; i < schema.getVertexPropKeys(); i++) {
@@ -228,16 +242,16 @@ public abstract class JanusGraphSpeedTest extends GroovySpeedTestSupport {
                     c++
                 }
             }
-            def k = ElementHelper.getPropertyKeys(v) - 1;
+            def k = ElementHelper.getPropertyKeys(v) - 1
             assertTrue(k + "vs" + c, k <= c)
             assertTrue(0 <= c)
         })
     }
 
     @Test
-    public void testSingleVertexProperty() {
+    void testSingleVertexProperty() {
         sequentialUidTask(50, { tx, v ->
-            assertNotNull(v.valueOrNull(Schema.UID_PROP));
+            assertNotNull(v.valueOrNull(Schema.UID_PROP))
         })
     }
 
@@ -326,9 +340,9 @@ public abstract class JanusGraphSpeedTest extends GroovySpeedTestSupport {
      * This method has no body and exists only to measure that overhead.
      */
     @Test
-    void testNoop() {
+    static void testNoop() {
         // Do nothing
-        log.debug("Noop test executed");
+        log.debug("Noop test executed")
     }
 
     private void multiVertexQueryTask(JanusGraphTransaction tx, JanusGraphVertex[] vbuf, int vcount) {

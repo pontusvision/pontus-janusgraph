@@ -15,44 +15,29 @@
 package org.janusgraph.diskstorage.es;
 
 import org.janusgraph.core.JanusGraph;
-import org.janusgraph.diskstorage.configuration.ModifiableConfiguration;
+import org.janusgraph.core.JanusGraphFactory;
 import org.janusgraph.diskstorage.configuration.WriteConfiguration;
 import org.janusgraph.example.GraphOfTheGodsFactory;
 import org.janusgraph.graphdb.JanusGraphIndexTest;
+import org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration;
 import org.janusgraph.util.system.IOUtils;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.junit.jupiter.Container;
 
 import java.io.File;
 
 import static org.janusgraph.BerkeleyStorageSetup.getBerkeleyJEConfiguration;
-import static org.janusgraph.diskstorage.es.ElasticSearchIndex.BULK_REFRESH;
-import static org.janusgraph.diskstorage.es.ElasticSearchIndex.INTERFACE;
-import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.INDEX_HOSTS;
 
 /**
  * @author Matthias Broecheler (me@matthiasb.com)
  */
 
+@Testcontainers
 public class BerkeleyElasticsearchTest extends JanusGraphIndexTest {
 
-    private static ElasticsearchRunner esr;
-
-    @BeforeClass
-    public static void startElasticsearch() {
-        if (!ElasticsearchRunner.IS_EXTERNAL) {
-            esr = new ElasticsearchRunner();
-            esr.start();
-        }
-    }
-
-    @AfterClass
-    public static void stopElasticsearch() {
-        if (!ElasticsearchRunner.IS_EXTERNAL) {
-            esr.stop();
-        }
-    }
+    @Container
+    private static JanusGraphElasticsearchContainer esr = new JanusGraphElasticsearchContainer();
 
     public BerkeleyElasticsearchTest() {
         super(true, true, true);
@@ -60,25 +45,19 @@ public class BerkeleyElasticsearchTest extends JanusGraphIndexTest {
 
     @Override
     public WriteConfiguration getConfiguration() {
-        ModifiableConfiguration config = getBerkeleyJEConfiguration();
-        //Add index
-        config.set(INTERFACE, ElasticSearchSetup.REST_CLIENT.toString(), INDEX);
-        config.set(INDEX_HOSTS, new String[]{ "127.0.0.1" }, INDEX);
-        config.set(BULK_REFRESH, "wait_for", INDEX);
-        return config.getConfiguration();
-
+        return esr.setConfiguration(getBerkeleyJEConfiguration(), INDEX)
+            .set(GraphDatabaseConfiguration.INDEX_MAX_RESULT_SET_SIZE, 3, INDEX)
+            .getConfiguration();
     }
 
     @Override
     public boolean supportsLuceneStyleQueries() {
         return true;
     }
-
     @Override
     public boolean supportsWildcardQuery() {
         return true;
     }
-
     @Override
     protected boolean supportsCollections() {
         return true;
@@ -92,7 +71,8 @@ public class BerkeleyElasticsearchTest extends JanusGraphIndexTest {
         File bdbtmp = new File("target/gotgfactory");
         IOUtils.deleteDirectory(bdbtmp, true);
 
-        JanusGraph gotg = GraphOfTheGodsFactory.create(bdbtmp.getPath());
+        JanusGraph gotg = JanusGraphFactory.open(getConfiguration());
+        GraphOfTheGodsFactory.load(gotg);
         JanusGraphIndexTest.assertGraphOfTheGods(gotg);
         gotg.close();
     }

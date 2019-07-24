@@ -33,50 +33,50 @@ public interface ElementQuery<R extends JanusGraphElement,B extends BackendQuery
      *
      * @return true, if duplicate results are possible, else false
      */
-    public boolean hasDuplicateResults();
+    boolean hasDuplicateResults();
 
     /**
      * Whether the result set of this query is empty
      *
      * @return
      */
-    public boolean isEmpty();
+    boolean isEmpty();
 
     /**
      * Returns the number of sub-queries this query is comprised of.
      *
      * @return
      */
-    public int numSubQueries();
+    int numSubQueries();
 
     /**
      * Returns the backend query at the given position that comprises this ElementQuery
      * @param position
      * @return
      */
-    public BackendQueryHolder<B> getSubQuery(int position);
+    BackendQueryHolder<B> getSubQuery(int position);
 
     /**
      * Whether the given element matches the conditions of this query.
-     * </p>
+     * <p>
      * Used for result filtering if the result set returned by the query executor is not fitted.
      *
      * @param element
      * @return
      */
-    public boolean matches(R element);
+    boolean matches(R element);
 
     /**
      * Whether this query expects the results to be in a particular sort order.
      *
      * @return
      */
-    public boolean isSorted();
+    boolean isSorted();
 
     /**
      * Returns the expected sort order of this query if any was specified. Check {@link #isSorted()} first.
      * @return
      */
-    public Comparator<R> getSortOrder();
+    Comparator<R> getSortOrder();
 
 }

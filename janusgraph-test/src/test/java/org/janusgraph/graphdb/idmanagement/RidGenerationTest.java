@@ -18,17 +18,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import org.janusgraph.diskstorage.configuration.Configuration;
-import org.junit.Test;
-
-import com.google.common.base.Preconditions;
+import org.junit.jupiter.api.Test;
 
 public class RidGenerationTest {
 
     @Test
     public void testThreadBasedRidGeneration() throws InterruptedException {
         Configuration c = Configuration.EMPTY;
-        int n = 8;
-        Preconditions.checkArgument(1 < n); // n <= 1 is useless
+        final int n = 8; // n <= 1 is useless
         Collection<byte[]> rids = Collections.synchronizedSet(new HashSet<byte[]>());
         RidThread[] threads = new RidThread[n];
         
@@ -61,5 +58,5 @@ public class RidGenerationTest {
         public void run() {
             //rids.add(DistributedStoreManager.getRid(c));
         }
-    };
+    }
 }

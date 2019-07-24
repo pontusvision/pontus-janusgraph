@@ -32,7 +32,6 @@ import software.amazon.awssdk.client.builder.ClientHttpConfiguration;
 import software.amazon.awssdk.http.apache.ApacheSdkHttpClientFactory;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.codebuild.CodeBuildClient;
-import software.amazon.awssdk.services.codebuild.model.ComputeType;
 import software.amazon.awssdk.services.codepipeline.CodePipelineClient;
 import software.amazon.awssdk.services.iam.model.IAMException;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -68,7 +67,7 @@ public class AwsCodePipelinesCi {
         createRequiredOneArgOption("pipelines","Path to JSON file containing abbreviated pipeline definitions");
     private static final Option CODE_BUILD_SERVICE_ROLE_ARN_OPTION =
         createRequiredOneArgOption("codebuild-role-arn",
-            "ARN of the service role for CodeBuild (http://docs.aws.amazon.com/codebuild/latest/userguide/setting-up.html#setting-up-service-role)");
+            "ARN of the service role for CodeBuild (https://docs.aws.amazon.com/codebuild/latest/userguide/setting-up.html#setting-up-service-role)");
     private static final Option CODE_BUILD_COMPUTE_IMAGE = createOptionalOneArgOption("codebuild-compute-image",
         "Compute image to use for CodeBuild");
 
@@ -82,7 +81,7 @@ public class AwsCodePipelinesCi {
 
     private final CommandLine cmd;
 
-    private void run() throws ParseException, IOException {
+    private void run() throws IOException {
         final File file = new File(getOptionValue(PIPELINES_JSON_OPTION));
         final Region region = Region.of(getOptionValue(REGION_OPTION));
         final AwsCredentialsProvider provider = ProfileCredentialsProvider.builder()

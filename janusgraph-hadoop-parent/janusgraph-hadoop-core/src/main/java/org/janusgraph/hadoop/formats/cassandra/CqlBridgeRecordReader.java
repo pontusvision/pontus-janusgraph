@@ -18,8 +18,6 @@
 
 package org.janusgraph.hadoop.formats.cassandra;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
@@ -60,6 +58,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -70,7 +69,7 @@ import static java.util.stream.Collectors.toList;
  * from Cassandra-3 without referring to it (because otherwise we'd get functionality from
  * CqlRecordReader on Cassandra-2 and we don't want it). </p>
  *
- * @see <a href="https://github.com/JanusGraph/janusgraph/issues/172">Issue 172</a>.
+ * @see <a href="https://github.com/JanusGraph/janusgraph/issues/172">Issue 172.</a>
  */
 @Unstable // Because it should go away with JanusGraph upgrading to Cassandra-3 for OLAP
 @Deprecated // Because this class should already be on its path to deprecation
@@ -91,10 +90,10 @@ public class CqlBridgeRecordReader extends RecordReader<StaticBuffer, Iterable<E
     private String inputColumns;
     private String userDefinedWhereClauses;
 
-    private List<String> partitionKeys = new ArrayList<>();
+    private final List<String> partitionKeys = new ArrayList<>();
 
     // partition keys -- key aliases
-    private LinkedHashMap<String, Boolean> partitionBoundColumns = Maps.newLinkedHashMap();
+    private final LinkedHashMap<String, Boolean> partitionBoundColumns = Maps.newLinkedHashMap();
     private int nativeProtocolVersion = 1;
 
     // binary type mapping code from CassandraBinaryRecordReader
@@ -133,7 +132,7 @@ public class CqlBridgeRecordReader extends RecordReader<StaticBuffer, Iterable<E
         }
         // cluster should be represent to a valid cluster now
         session = cluster.connect(quote(keyspace));
-        Preconditions.checkState(session != null, "Can't create connection session");
+        Preconditions.checkNotNull(session, "Can't create connection session");
         //get negotiated serialization protocol
         nativeProtocolVersion = cluster.getConfiguration().getProtocolOptions().getProtocolVersion().toInt();
 
@@ -274,7 +273,7 @@ public class CqlBridgeRecordReader extends RecordReader<StaticBuffer, Iterable<E
             if (! rowIterator.hasNext()) {
                 return null; // null means no more data
             }
-            Map<StaticArrayBuffer, Map<StaticBuffer, StaticBuffer>> kcvs = new HashMap<>(); // key -> (column1 -> value)
+            Map<StaticArrayBuffer, Map<StaticBuffer, StaticBuffer>> keyColumnValues = new HashMap<>(); // key -> (column1 -> value)
             Row row;
             if (previousRow == null) {
                 row = rowIterator.next(); // just the first time, should succeed
@@ -286,7 +285,7 @@ public class CqlBridgeRecordReader extends RecordReader<StaticBuffer, Iterable<E
             StaticBuffer value = StaticArrayBuffer.of(row.getBytesUnsafe(VALUE));
             Map<StaticBuffer, StaticBuffer> cvs = new HashMap<>();
             cvs.put(column1, value);
-            kcvs.put(key, cvs);
+            keyColumnValues.put(key, cvs);
             while (rowIterator.hasNext()) {
                 Row nextRow = rowIterator.next();
                 StaticArrayBuffer nextKey = StaticArrayBuffer.of(nextRow.getBytesUnsafe(KEY));
@@ -299,7 +298,7 @@ public class CqlBridgeRecordReader extends RecordReader<StaticBuffer, Iterable<E
                 cvs.put(nextColumn, nextValue);
                 totalRead++;
             }
-            return kcvs;
+            return keyColumnValues;
         }
     }
     /**
@@ -346,11 +345,7 @@ public class CqlBridgeRecordReader extends RecordReader<StaticBuffer, Iterable<E
     }
 
     private String makeColumnList(Collection<String> columns) {
-        return Joiner.on(',').join(Iterables.transform(columns, new Function<String, String>() {
-            public String apply(String column) {
-                return quote(column);
-            }
-        }));
+        return columns.stream().map(this::quote).collect(Collectors.joining(","));
     }
 
     private void fetchKeys() {

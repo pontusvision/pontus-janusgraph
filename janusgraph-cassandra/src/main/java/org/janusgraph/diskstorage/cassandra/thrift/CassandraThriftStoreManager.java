@@ -33,7 +33,6 @@ import org.janusgraph.diskstorage.keycolumnvalue.KeyRange;
 import org.janusgraph.graphdb.configuration.PreInitializeConfigOptions;
 import org.janusgraph.util.system.NetworkUtil;
 
-import org.apache.cassandra.dht.AbstractByteOrderedPartitioner;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.dht.Token;
@@ -58,11 +57,11 @@ import org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration;
 import static org.janusgraph.diskstorage.configuration.ConfigOption.disallowEmpty;
 
 /**
- * This class creates {@see CassandraThriftKeyColumnValueStore}s and
+ * This class creates @see CassandraThriftKeyColumnValueStore and
  * handles Cassandra-backed allocation of vertex IDs for JanusGraph (when so
  * configured).
  *
- * @author Dan LaRocque <dalaro@hopcount.org>
+ * @author Dan LaRocque &lt;dalaro@hopcount.org&gt;
  */
 @PreInitializeConfigOptions
 public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
@@ -100,53 +99,53 @@ public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
             disallowEmpty(String.class));
 
     public static final ConfigOption<Integer> CPOOL_MAX_TOTAL =
-            new ConfigOption<Integer>(CPOOL_NS, "max-total",
+            new ConfigOption<>(CPOOL_NS, "max-total",
             "Max number of allowed Thrift connections, idle or active (-1 to leave undefined)",
             ConfigOption.Type.MASKABLE, -1);
 
     public static final ConfigOption<Integer> CPOOL_MAX_ACTIVE =
-            new ConfigOption<Integer>(CPOOL_NS, "max-active",
+            new ConfigOption<>(CPOOL_NS, "max-active",
             "Maximum number of concurrently in-use connections (-1 to leave undefined)",
             ConfigOption.Type.MASKABLE, 16);
 
     public static final ConfigOption<Integer> CPOOL_MAX_IDLE =
-            new ConfigOption<Integer>(CPOOL_NS, "max-idle",
+            new ConfigOption<>(CPOOL_NS, "max-idle",
             "Maximum number of concurrently idle connections (-1 to leave undefined)",
             ConfigOption.Type.MASKABLE, 4);
 
     public static final ConfigOption<Integer> CPOOL_MIN_IDLE =
-            new ConfigOption<Integer>(CPOOL_NS, "min-idle",
+            new ConfigOption<>(CPOOL_NS, "min-idle",
             "Minimum number of idle connections the pool attempts to maintain",
             ConfigOption.Type.MASKABLE, 0);
 
     // Wart: allowing -1 like commons-pool's convention precludes using StandardDuration
     public static final ConfigOption<Long> CPOOL_MAX_WAIT =
-            new ConfigOption<Long>(CPOOL_NS, "max-wait",
+            new ConfigOption<>(CPOOL_NS, "max-wait",
             "Maximum number of milliseconds to block when " + ConfigElement.getPath(CPOOL_WHEN_EXHAUSTED) +
             " is set to BLOCK.  Has no effect when set to actions besides BLOCK.  Set to -1 to wait indefinitely.",
             ConfigOption.Type.MASKABLE, -1L);
 
     // Wart: allowing -1 like commons-pool's convention precludes using StandardDuration
     public static final ConfigOption<Long> CPOOL_EVICTOR_PERIOD =
-            new ConfigOption<Long>(CPOOL_NS, "evictor-period",
+            new ConfigOption<>(CPOOL_NS, "evictor-period",
             "Approximate number of milliseconds between runs of the idle connection evictor.  " +
             "Set to -1 to never run the idle connection evictor.",
             ConfigOption.Type.MASKABLE, 30L * 1000L);
 
     // Wart: allowing -1 like commons-pool's convention precludes using StandardDuration
     public static final ConfigOption<Long> CPOOL_MIN_EVICTABLE_IDLE_TIME =
-            new ConfigOption<Long>(CPOOL_NS, "min-evictable-idle-time",
+            new ConfigOption<>(CPOOL_NS, "min-evictable-idle-time",
             "Minimum number of milliseconds a connection must be idle before it is eligible for " +
             "eviction.  See also " + ConfigElement.getPath(CPOOL_EVICTOR_PERIOD) + ".  Set to -1 to never evict " +
             "idle connections.", ConfigOption.Type.MASKABLE, 60L * 1000L);
 
     public static final ConfigOption<Boolean> CPOOL_IDLE_TESTS =
-            new ConfigOption<Boolean>(CPOOL_NS, "idle-test",
+            new ConfigOption<>(CPOOL_NS, "idle-test",
             "Whether the idle connection evictor validates idle connections and drops those that fail to validate",
             ConfigOption.Type.MASKABLE, false);
 
     public static final ConfigOption<Integer> CPOOL_IDLE_TESTS_PER_EVICTION_RUN =
-            new ConfigOption<Integer>(CPOOL_NS, "idle-tests-per-eviction-run",
+            new ConfigOption<>(CPOOL_NS, "idle-tests-per-eviction-run",
             "When the value is negative, e.g. -n, roughly one nth of the idle connections are tested per run.  " +
             "When the value is positive, e.g. n, the min(idle-count, n) connections are tested per run.",
             ConfigOption.Type.MASKABLE, 0);
@@ -192,7 +191,7 @@ public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
         p.setMinEvictableIdleTimeMillis(config.get(CPOOL_MIN_EVICTABLE_IDLE_TIME));
         this.pool = p;
 
-        this.openStores = new HashMap<String, CassandraThriftKeyColumnValueStore>();
+        this.openStores = new HashMap<>();
 
         // Only watch the ring and change endpoints with BOP
         if (getCassandraPartitioner() instanceof ByteOrderedPartitioner) {
@@ -244,31 +243,29 @@ public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
         // Generate Thrift-compatible batch_mutate() datastructure
         // key -> cf -> cassmutation
         int size = 0;
-        for (Map<StaticBuffer, KCVMutation> mutation : mutations.values()) size += mutation.size();
-        Map<ByteBuffer, Map<String, List<org.apache.cassandra.thrift.Mutation>>> batch =
-                new HashMap<ByteBuffer, Map<String, List<org.apache.cassandra.thrift.Mutation>>>(size);
+        for (final Map<StaticBuffer, KCVMutation> mutation : mutations.values()) {
+            size += mutation.size();
+        }
+        final Map<ByteBuffer, Map<String, List<org.apache.cassandra.thrift.Mutation>>> batch = new HashMap<>(size);
 
 
-        for (Map.Entry<String, Map<StaticBuffer, KCVMutation>> keyMutation : mutations.entrySet()) {
-            String columnFamily = keyMutation.getKey();
-            for (Map.Entry<StaticBuffer, KCVMutation> mutEntry : keyMutation.getValue().entrySet()) {
+        for (final Map.Entry<String, Map<StaticBuffer, KCVMutation>> keyMutation : mutations.entrySet()) {
+            final String columnFamily = keyMutation.getKey();
+            for (final Map.Entry<StaticBuffer, KCVMutation> mutEntry : keyMutation.getValue().entrySet()) {
                 ByteBuffer keyBB = mutEntry.getKey().asByteBuffer();
 
                 // Get or create the single Cassandra Mutation object responsible for this key
-                Map<String, List<org.apache.cassandra.thrift.Mutation>> cfmutation = batch.get(keyBB);
-                if (cfmutation == null) {
-                    cfmutation = new HashMap<String, List<org.apache.cassandra.thrift.Mutation>>(3); // Most mutations only modify the edgeStore and indexStore
-                    batch.put(keyBB, cfmutation);
-                }
+                // Most mutations only modify the edgeStore and indexStore
+                final Map<String, List<org.apache.cassandra.thrift.Mutation>> cfmutation
+                    = batch.computeIfAbsent(keyBB, k -> new HashMap<>(3));
 
-                KCVMutation mutation = mutEntry.getValue();
-                List<org.apache.cassandra.thrift.Mutation> thriftMutation =
-                        new ArrayList<org.apache.cassandra.thrift.Mutation>(mutations.size());
+                final KCVMutation mutation = mutEntry.getValue();
+                final List<org.apache.cassandra.thrift.Mutation> thriftMutation = new ArrayList<>(mutations.size());
 
                 if (mutation.hasDeletions()) {
-                    for (StaticBuffer buf : mutation.getDeletions()) {
-                        Deletion d = new Deletion();
-                        SlicePredicate sp = new SlicePredicate();
+                    for (final StaticBuffer buf : mutation.getDeletions()) {
+                        final Deletion d = new Deletion();
+                        final SlicePredicate sp = new SlicePredicate();
                         sp.addToColumn_names(buf.as(StaticBuffer.BB_FACTORY));
                         d.setPredicate(sp);
                         d.setTimestamp(commitTime.getDeletionTime(times));
@@ -279,21 +276,21 @@ public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
                 }
 
                 if (mutation.hasAdditions()) {
-                    for (Entry ent : mutation.getAdditions()) {
-                        ColumnOrSuperColumn cosc = new ColumnOrSuperColumn();
-                        Column column = new Column(ent.getColumnAs(StaticBuffer.BB_FACTORY));
+                    for (final Entry ent : mutation.getAdditions()) {
+                        final ColumnOrSuperColumn columnOrSuperColumn = new ColumnOrSuperColumn();
+                        final Column column = new Column(ent.getColumnAs(StaticBuffer.BB_FACTORY));
                         column.setValue(ent.getValueAs(StaticBuffer.BB_FACTORY));
 
                         column.setTimestamp(commitTime.getAdditionTime(times));
 
-                        Integer ttl = (Integer) ent.getMetaData().get(EntryMetaData.TTL);
+                        final Integer ttl = (Integer) ent.getMetaData().get(EntryMetaData.TTL);
                         if (null != ttl && ttl > 0) {
                             column.setTtl(ttl);
                         }
 
-                        cosc.setColumn(column);
+                        columnOrSuperColumn.setColumn(column);
                         org.apache.cassandra.thrift.Mutation m = new org.apache.cassandra.thrift.Mutation();
-                        m.setColumn_or_supercolumn(cosc);
+                        m.setColumn_or_supercolumn(columnOrSuperColumn);
                         thriftMutation.add(m);
                     }
                 }
@@ -337,7 +334,7 @@ public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
         CTConnection conn = null;
         IPartitioner partitioner = getCassandraPartitioner();
 
-        if (!(partitioner instanceof AbstractByteOrderedPartitioner))
+        if (!(partitioner instanceof ByteOrderedPartitioner))
             throw new UnsupportedOperationException("getLocalKeyPartition() only supported by byte ordered partitioner.");
 
         Token.TokenFactory tokenFactory = partitioner.getTokenFactory();
@@ -348,8 +345,8 @@ public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
             ensureKeyspaceExists(keySpaceName);
 
             conn = pool.borrowObject(keySpaceName);
-            List<TokenRange> ranges  = conn.getClient().describe_ring(keySpaceName);
-            List<KeyRange> keyRanges = new ArrayList<KeyRange>(ranges.size());
+            final List<TokenRange> ranges  = conn.getClient().describe_ring(keySpaceName);
+            final List<KeyRange> keyRanges = new ArrayList<>(ranges.size());
 
             for (TokenRange range : ranges) {
                 if (!NetworkUtil.hasLocalAddress(range.endpoints))
@@ -368,11 +365,11 @@ public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
 
     /**
      * Connect to Cassandra via Thrift on the specified host and port and attempt to truncate the named keyspace.
-     * <p/>
+     * <p>
      * This is a utility method intended mainly for testing. It is
-     * equivalent to issuing 'truncate <cf>' for each of the column families in keyspace using
+     * equivalent to issuing 'truncate &lt;cf&gt;' for each of the column families in keyspace using
      * the cassandra-cli tool.
-     * <p/>
+     * <p>
      * Using truncate is better for a number of reasons, most significantly because it doesn't
      * involve any schema modifications which can take time to propagate across the cluster such
      * leaves nodes in the inconsistent state and could result in read/write failures.
@@ -413,31 +410,34 @@ public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
                 return;
             }
 
-            List<CfDef> cfDefs = ksDef.getCf_defs();
+            if (this.storageConfig.get(GraphDatabaseConfiguration.DROP_ON_CLEAR)) {
+                client.system_drop_keyspace(keySpaceName);
+                pool.clear();
+            } else {
+                final List<CfDef> columnFamilyDefinitions = ksDef.getCf_defs();
 
-            if (null == cfDefs) {
-                log.debug(lp + "Received empty CfDef list for keyspace {}; not truncating CFs", keySpaceName);
-                return;
+                if (null == columnFamilyDefinitions) {
+                    log.debug(lp + "Received empty CfDef list for keyspace {}; not truncating CFs", keySpaceName);
+                    return;
+                }
+
+                for (final CfDef cfDef : ksDef.getCf_defs()) {
+                    client.truncate(cfDef.name);
+                    log.info(lp + "Truncated CF {} in keyspace {}", cfDef.name, keySpaceName);
+                }
+
+                /*
+                 * Clearing the CTConnectionPool is unnecessary. This method
+                 * removes no keyspaces. All open Cassandra connections will
+                 * remain valid.
+                 */
             }
-
-            for (CfDef cfDef : ksDef.getCf_defs()) {
-                client.truncate(cfDef.name);
-                log.info(lp + "Truncated CF {} in keyspace {}", cfDef.name, keySpaceName);
-            }
-
-            /*
-             * Clearing the CTConnectionPool is unnecessary. This method
-             * removes no keyspaces. All open Cassandra connections will
-             * remain valid.
-             */
         } catch (Exception e) {
             throw new TemporaryBackendException(e);
         } finally {
             if (conn != null && conn.getClient() != null) {
                 try {
                     conn.getClient().set_keyspace(SYSTEM_KS);
-                } catch (InvalidRequestException e) {
-                    log.warn("Failed to reset keyspace", e);
                 } catch (TException e) {
                     log.warn("Failed to reset keyspace", e);
                 }
@@ -446,7 +446,30 @@ public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
         }
     }
 
-    private KsDef ensureKeyspaceExists(String keyspaceName) throws TException, BackendException {
+    @Override
+    public boolean exists() throws BackendException {
+        CTConnection connection = null;
+
+        try {
+            connection = pool.borrowObject(SYSTEM_KS);
+            final Cassandra.Client client = connection.getClient();
+
+            try {
+                // Side effect: throws Exception if keyspaceName doesn't exist
+                client.set_keyspace(keySpaceName); // Don't remove
+                client.set_keyspace(SYSTEM_KS);
+                return true;
+            } catch (InvalidRequestException e) {
+                return false;
+            }
+        } catch (Exception e) {
+            throw new TemporaryBackendException(e);
+        } finally {
+            pool.returnObjectUnsafe(SYSTEM_KS, connection);
+        }
+    }
+
+    private KsDef ensureKeyspaceExists(String keyspaceName) throws BackendException {
         CTConnection connection = null;
 
         try {
@@ -462,8 +485,8 @@ public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
                 // Keyspace didn't exist; create it
                 log.debug("Creating keyspace {}...", keyspaceName);
 
-                KsDef ksdef = new KsDef().setName(keyspaceName)
-                        .setCf_defs(new LinkedList<CfDef>()) // cannot be null but can be empty
+                final KsDef ksdef = new KsDef().setName(keyspaceName)
+                        .setCf_defs(new LinkedList<>()) // cannot be null but can be empty
                         .setStrategy_class(storageConfig.get(REPLICATION_STRATEGY))
                         .setStrategy_options(strategyOptions);
 
@@ -508,10 +531,6 @@ public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
     }
 
     private void ensureColumnFamilyExists(String ksName, String cfName) throws BackendException {
-        ensureColumnFamilyExists(ksName, cfName, "org.apache.cassandra.db.marshal.BytesType");
-    }
-
-    private void ensureColumnFamilyExists(String ksName, String cfName, String comparator) throws BackendException {
         CTConnection conn = null;
         try {
             KsDef keyspaceDef = ensureKeyspaceExists(ksName);
@@ -529,7 +548,7 @@ public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
             }
 
             if (!foundColumnFamily) {
-                createColumnFamily(client, ksName, cfName, comparator);
+                createColumnFamily(client, ksName, cfName, "org.apache.cassandra.db.marshal.BytesType");
             } else {
                 log.debug("Keyspace {} and ColumnFamily {} were found.", ksName, cfName);
             }
@@ -557,7 +576,7 @@ public class CassandraThriftStoreManager extends AbstractCassandraStoreManager {
         if (!compactionOptions.isEmpty()) {
             createColumnFamily.setCompaction_strategy_options(compactionOptions);
         }
-        ImmutableMap.Builder<String, String> compressionOptions = new ImmutableMap.Builder<String, String>();
+        final ImmutableMap.Builder<String, String> compressionOptions = new ImmutableMap.Builder<>();
 
         if (compressionEnabled) {
             compressionOptions.put("sstable_compression", compressionClass)

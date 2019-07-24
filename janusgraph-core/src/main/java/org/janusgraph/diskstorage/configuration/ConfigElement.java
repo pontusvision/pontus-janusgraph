@@ -78,6 +78,10 @@ public abstract class ConfigElement {
         return (namespace !=null? namespace.toString()+SEPARATOR:"") + name;
     }
 
+    public String toStringWithoutRoot() {
+        return toString().substring(getRoot().toString().length() + 1);
+    }
+
     @Override
     public int hashCode() {
         return new HashCodeBuilder().append(name).append(namespace).toHashCode();
@@ -95,11 +99,7 @@ public abstract class ConfigElement {
         return StringUtils.split(path,SEPARATOR);
     }
 
-    public static String toStringSingle(ConfigElement element) {
-        return toStringSingle(element,"");
-    }
-
-    private static String toStringSingle(ConfigElement element, String indent) {
+    public static String toString(ConfigElement element) {
         String result = element.getName();
         if (element.isNamespace()) {
             result = "+ " + result;
@@ -120,28 +120,11 @@ public abstract class ConfigElement {
             result+=","+option.getDefaultValue();
             result+="]";
         }
-        result = indent + result + "\n" + indent;
+        result = result + "\n";
         String desc = element.getDescription();
         result+="\t"+'"'+desc.substring(0, Math.min(desc.length(), 50))+'"';
         return result;
     }
-
-    public static String toString(ConfigElement element) {
-        //return toStringRecursive(element,"");
-        return toStringSingle(element, "");
-    }
-
-//    private static String toStringRecursive(ConfigElement element, String indent) {
-//        String result = toStringSingle(element, indent) + "\n";
-//        if (element.isNamespace()) {
-//            ConfigNamespace ns = (ConfigNamespace)element;
-//            indent += "\t";
-//            for (ConfigElement child : ns.getChildren()) {
-//                result += toStringRecursive(child,indent);
-//            }
-//        }
-//        return result;
-//    }
 
     public static String getPath(ConfigElement element, String... umbrellaElements) {
         return getPath(element, false, umbrellaElements);
@@ -150,7 +133,7 @@ public abstract class ConfigElement {
     public static String getPath(ConfigElement element, boolean includeRoot, String... umbrellaElements) {
         Preconditions.checkNotNull(element);
         if (umbrellaElements==null) umbrellaElements = new String[0];
-        String path = element.getName();
+        StringBuilder path = new StringBuilder(element.getName());
         int umbrellaPos = umbrellaElements.length-1;
         while (!element.isRoot() && !element.getNamespace().isRoot()) {
             ConfigNamespace parent = element.getNamespace();
@@ -158,22 +141,22 @@ public abstract class ConfigElement {
                 Preconditions.checkArgument(umbrellaPos>=0,"Missing umbrella element path for element: %s",element);
                 String umbrellaName = umbrellaElements[umbrellaPos];
                 Preconditions.checkArgument(!StringUtils.containsAny(umbrellaName,ILLEGAL_CHARS),"Invalid umbrella name provided: %s. Contains illegal chars",umbrellaName);
-                path = umbrellaName + SEPARATOR + path;
+                path.insert(0, umbrellaName + SEPARATOR);
                 umbrellaPos--;
             }
-            path = parent.getName() + SEPARATOR + path;
+            path.insert(0, parent.getName() + SEPARATOR);
             element = parent;
         }
         if (includeRoot) {
             // Assumes that roots are not umbrellas
             // If roots could be umbrellas, we might have to change the interpretation of umbrellaElements
-            path = (element.isRoot() ?
-                    element.getName() :
-                    element.getNamespace().getName()) + SEPARATOR + path;
+            path.insert(0, (element.isRoot() ?
+                element.getName() :
+                element.getNamespace().getName()) + SEPARATOR);
         }
         //Don't make this check so that we can still access more general config items
         Preconditions.checkArgument(umbrellaPos<0,"Found unused umbrella element: %s",umbrellaPos<0?null:umbrellaElements[umbrellaPos]);
-        return path;
+        return path.toString();
     }
 
     public static PathIdentifier parse(ConfigNamespace root, String path) {

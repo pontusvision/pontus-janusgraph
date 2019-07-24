@@ -38,6 +38,7 @@ import static io.vavr.API.$;
 import static io.vavr.API.Case;
 import static io.vavr.API.Match;
 import static io.vavr.Predicates.instanceOf;
+import static org.janusgraph.diskstorage.cql.CQLConfigOptions.CF_COMPACT_STORAGE;
 import static org.janusgraph.diskstorage.cql.CQLConfigOptions.CF_COMPRESSION;
 import static org.janusgraph.diskstorage.cql.CQLConfigOptions.CF_COMPRESSION_BLOCK_SIZE;
 import static org.janusgraph.diskstorage.cql.CQLConfigOptions.CF_COMPRESSION_TYPE;
@@ -51,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.janusgraph.diskstorage.BackendException;
 import org.janusgraph.diskstorage.Entry;
@@ -80,6 +82,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.QueryValidationException;
 import com.datastax.driver.core.exceptions.UnsupportedFeatureException;
+import com.datastax.driver.core.schemabuilder.Create.Options;
 import com.datastax.driver.core.schemabuilder.TableOptions.CompactionOptions;
 import com.datastax.driver.core.schemabuilder.TableOptions.CompressionOptions;
 import com.google.common.collect.Lists;
@@ -100,9 +103,9 @@ public class CQLKeyColumnValueStore implements KeyColumnValueStore {
     private static final String TTL_FUNCTION_NAME = "ttl";
     private static final String WRITETIME_FUNCTION_NAME = "writetime";
 
-    static final String KEY_COLUMN_NAME = "key";
-    static final String COLUMN_COLUMN_NAME = "column1";
-    static final String VALUE_COLUMN_NAME = "value";
+    public static final String KEY_COLUMN_NAME = "key";
+    public static final String COLUMN_COLUMN_NAME = "column1";
+    public static final String VALUE_COLUMN_NAME = "value";
     static final String WRITETIME_COLUMN_NAME = "writetime";
     static final String TTL_COLUMN_NAME = "ttl";
 
@@ -118,9 +121,9 @@ public class CQLKeyColumnValueStore implements KeyColumnValueStore {
     private static final String LIMIT_BINDING = "maxRows";
 
     static final Function<? super Throwable, BackendException> EXCEPTION_MAPPER = cause -> Match(cause).of(
-            Case($(instanceOf(QueryValidationException.class)), qve -> new PermanentBackendException(qve)),
-            Case($(instanceOf(UnsupportedFeatureException.class)), ufe -> new PermanentBackendException(ufe)),
-            Case($(), t -> new TemporaryBackendException(t)));
+            Case($(instanceOf(QueryValidationException.class)), PermanentBackendException::new),
+            Case($(instanceOf(UnsupportedFeatureException.class)), PermanentBackendException::new),
+            Case($(), TemporaryBackendException::new));
 
     private final CQLStoreManager storeManager;
     private final ExecutorService executorService;
@@ -143,8 +146,10 @@ public class CQLKeyColumnValueStore implements KeyColumnValueStore {
      * @param tableName the name of the database table for storing the key/column/values
      * @param configuration data used in creating this store
      * @param closer callback used to clean up references to this store in the store manager
+     * @param allowCompactStorage whether to use compact storage is allowed (true only for Cassandra 2 and earlier)
+     * @param shouldInitializeTable if true is provided the table gets initialized
      */
-    public CQLKeyColumnValueStore(final CQLStoreManager storeManager, final String tableName, final Configuration configuration, final Runnable closer) {
+    public CQLKeyColumnValueStore(final CQLStoreManager storeManager, final String tableName, final Configuration configuration, final Runnable closer, final boolean allowCompactStorage, final Supplier<Boolean> shouldInitializeTable) {
         this.storeManager = storeManager;
         this.executorService = this.storeManager.getExecutorService();
         this.tableName = tableName;
@@ -152,7 +157,9 @@ public class CQLKeyColumnValueStore implements KeyColumnValueStore {
         this.session = this.storeManager.getSession();
         this.getter = new CQLColValGetter(storeManager.getMetaDataSchema(this.tableName));
 
-        initializeTable(this.session, this.storeManager.getKeyspaceName(), tableName, configuration);
+        if(shouldInitializeTable.get()) {
+            initializeTable(this.session, this.storeManager.getKeyspaceName(), tableName, configuration, allowCompactStorage);
+        }
 
         // @formatter:off
         this.getSlice = this.session.prepare(select()
@@ -211,16 +218,22 @@ public class CQLKeyColumnValueStore implements KeyColumnValueStore {
         // @formatter:on
     }
 
-    private static void initializeTable(final Session session, final String keyspaceName, final String tableName, final Configuration configuration) {
-        session.execute(createTable(keyspaceName, tableName)
+    private static void initializeTable(final Session session, final String keyspaceName, final String tableName, final Configuration configuration, final boolean allowCompactStorage) {
+        final Options createTable = createTable(keyspaceName, tableName)
                 .ifNotExists()
                 .addPartitionKey(KEY_COLUMN_NAME, DataType.blob())
                 .addClusteringColumn(COLUMN_COLUMN_NAME, DataType.blob())
                 .addColumn(VALUE_COLUMN_NAME, DataType.blob())
                 .withOptions()
                 .compressionOptions(compressionOptions(configuration))
-                .compactionOptions(compactionOptions(configuration))
-                .compactStorage());
+                .compactionOptions(compactionOptions(configuration));
+        // COMPACT STORAGE is allowed on Cassandra 2 or earlier
+        // when COMPACT STORAGE is allowed, the default is to enable it
+        final boolean useCompactStorage =
+            (allowCompactStorage && configuration.has(CF_COMPACT_STORAGE))
+            ? configuration.get(CF_COMPACT_STORAGE)
+            : allowCompactStorage;
+        session.execute(useCompactStorage ? createTable.compactStorage() : createTable);
     }
 
     private static CompressionOptions compressionOptions(final Configuration configuration) {
@@ -273,7 +286,7 @@ public class CQLKeyColumnValueStore implements KeyColumnValueStore {
                         .setInt(LIMIT_BINDING, query.getLimit())
                         .setConsistencyLevel(getTransaction(txh).getReadConsistencyLevel())))
                 .map(resultSet -> fromResultSet(resultSet, this.getter));
-        awaitInterruptibly(result);
+        interruptibleWait(result);
         return result.getValue().get().getOrElseThrow(EXCEPTION_MAPPER);
     }
 
@@ -283,14 +296,14 @@ public class CQLKeyColumnValueStore implements KeyColumnValueStore {
     }
 
     /**
-     * Javaslang Future.await will throw InterruptedException wrapped in a FatalException. If the Thread was in Object.wait, the interrupted
+     * VAVR Future.await will throw InterruptedException wrapped in a FatalException. If the Thread was in Object.wait, the interrupted
      * flag will be cleared as a side effect and needs to be reset. This method checks that the underlying cause of the FatalException is
      * InterruptedException and resets the interrupted flag.
      * 
      * @param result the future to wait on
      * @throws PermanentBackendException if the thread was interrupted while waiting for the future result
      */
-    private void awaitInterruptibly(final Future<?> result) throws PermanentBackendException {
+    private void interruptibleWait(final Future<?> result) throws PermanentBackendException {
         try {
             result.await();
         } catch (Exception e) {
@@ -308,8 +321,7 @@ public class CQLKeyColumnValueStore implements KeyColumnValueStore {
         // To ensure that the Iterator instance is recreated, it is created
         // within the closure otherwise
         // the same iterator would be reused and would be exhausted.
-        return StaticArrayEntryList.ofStaticBuffer(() -> Iterator.ofAll(lazyList.get())
-                .<Tuple3<StaticBuffer, StaticBuffer, Row>> map(row -> Tuple.of(
+        return StaticArrayEntryList.ofStaticBuffer(() -> Iterator.ofAll(lazyList.get()).map(row -> Tuple.of(
                         StaticArrayBuffer.of(row.getBytes(COLUMN_COLUMN_NAME)),
                         StaticArrayBuffer.of(row.getBytes(VALUE_COLUMN_NAME)),
                         row)),

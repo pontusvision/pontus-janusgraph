@@ -1,19 +1,3 @@
-// Copyright 2017 JanusGraph Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-package org.janusgraph.graphdb.util;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -31,6 +15,9 @@ package org.janusgraph.graphdb.util;
  * limitations under the License.
  */
 
+package org.janusgraph.graphdb.util;
+
+
 /** A PriorityQueue maintains a partial ordering of its elements such that the
  * least element can always be found in constant time.  Put()'s and pop()'s
  * require log(size) time.
@@ -40,7 +27,6 @@ package org.janusgraph.graphdb.util;
  * {@link #PriorityQueue(int,boolean)} constructor with
  * <code>prepopulate</code> set to <code>true</code>.
  * 
- * @lucene.internal
 */
 public abstract class PriorityQueue<T> {
   private int size;
@@ -63,7 +49,7 @@ public abstract class PriorityQueue<T> {
         // Don't wrap heapSize to -1, in this case, which
         // causes a confusing NegativeArraySizeException.
         // Note that very likely this will simply then hit
-        // an OOME, but at least that's more indicative to
+        // an OutOfMemoryError, but at least that's more indicative to
         // caller that this values is too big.  We don't +1
         // in this case, but it's very unlikely in practice
         // one will actually insert this many objects into
@@ -238,7 +224,7 @@ public abstract class PriorityQueue<T> {
     size = 0;
   }
 
-  private final void upHeap() {
+  private void upHeap() {
     int i = size;
     T node = heap[i];          // save bottom node
     int j = i >>> 1;
@@ -250,7 +236,7 @@ public abstract class PriorityQueue<T> {
     heap[i] = node;            // install saved node
   }
 
-  private final void downHeap() {
+  private void downHeap() {
     int i = 1;
     T node = heap[i];          // save top node
     int j = i << 1;            // find smaller child
@@ -271,9 +257,8 @@ public abstract class PriorityQueue<T> {
   }
   
   /** This method returns the internal heap array as Object[].
-   * @lucene.internal
    */
   protected final Object[] getHeapArray() {
-    return (Object[]) heap;
+    return heap;
   }
 }

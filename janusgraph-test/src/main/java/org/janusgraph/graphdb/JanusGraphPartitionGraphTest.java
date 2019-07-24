@@ -35,13 +35,14 @@ import org.apache.tinkerpop.gremlin.process.computer.ComputerResult;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 import java.util.*;
 
 import static org.janusgraph.testutil.JanusGraphAssert.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests graph and vertex partitioning
@@ -58,32 +59,32 @@ public abstract class JanusGraphPartitionGraphTest extends JanusGraphBaseTest {
     @Override
     public WriteConfiguration getConfiguration() {
         WriteConfiguration config = getBaseConfiguration();
-        ModifiableConfiguration mconf = new ModifiableConfiguration(GraphDatabaseConfiguration.ROOT_NS,config, BasicConfiguration.Restriction.NONE);
+        ModifiableConfiguration modifiableConfiguration = new ModifiableConfiguration(GraphDatabaseConfiguration.ROOT_NS,config, BasicConfiguration.Restriction.NONE);
         // Let GraphDatabaseConfiguration's config freezer set CLUSTER_PARTITION
-        //mconf.set(GraphDatabaseConfiguration.CLUSTER_PARTITION,true);
-        mconf.set(GraphDatabaseConfiguration.CLUSTER_MAX_PARTITIONS,numPartitions);
+        //modifiableConfiguration.set(GraphDatabaseConfiguration.CLUSTER_PARTITION,true);
+        modifiableConfiguration.set(GraphDatabaseConfiguration.CLUSTER_MAX_PARTITIONS,numPartitions);
         //uses SimpleBulkPlacementStrategy by default
-        mconf.set(SimpleBulkPlacementStrategy.CONCURRENT_PARTITIONS,3*numPartitions);
+        modifiableConfiguration.set(SimpleBulkPlacementStrategy.CONCURRENT_PARTITIONS,3*numPartitions);
         return config;
     }
 
     private IDManager idManager;
 
     @Override
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
+    @BeforeEach
+    public void setUp(TestInfo testInfo) throws Exception {
+        super.setUp(testInfo);
         idManager = graph.getIDManager();
     }
 
 //    @Test
-//    @Category({ OrderedKeyStoreTests.class })
+//    @Tag(TestCategory.ORDERED_KEY_STORE_TESTS)
 //    public void testOrderedConfig() {
 //        assertTrue(graph.getConfiguration().getStoreFeatures().isKeyOrdered());
 //    }
 //
 //    @Test
-//    @Category({ UnorderedKeyStoreTests.class })
+//    @Tag(TestCategory.UNORDERED_KEY_STORE_TESTS)
 //    public void testUnorderedConfig() {
 //        assertFalse(graph.getConfiguration().getStoreFeatures().isKeyOrdered());
 //    }
@@ -91,14 +92,14 @@ public abstract class JanusGraphPartitionGraphTest extends JanusGraphBaseTest {
     @Test
     public void testPartitionHashes() {
         assertEquals(8, idManager.getPartitionBound());
-        Set<Long> hashs = Sets.newHashSet();
-        for (long i=1;i<idManager.getPartitionBound()*2;i++) hashs.add(idManager.getPartitionHashForId(i));
-        assertTrue(hashs.size()>idManager.getPartitionBound()/2);
+        Set<Long> hashes = Sets.newHashSet();
+        for (long i=1;i<idManager.getPartitionBound()*2;i++) hashes.add(idManager.getPartitionHashForId(i));
+        assertTrue(hashes.size()>idManager.getPartitionBound()/2);
         assertNotEquals(idManager.getPartitionHashForId(101),idManager.getPartitionHashForId(102));
     }
 
     @Test
-    public void testVertexPartitioning() throws Exception {
+    public void testVertexPartitioning() {
         Object[] options = {option(GraphDatabaseConfiguration.IDS_FLUSH), false};
         clopen(options);
 
@@ -215,17 +216,17 @@ public abstract class JanusGraphPartitionGraphTest extends JanusGraphBaseTest {
                 int pid = getPartitionID(vs[vi]);
                 if (partition < 0) partition = pid;
                 else assertEquals(partition, pid);
-                int numRels = 0;
+                int numRelations = 0;
                 JanusGraphVertex v = getV(txx, vs[vi].longId());
                 for (JanusGraphRelation r : v.query().relations()) {
-                    numRels++;
+                    numRelations++;
                     assertEquals(partition, getPartitionID(r));
                     if (r instanceof JanusGraphEdge) {
                         JanusGraphVertex o = ((JanusGraphEdge) r).otherVertex(v);
                         assertTrue(o.equals(g1) || o.equals(g2));
                     }
                 }
-                assertEquals(3 + (vi % 2 == 0 ? 1 : 0), numRels);
+                assertEquals(3 + (vi % 2 == 0 ? 1 : 0), numRelations);
             }
             partitions.add(partition);
             txx.commit();
@@ -255,15 +256,15 @@ public abstract class JanusGraphPartitionGraphTest extends JanusGraphBaseTest {
                 if (parts.add(part)) numV += partitions.count(part);
             }
             numV *= vPerTx;
-            int[] partarr = new int[numP];
+            int[] partitionArray = new int[numP];
             int i = 0;
-            for (Integer part : parts) partarr[i++] = part;
-            JanusGraphTransaction tx2 = graph.buildTransaction().restrictedPartitions(partarr).readOnly().start();
+            for (Integer part : parts) partitionArray[i++] = part;
+            JanusGraphTransaction tx2 = graph.buildTransaction().restrictedPartitions(partitionArray).readOnly().start();
             //Copied from above
             g1 = getV(tx2, gids[0]);
             assertEquals(0, g1.<Integer>value("gid").intValue());
             assertEquals("group", g1.label());
-            assertTrue(names.size() >= size(g1.properties("name")));
+            assertTrue(names.size() >= Iterators.size(g1.properties("name")));
             assertCount(numV, g1.query().direction(Direction.OUT).labels("knows").edges());
             assertCount(numV, g1.query().direction(Direction.IN).labels("knows").edges());
             assertCount(numV * 2, g1.query().direction(Direction.BOTH).labels("knows").edges());
@@ -366,10 +367,10 @@ public abstract class JanusGraphPartitionGraphTest extends JanusGraphBaseTest {
                 int pid = getPartitionID(v);
                 partitionIds.add(pid);
                 assertEquals(g, getOnlyElement(v.query().direction(Direction.OUT).labels("member").vertices()));
-                VertexList vlist = v.query().direction(Direction.IN).labels("contain").vertexIds();
-                assertEquals(1,vlist.size());
-                assertEquals(pid,idManager.getPartitionId(vlist.getID(0)));
-                assertEquals(g,vlist.get(0));
+                VertexList vertexList = v.query().direction(Direction.IN).labels("contain").vertexIds();
+                assertEquals(1,vertexList.size());
+                assertEquals(pid,idManager.getPartitionId(vertexList.getID(0)));
+                assertEquals(g,vertexList.get(0));
             }
         }
         if (flush || !batchCommit) { //In these cases we would expect significant spread across partitions
@@ -451,7 +452,7 @@ public abstract class JanusGraphPartitionGraphTest extends JanusGraphBaseTest {
     }
 
     @Test
-    public void testKeybasedGraphPartitioning() {
+    public void testKeyBasedGraphPartitioning() {
         Object[] options = {option(GraphDatabaseConfiguration.IDS_FLUSH), false,
                             option(VertexIDAssigner.PLACEMENT_STRATEGY), PropertyPlacementStrategy.class.getName(),
                 option(PropertyPlacementStrategy.PARTITION_KEY), "clusterId"};

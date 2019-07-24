@@ -22,10 +22,10 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 /**
  * JanusGraphVertex is the basic unit of a {@link JanusGraph}.
  * It extends the functionality provided by Blueprint's {@link Vertex} by helper and convenience methods.
- * <p />
+ * <p>
  * Vertices have incident edges and properties. Edge connect the vertex to other vertices. Properties attach key-value
  * pairs to this vertex to define it.
- * <p />
+ * <p>
  * Like {@link JanusGraphRelation} a vertex has a vertex label.
  *
  * @author Matthias Br&ouml;cheler (http://www.matthiasb.com)
@@ -39,10 +39,10 @@ public interface JanusGraphVertex extends JanusGraphElement, Vertex {
 
     /**
      * Creates a new edge incident on this vertex.
-     * <p/>
+     * <p>
      * Creates and returns a new {@link JanusGraphEdge} of the specified label with this vertex being the outgoing vertex
      * and the given vertex being the incoming vertex.
-     * <br />
+     * <br>
      * Automatically creates the edge label if it does not exist and automatic creation of types is enabled. Otherwise,
      * this method with throw an {@link IllegalArgumentException}.
      *
@@ -51,14 +51,14 @@ public interface JanusGraphVertex extends JanusGraphElement, Vertex {
      * @return new edge
      */
     @Override
-    public JanusGraphEdge addEdge(String label, Vertex vertex, Object... keyValues);
+    JanusGraphEdge addEdge(String label, Vertex vertex, Object... keyValues);
 
     /**
      * Creates a new property for this vertex and given key with the specified value.
-     * <p/>
+     * <p>
      * Creates and returns a new {@link JanusGraphVertexProperty} for the given key on this vertex with the specified
      * object being the value.
-     * <br />
+     * <br>
      * Automatically creates the property key if it does not exist and automatic creation of types is enabled. Otherwise,
      * this method with throw an {@link IllegalArgumentException}.
      *
@@ -68,16 +68,16 @@ public interface JanusGraphVertex extends JanusGraphElement, Vertex {
      * @throws IllegalArgumentException if the value does not match the data type of the property key.
      */
     @Override
-    public default<V> JanusGraphVertexProperty<V> property(String key, V value) {
+    default<V> JanusGraphVertexProperty<V> property(String key, V value) {
         return this.property(key, value, EMPTY_ARGS);
     }
 
     @Override
-    public <V> JanusGraphVertexProperty<V> property(final String key, final V value, final Object... keyValues);
+    <V> JanusGraphVertexProperty<V> property(final String key, final V value, final Object... keyValues);
 
 
     @Override
-    public <V> JanusGraphVertexProperty<V> property(final VertexProperty.Cardinality cardinality, final String key, final V value, final Object... keyValues);
+    <V> JanusGraphVertexProperty<V> property(final VertexProperty.Cardinality cardinality, final String key, final V value, final Object... keyValues);
 
      /* ---------------------------------------------------------------
       * Vertex Label
@@ -90,7 +90,7 @@ public interface JanusGraphVertex extends JanusGraphElement, Vertex {
      * @return
      */
     @Override
-    public default String label() {
+    default String label() {
         return vertexLabel().name();
     }
 
@@ -99,7 +99,7 @@ public interface JanusGraphVertex extends JanusGraphElement, Vertex {
      *
      * @return
      */
-    public VertexLabel vertexLabel();
+    VertexLabel vertexLabel();
 
 	/* ---------------------------------------------------------------
      * Incident JanusGraphRelation Access methods
@@ -108,20 +108,20 @@ public interface JanusGraphVertex extends JanusGraphElement, Vertex {
 
     /**
      * Starts a new {@link JanusGraphVertexQuery} for this vertex.
-     * <p/>
+     * <p>
      * Initializes and returns a new {@link JanusGraphVertexQuery} based on this vertex.
      *
      * @return New JanusGraphQuery for this vertex
      * @see JanusGraphVertexQuery
      */
-    public JanusGraphVertexQuery<? extends JanusGraphVertexQuery> query();
+    JanusGraphVertexQuery<? extends JanusGraphVertexQuery> query();
 
     /**
      * Checks whether this entity has been loaded into the current transaction and modified.
      *
      * @return True, has been loaded and modified, else false.
      */
-    public boolean isModified();
+    boolean isModified();
 
 
 }

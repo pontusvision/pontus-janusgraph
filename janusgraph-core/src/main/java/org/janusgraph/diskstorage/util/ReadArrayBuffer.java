@@ -35,8 +35,8 @@ public class ReadArrayBuffer extends StaticArrayBuffer implements ReadBuffer {
         super(buffer);
     }
 
-    protected ReadArrayBuffer(byte[] array, int offset, int limit) {
-        super(array,offset,limit);
+    protected ReadArrayBuffer(byte[] array, int limit) {
+        super(array, 0,limit);
     }
 
     @Override
@@ -162,12 +162,7 @@ public class ReadArrayBuffer extends StaticArrayBuffer implements ReadBuffer {
     public<T> T asRelative(final Factory<T> factory) {
         if (position==0) return as(factory);
         else {
-            return as(new Factory<T>() {
-                @Override
-                public T get(byte[] array, int offset, int limit) {
-                    return factory.get(array,offset+position,limit);
-                }
-            });
+            return as((array, offset, limit) -> factory.get(array,offset+position,limit));
         }
     }
 

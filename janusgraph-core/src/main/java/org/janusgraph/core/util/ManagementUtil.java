@@ -69,28 +69,28 @@ public class ManagementUtil {
         Instant end = times.getTime().plus(Duration.of(time,unit));
         boolean isStable = false;
         while (times.getTime().isBefore(end)) {
-            JanusGraphManagement mgmt = graph.openManagement();
+            JanusGraphManagement management = graph.openManagement();
             try {
                 if (StringUtils.isNotBlank(relationTypeName)) {
-                    RelationTypeIndex idx = mgmt.getRelationIndex(mgmt.getRelationType(relationTypeName)
+                    RelationTypeIndex idx = management.getRelationIndex(management.getRelationType(relationTypeName)
                             ,indexName);
-                    Preconditions.checkArgument(idx!=null,"Index could not be found: %s @ %s",indexName,relationTypeName);
+                    Preconditions.checkNotNull(idx, "Index could not be found: %s @ %s",indexName,relationTypeName);
                     isStable = idx.getIndexStatus().isStable();
                 } else {
-                    JanusGraphIndex idx = mgmt.getGraphIndex(indexName);
-                    Preconditions.checkArgument(idx!=null,"Index could not be found: %s",indexName);
+                    JanusGraphIndex idx = management.getGraphIndex(indexName);
+                    Preconditions.checkNotNull(idx, "Index could not be found: %s",indexName);
                     isStable = true;
                     for (PropertyKey key : idx.getFieldKeys()) {
                         if (!idx.getIndexStatus(key).isStable()) isStable = false;
                     }
                 }
             } finally {
-                mgmt.rollback();
+                management.rollback();
             }
             if (isStable) break;
             try {
                 times.sleepFor(Duration.ofMillis(500));
-            } catch (InterruptedException e) {
+            } catch (InterruptedException ignored) {
 
             }
         }

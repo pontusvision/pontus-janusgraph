@@ -14,9 +14,14 @@
 
 package org.janusgraph;
 
-import com.google.common.base.Joiner;
+import org.janusgraph.diskstorage.BackendException;
+import org.janusgraph.diskstorage.TemporaryBackendException;
 import org.janusgraph.diskstorage.configuration.ModifiableConfiguration;
 import org.janusgraph.diskstorage.configuration.WriteConfiguration;
+import org.janusgraph.diskstorage.hbase.AdminMask;
+import org.janusgraph.diskstorage.hbase.ConnectionMask;
+import org.janusgraph.diskstorage.hbase.HBaseCompat;
+import org.janusgraph.diskstorage.hbase.HBaseCompatLoader;
 import org.janusgraph.diskstorage.hbase.HBaseStoreManager;
 import org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration;
 import org.janusgraph.graphdb.database.idassigner.placement.SimpleBulkPlacementStrategy;
@@ -24,18 +29,13 @@ import org.janusgraph.graphdb.database.idassigner.placement.SimpleBulkPlacementS
 import org.apache.commons.lang3.StringUtils;
 
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.util.VersionInfo;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,13 +48,15 @@ public class HBaseStorageSetup {
 
     public static final String HBASE_PARENT_DIR_PROP = "test.hbase.parentdir";
 
-    private static final Pattern HBASE_SUPPORTED_VERSION_PATTERN = Pattern.compile("^((0\\.9[8])|(1\\.[012]))\\..*");
+    private static final Pattern HBASE_SUPPORTED_VERSION_PATTERN = Pattern.compile("^((2\\.[01])|(1\\.[01234]))\\..*");
 
     private static final String HBASE_VERSION_1_STRING = "1.";
 
     private static final String HBASE_PARENT_DIR;
 
     private static final String HBASE_TARGET_VERSION = VersionInfo.getVersion();
+    
+    private static final HBaseCompat compat;
 
     static {
         String parentDir = "..";
@@ -63,6 +65,7 @@ public class HBaseStorageSetup {
             parentDir = tmp;
         }
         HBASE_PARENT_DIR = parentDir;
+        compat = HBaseCompatLoader.getCompat(null);
     }
 
     private static final String HBASE_STAT_FILE = "/tmp/janusgraph-hbase-test-daemon.stat";
@@ -77,16 +80,11 @@ public class HBaseStorageSetup {
         return getDirForHBaseVersion(hv, "conf");
     }
 
-    public static String getDirForHBaseVersion(String hv, String lastSubdir) {
+    public static String getDirForHBaseVersion(String hv, String lastSubdirectory) {
         Matcher m = HBASE_SUPPORTED_VERSION_PATTERN.matcher(hv);
         if (m.matches()) {
-            String majorDotMinor = m.group(1);
-            if (majorDotMinor.startsWith(HBASE_VERSION_1_STRING)) {
-                // All HBase 1.x maps to 10
-                majorDotMinor = "1.0";
-            }
-            String result = String.format("%s%sjanusgraph-hbase-%s/%s/", HBASE_PARENT_DIR, File.separator, majorDotMinor.replace(".", ""), lastSubdir);
-            log.debug("Built {} path for HBase version {}: {}", lastSubdir, hv, result);
+            String result = String.format("%s%sjanusgraph-hbase-server/%s/", HBASE_PARENT_DIR, File.separator, lastSubdirectory);
+            log.debug("Built {} path for HBase version {}: {}", lastSubdirectory, hv, result);
             return result;
         } else {
             throw new RuntimeException("Unsupported HBase test version " + hv + " does not match pattern " + HBASE_SUPPORTED_VERSION_PATTERN);
@@ -98,11 +96,17 @@ public class HBaseStorageSetup {
     }
 
     public static ModifiableConfiguration getHBaseConfiguration(String tableName) {
+        return getHBaseConfiguration(tableName, "");
+    }
+
+    public static ModifiableConfiguration getHBaseConfiguration(String tableName, String graphName) {
         ModifiableConfiguration config = GraphDatabaseConfiguration.buildGraphConfiguration();
         config.set(GraphDatabaseConfiguration.STORAGE_BACKEND, "hbase");
-        if (!StringUtils.isEmpty(tableName)) config.set(HBaseStoreManager.HBASE_TABLE,tableName);
+        if (!StringUtils.isEmpty(tableName)) config.set(HBaseStoreManager.HBASE_TABLE, tableName);
+        if (!StringUtils.isEmpty(graphName)) config.set(GraphDatabaseConfiguration.GRAPH_NAME, graphName);
         config.set(GraphDatabaseConfiguration.TIMESTAMP_PROVIDER, HBaseStoreManager.PREFERRED_TIMESTAMPS);
         config.set(SimpleBulkPlacementStrategy.CONCURRENT_PARTITIONS, 1);
+        config.set(GraphDatabaseConfiguration.DROP_ON_CLEAR, false);
 
         return config;
     }
@@ -163,9 +167,7 @@ public class HBaseStorageSetup {
         long after;
         long timeoutMS = TimeUnit.MILLISECONDS.convert(timeout, timeoutUnit);
         do {
-            try {
-                HConnection hc = HConnectionManager.createConnection(HBaseConfiguration.create());
-                hc.close();
+            try (ConnectionMask hc = compat.createConnection(HBaseConfiguration.create())) {
                 after = System.currentTimeMillis();
                 log.info("HBase server to started after about {} ms", after - before);
                 return;
@@ -210,11 +212,7 @@ public class HBaseStorageSetup {
      *            the HBase daemon to kill
      */
     private static void registerKillerHook(final HBaseStatus stat) {
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            public void run() {
-                shutdownHBase(stat);
-            }
-        });
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> shutdownHBase(stat)));
     }
 
     /**
@@ -233,10 +231,48 @@ public class HBaseStorageSetup {
 
         log.info("Shutdown HBase");
 
-        stat.getFile().delete();
+        if (!stat.getFile().delete()) {
+            log.warn("Unable to delete stat file {}", stat.getFile().getAbsolutePath());
+        }
 
         log.info("Deleted {}", stat.getFile());
 
         HBASE = null;
+    }
+    
+    /**
+     * Create a snapshot for a table.
+     * @param snapshotName
+     * @param table
+     * @throws BackendException 
+     */
+    public synchronized static void createSnapshot(String snapshotName, String table)
+            throws BackendException {
+        try (ConnectionMask hc = compat.createConnection(HBaseConfiguration.create());
+                AdminMask admin = hc.getAdmin()) {
+            admin.snapshot(snapshotName, table);
+        } catch (Exception e) {
+            log.warn("Create HBase snapshot failed", e);
+            throw new TemporaryBackendException("Create HBase snapshot failed", e);
+        }
+    }
+
+    /**
+     * Delete a snapshot.
+     * @param snapshotName
+     * @throws IOException
+     */
+    public synchronized static void deleteSnapshot(String snapshotName) throws IOException {
+        try (ConnectionMask hc = compat.createConnection(HBaseConfiguration.create());
+                AdminMask admin = hc.getAdmin()) {
+            admin.deleteSnapshot(snapshotName);
+        }
+    }
+
+    /**
+     * Return the hbase root dir
+     */
+    public static String getHBaseRootdir() {
+        return getDirForHBaseVersion(HBASE_TARGET_VERSION, "target/hbase-root");
     }
 }

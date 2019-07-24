@@ -20,11 +20,11 @@ import org.janusgraph.diskstorage.configuration.ModifiableConfiguration;
 import org.janusgraph.diskstorage.util.StandardBaseTransactionConfig;
 import org.janusgraph.diskstorage.util.time.TimestampProviders;
 import org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.janusgraph.diskstorage.cassandra.AbstractCassandraStoreManager.CASSANDRA_READ_CONSISTENCY;
 import static org.janusgraph.diskstorage.cassandra.AbstractCassandraStoreManager.CASSANDRA_WRITE_CONSISTENCY;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class CassandraTransactionTest {
 
@@ -78,16 +78,16 @@ public class CassandraTransactionTest {
 
     @Test
     public void testTimestampProvider() {
-        BaseTransactionConfig txcfg = StandardBaseTransactionConfig.of(TimestampProviders.NANO);
-        CassandraTransaction ct = new CassandraTransaction(txcfg);
+        BaseTransactionConfig baseTransactionConfig = StandardBaseTransactionConfig.of(TimestampProviders.NANO);
+        CassandraTransaction ct = new CassandraTransaction(baseTransactionConfig);
         assertEquals(TimestampProviders.NANO, ct.getConfiguration().getTimestampProvider());
 
-        txcfg = StandardBaseTransactionConfig.of(TimestampProviders.MICRO);
-        ct = new CassandraTransaction(txcfg);
+        baseTransactionConfig = StandardBaseTransactionConfig.of(TimestampProviders.MICRO);
+        ct = new CassandraTransaction(baseTransactionConfig);
         assertEquals(TimestampProviders.MICRO, ct.getConfiguration().getTimestampProvider());
 
-        txcfg = StandardBaseTransactionConfig.of(TimestampProviders.MILLI);
-        ct = new CassandraTransaction(txcfg);
+        baseTransactionConfig = StandardBaseTransactionConfig.of(TimestampProviders.MILLI);
+        ct = new CassandraTransaction(baseTransactionConfig);
         assertEquals(TimestampProviders.MILLI, ct.getConfiguration().getTimestampProvider());
     }
 }

@@ -18,38 +18,59 @@ import org.janusgraph.HBaseStorageSetup;
 import org.janusgraph.diskstorage.BackendException;
 import org.janusgraph.diskstorage.KeyColumnValueStoreTest;
 import org.janusgraph.diskstorage.configuration.BasicConfiguration;
-import org.janusgraph.diskstorage.configuration.WriteConfiguration;
-import org.janusgraph.diskstorage.keycolumnvalue.KeyColumnValueStoreManager;
+import org.janusgraph.diskstorage.configuration.ModifiableConfiguration;
 import org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration;
 
-import org.apache.hadoop.hbase.util.VersionInfo;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 
 public class HBaseStoreTest extends KeyColumnValueStoreTest {
 
-    @BeforeClass
+    @BeforeAll
     public static void startHBase() throws IOException, BackendException {
         HBaseStorageSetup.startHBase();
     }
 
-    @AfterClass
-    public static void stopHBase() {
-        // Workaround for https://issues.apache.org/jira/browse/HBASE-10312
-        if (VersionInfo.getVersion().startsWith("0.96"))
-            HBaseStorageSetup.killIfRunning();
+    public HBaseStoreManager openStorageManager(ModifiableConfiguration config) throws BackendException {
+        return new HBaseStoreManager(new BasicConfiguration(GraphDatabaseConfiguration.ROOT_NS, config.getConfiguration(), BasicConfiguration.Restriction.NONE));
     }
 
-    public KeyColumnValueStoreManager openStorageManager() throws BackendException {
-        WriteConfiguration config = HBaseStorageSetup.getHBaseGraphConfiguration();
-        return new HBaseStoreManager(new BasicConfiguration(GraphDatabaseConfiguration.ROOT_NS,config, BasicConfiguration.Restriction.NONE));
+    public HBaseStoreManager openStorageManager() throws BackendException {
+        return openStorageManager("");
+    }
+
+    public HBaseStoreManager openStorageManager(String tableName) throws BackendException {
+        return openStorageManager(tableName, "");
+    }
+
+    public HBaseStoreManager openStorageManager(String tableName, String graphName) throws BackendException {
+        return new HBaseStoreManager(HBaseStorageSetup.getHBaseConfiguration(tableName, graphName));
     }
 
     @Test
-    public void testGetKeysWithKeyRange() throws Exception {
-        super.testGetKeysWithKeyRange();
+    public void testGetKeysWithKeyRange(TestInfo testInfo) throws Exception {
+        super.testGetKeysWithKeyRange(testInfo);
+    }
+
+    @Override
+    public HBaseStoreManager openStorageManagerForClearStorageTest() throws Exception {
+        return openStorageManager(HBaseStorageSetup.getHBaseConfiguration().set(GraphDatabaseConfiguration.DROP_ON_CLEAR, true));
+    }
+
+    @Test
+    public void tableShouldEqualSuppliedTableName() throws BackendException {
+        final HBaseStoreManager mgr = openStorageManager("randomTableName");
+        assertEquals("randomTableName", mgr.getName());
+    }
+
+    @Test
+    public void tableShouldEqualGraphName() throws BackendException {
+        final HBaseStoreManager mgr = openStorageManager("", "randomGraphName");
+        assertEquals("randomGraphName", mgr.getName());
     }
 }

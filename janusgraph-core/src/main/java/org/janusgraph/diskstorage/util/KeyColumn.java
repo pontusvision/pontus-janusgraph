@@ -20,7 +20,7 @@ import org.janusgraph.diskstorage.StaticBuffer;
 /**
  * Class representing a (key, column) pair.
  *
- * @author Dan LaRocque <dalaro@hopcount.org>
+ * @author Dan LaRocque (dalaro@hopcount.org)
  */
 public class KeyColumn {
 
@@ -29,13 +29,8 @@ public class KeyColumn {
     private int cachedHashCode;
 
     public KeyColumn(StaticBuffer key, StaticBuffer col) {
-        Preconditions.checkNotNull(key);
-        Preconditions.checkNotNull(col);
-        this.key = key;
-        this.col = col;
-
-        assert null != this.key;
-        assert null != this.col;
+        this.key = Preconditions.checkNotNull(key);
+        this.col = Preconditions.checkNotNull(col);
     }
 
     public StaticBuffer getKey() {

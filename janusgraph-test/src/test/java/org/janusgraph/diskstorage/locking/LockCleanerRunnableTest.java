@@ -19,7 +19,7 @@ import static org.janusgraph.diskstorage.locking.consistentkey.ConsistentKeyLock
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
 import java.util.List;
@@ -29,11 +29,10 @@ import org.janusgraph.diskstorage.util.*;
 import org.janusgraph.diskstorage.util.time.TimestampProviders;
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.janusgraph.diskstorage.Entry;
@@ -44,12 +43,10 @@ import org.janusgraph.diskstorage.keycolumnvalue.KeySliceQuery;
 import org.janusgraph.diskstorage.keycolumnvalue.StoreTransaction;
 import org.janusgraph.diskstorage.locking.consistentkey.ConsistentKeyLockerSerializer;
 import org.janusgraph.diskstorage.locking.consistentkey.StandardLockCleanerRunnable;
-import org.janusgraph.diskstorage.util.BufferUtil;
 
 public class LockCleanerRunnableTest {
 
     private IMocksControl ctrl;
-    private IMocksControl relaxedCtrl;;
     private StandardLockCleanerRunnable del;
     private KeyColumnValueStore store;
     private StoreTransaction tx;
@@ -62,16 +59,16 @@ public class LockCleanerRunnableTest {
     private final KeySliceQuery ksq = new KeySliceQuery(key, LOCK_COL_START, LOCK_COL_END);
     private final StaticBuffer defaultLockRid = new StaticArrayBuffer(new byte[]{(byte) 32});
 
-    @Before
+    @BeforeEach
     public void setupMocks() {
-        relaxedCtrl = EasyMock.createControl();
+        IMocksControl relaxedCtrl = EasyMock.createControl();
         tx = relaxedCtrl.createMock(StoreTransaction.class);
 
         ctrl = EasyMock.createStrictControl();
         store = ctrl.createMock(KeyColumnValueStore.class);
     }
 
-    @After
+    @AfterEach
     public void verifyMocks() {
         ctrl.verify();
     }
@@ -95,8 +92,8 @@ public class LockCleanerRunnableTest {
 
         store.mutate(
                 eq(key),
-                eq(ImmutableList.<Entry> of()),
-                eq(ImmutableList.<StaticBuffer> of(expiredLockCol.getColumn())),
+                eq(ImmutableList.of()),
+                eq(ImmutableList.of(expiredLockCol.getColumn())),
                 anyObject(StoreTransaction.class));
 
         ctrl.replay();
@@ -114,29 +111,29 @@ public class LockCleanerRunnableTest {
         final int lockCount = 10;
         final int expiredCount = 3;
         assertTrue(expiredCount + 2 <= lockCount);
-        final long timeIncr = 1L;
+        final long timeIncremement = 1L;
         final Instant timeStart = Instant.EPOCH;
-        final Instant timeCutoff = timeStart.plusMillis(expiredCount * timeIncr);
+        final Instant timeCutoff = timeStart.plusMillis(expiredCount * timeIncremement);
 
         ImmutableList.Builder<Entry> locksBuilder = ImmutableList.builder();
-        ImmutableList.Builder<Entry> delsBuilder  = ImmutableList.builder();
+        ImmutableList.Builder<Entry> deletionBuilder  = ImmutableList.builder();
 
         for (int i = 0; i < lockCount; i++) {
-            final Instant ts = timeStart.plusMillis(timeIncr * i);
+            final Instant ts = timeStart.plusMillis(timeIncremement * i);
             Entry lock = StaticArrayEntry.of(
                     codec.toLockCol(ts, defaultLockRid, TimestampProviders.MILLI),
                     BufferUtil.getIntBuffer(0));
 
             if (ts.isBefore(timeCutoff)) {
-                delsBuilder.add(lock);
+                deletionBuilder.add(lock);
             }
 
             locksBuilder.add(lock);
         }
 
         EntryList locks = StaticArrayEntryList.of(locksBuilder.build());
-        EntryList dels  = StaticArrayEntryList.of(delsBuilder.build());
-        assertTrue(expiredCount == dels.size());
+        EntryList deletions  = StaticArrayEntryList.of(deletionBuilder.build());
+        assertTrue(expiredCount == deletions.size());
 
         del = new StandardLockCleanerRunnable(store, kc, tx, codec, timeCutoff, TimestampProviders.MILLI);
 
@@ -144,8 +141,8 @@ public class LockCleanerRunnableTest {
 
         store.mutate(
                 eq(key),
-                eq(ImmutableList.<Entry> of()),
-                eq(columnsOf(dels)),
+                eq(ImmutableList.of()),
+                eq(columnsOf(deletions)),
                 anyObject(StoreTransaction.class));
 
         ctrl.replay();
@@ -181,11 +178,6 @@ public class LockCleanerRunnableTest {
      * argument list.
      */
     private static List<StaticBuffer> columnsOf(List<Entry> l) {
-        return Lists.transform(l, new Function<Entry, StaticBuffer>() {
-            @Override
-            public StaticBuffer apply(Entry e) {
-                return e.getColumn();
-            }
-        });
+        return Lists.transform(l, Entry::getColumn);
     }
 }

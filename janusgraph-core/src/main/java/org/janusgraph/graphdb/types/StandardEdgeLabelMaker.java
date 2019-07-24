@@ -17,7 +17,6 @@ package org.janusgraph.graphdb.types;
 import com.google.common.base.Preconditions;
 import org.janusgraph.core.*;
 import org.janusgraph.core.schema.EdgeLabelMaker;
-import org.janusgraph.core.Multiplicity;
 import org.janusgraph.graphdb.database.IndexSerializer;
 import org.janusgraph.graphdb.database.serialize.AttributeHandler;
 import org.janusgraph.graphdb.internal.Order;
@@ -60,8 +59,7 @@ public class StandardEdgeLabelMaker extends StandardRelationTypeMaker implements
     }
 
     public StandardEdgeLabelMaker unidirected(Direction dir) {
-        Preconditions.checkNotNull(dir);
-        unidirectionality = dir;
+        unidirectionality = Preconditions.checkNotNull(dir);
         return this;
     }
 

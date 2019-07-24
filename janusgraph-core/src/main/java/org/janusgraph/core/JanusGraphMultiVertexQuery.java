@@ -26,12 +26,12 @@ import java.util.Map;
  * A MultiVertexQuery is identical to a {@link JanusGraphVertexQuery} but executed against a set of vertices simultaneously.
  * In other words, {@link JanusGraphMultiVertexQuery} allows identical {@link JanusGraphVertexQuery} executed against a non-trivial set
  * of vertices to be executed in one batch which can significantly reduce the query latency.
- * <p/>
+ * <p>
  * The query specification methods are identical to {@link JanusGraphVertexQuery}. The result set method return Maps from the specified
  * set of anchor vertices to their respective individual result sets.
- * <p/>
+ * <p>
  * Call {@link JanusGraphTransaction#multiQuery(java.util.Collection)} to construct a multi query in the enclosing transaction.
- * <p/>
+ * <p>
  * Note, that the {@link #limit(int)} constraint applies to each individual result set.
  *
  * @see JanusGraphVertexQuery
@@ -50,7 +50,7 @@ public interface JanusGraphMultiVertexQuery<Q extends JanusGraphMultiVertexQuery
      * @param vertex
      * @return this query builder
      */
-    public JanusGraphMultiVertexQuery addVertex(Vertex vertex);
+    JanusGraphMultiVertexQuery addVertex(Vertex vertex);
 
     /**
      * Adds the given collection of vertices to the set of vertices against which to execute this query.
@@ -58,50 +58,50 @@ public interface JanusGraphMultiVertexQuery<Q extends JanusGraphMultiVertexQuery
      * @param vertices
      * @return this query builder
      */
-    public JanusGraphMultiVertexQuery addAllVertices(Collection<? extends Vertex> vertices);
+    JanusGraphMultiVertexQuery addAllVertices(Collection<? extends Vertex> vertices);
 
 
     @Override
-    public Q adjacent(Vertex vertex);
+    Q adjacent(Vertex vertex);
 
     @Override
-    public Q types(String... type);
+    Q types(String... type);
 
     @Override
-    public Q types(RelationType... type);
+    Q types(RelationType... type);
 
     @Override
-    public Q labels(String... labels);
+    Q labels(String... labels);
 
     @Override
-    public Q keys(String... keys);
+    Q keys(String... keys);
 
     @Override
-    public Q direction(Direction d);
+    Q direction(Direction d);
 
     @Override
-    public Q has(String type, Object value);
+    Q has(String type, Object value);
 
     @Override
-    public Q has(String key);
+    Q has(String key);
 
     @Override
-    public Q hasNot(String key);
+    Q hasNot(String key);
 
     @Override
-    public Q hasNot(String key, Object value);
+    Q hasNot(String key, Object value);
 
     @Override
-    public Q has(String key, JanusGraphPredicate predicate, Object value);
+    Q has(String key, JanusGraphPredicate predicate, Object value);
 
     @Override
-    public <T extends Comparable<?>> Q interval(String key, T start, T end);
+    <T extends Comparable<?>> Q interval(String key, T start, T end);
 
     @Override
-    public Q limit(int limit);
+    Q limit(int limit);
 
     @Override
-    public Q orderBy(String key, Order order);
+    Q orderBy(String key, Order order);
 
    /* ---------------------------------------------------------------
     * Query execution
@@ -113,40 +113,44 @@ public interface JanusGraphMultiVertexQuery<Q extends JanusGraphMultiVertexQuery
      *
      * @return Iterable over all incident edges that match this query for each vertex
      */
-    public Map<JanusGraphVertex, Iterable<JanusGraphEdge>> edges();
+    Map<JanusGraphVertex, Iterable<JanusGraphEdge>> edges();
 
     /**
      * Returns an iterable over all incident properties that match this query for each vertex
      *
      * @return Iterable over all incident properties that match this query for each vertex
      */
-    public Map<JanusGraphVertex, Iterable<JanusGraphVertexProperty>> properties();
+    Map<JanusGraphVertex, Iterable<JanusGraphVertexProperty>> properties();
 
+    /**
+     * Makes a call to properties to pre-fetch the properties into the vertex cache
+     */
+    void preFetch();
 
     /**
      * Returns an iterable over all incident relations that match this query for each vertex
      *
      * @return Iterable over all incident relations that match this query for each vertex
      */
-    public Map<JanusGraphVertex, Iterable<JanusGraphRelation>> relations();
+    Map<JanusGraphVertex, Iterable<JanusGraphRelation>> relations();
 
     /**
      * Retrieves all vertices connected to each of the query's base vertices by edges
      * matching the conditions defined in this query.
-     * <p/>
+     * <p>
      *
      * @return An iterable of all vertices connected to each of the query's central vertices by matching edges
      */
-    public Map<JanusGraphVertex, Iterable<JanusGraphVertex>> vertices();
+    Map<JanusGraphVertex, Iterable<JanusGraphVertex>> vertices();
 
     /**
      * Retrieves all vertices connected to each of the query's central vertices by edges
      * matching the conditions defined in this query.
-     * <p/>
+     * <p>
      * The query engine will determine the most efficient way to retrieve the vertices that match this query.
      *
      * @return A list of all vertices' ids connected to each of the query's central vertex by matching edges
      */
-    public Map<JanusGraphVertex, VertexList> vertexIds();
+    Map<JanusGraphVertex, VertexList> vertexIds();
 
 }

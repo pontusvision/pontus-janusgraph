@@ -17,10 +17,10 @@ package org.janusgraph.graphdb;
 import static org.janusgraph.diskstorage.cassandra.AbstractCassandraStoreManager.CASSANDRA_KEYSPACE;
 import static org.janusgraph.diskstorage.cassandra.AbstractCassandraStoreManager.CASSANDRA_READ_CONSISTENCY;
 import static org.janusgraph.diskstorage.cassandra.AbstractCassandraStoreManager.CASSANDRA_WRITE_CONSISTENCY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.janusgraph.CassandraStorageSetup;
 import org.janusgraph.core.JanusGraphFactory;
@@ -31,22 +31,35 @@ import org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration;
 import org.janusgraph.graphdb.configuration.JanusGraphConstants;
 import org.janusgraph.graphdb.database.StandardJanusGraph;
 import org.janusgraph.graphdb.transaction.StandardJanusGraphTx;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author Joshua Shinavier (http://fortytwo.net)
  */
 public abstract class CassandraGraphTest extends JanusGraphTest {
 
-    @BeforeClass
+    @BeforeAll
     public static void startCassandra() {
         CassandraStorageSetup.startCleanEmbedded();
     }
 
     @Test
-    public void testHasTTL() throws Exception {
+    public void testHasTTL() {
         assertTrue(features.hasCellTTL());
+    }
+
+    @Test
+    public void testStorageVerisonSet() {
+        close();
+        WriteConfiguration wc = getConfiguration();
+        assertNull(wc.get(ConfigElement.getPath(GraphDatabaseConfiguration.INITIAL_STORAGE_VERSION), 
+                   GraphDatabaseConfiguration.INITIAL_STORAGE_VERSION.getDatatype()));
+        wc.set(ConfigElement.getPath(GraphDatabaseConfiguration.INITIAL_STORAGE_VERSION), JanusGraphConstants.STORAGE_VERSION);
+        graph = (StandardJanusGraph) JanusGraphFactory.open(wc);
+        mgmt = graph.openManagement();
+        assertEquals(JanusGraphConstants.STORAGE_VERSION, (mgmt.get("graph.storage-version")));
+        mgmt.rollback();
     }
 
     @Test
@@ -128,7 +141,12 @@ public abstract class CassandraGraphTest extends JanusGraphTest {
                             wc.get(ConfigElement.getPath(GraphDatabaseConfiguration.TITAN_COMPATIBLE_VERSIONS), 
                                         GraphDatabaseConfiguration.TITAN_COMPATIBLE_VERSIONS.getDatatype())
                 ));
-
+        
+        wc.set(ConfigElement.getPath(GraphDatabaseConfiguration.IDS_STORE_NAME), JanusGraphConstants.TITAN_ID_STORE_NAME);
+        assertTrue(JanusGraphConstants.TITAN_ID_STORE_NAME.equals(
+                            wc.get(ConfigElement.getPath(GraphDatabaseConfiguration.IDS_STORE_NAME), 
+                                        GraphDatabaseConfiguration.IDS_STORE_NAME.getDatatype())
+                ));
         graph = (StandardJanusGraph) JanusGraphFactory.open(wc);
     }
 }

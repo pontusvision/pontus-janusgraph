@@ -14,7 +14,6 @@
 
 package org.janusgraph.graphdb.util;
 
-import com.google.common.collect.Iterators;
 import org.janusgraph.core.JanusGraphEdge;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -27,7 +26,7 @@ import java.util.Set;
 
 /**
  * Defines an {@link java.util.Iterator} over all {@link org.janusgraph.core.JanusGraphEdge}s connecting a provided set of vertices.
- * <p/>
+ * <p>
  * Given a set of vertices, one may be interested in all edges that are contained in the subgraph spanned
  * by those vertices. This iterator will return these edges.
  *
@@ -36,7 +35,7 @@ import java.util.Set;
 public class AllEdgesIterator implements Iterator<Edge> {
 
     private final Set<? extends Vertex> vertices;
-    private final Iterator<? extends Vertex> vertexIter;
+    private final Iterator<? extends Vertex> vertexIterator;
 
     private Iterator<Edge> currentEdges = Collections.emptyIterator();
 
@@ -44,27 +43,27 @@ public class AllEdgesIterator implements Iterator<Edge> {
 
     /**
      * Returns an iterator over all edges incident on the vertices returned by the given Iterable over vertices.
-     * <p/>
+     * <p>
      * Note that this method assumes that the given Iterable will return all vertices in the connected component,
      * otherwise the behavior of this method is undefined.
      *
-     * @param vertexIter Iterator over a set of vertices defining a connected component.
+     * @param vertexIterator Iterator over a set of vertices defining a connected component.
      */
-    public AllEdgesIterator(Iterator<? extends Vertex> vertexIter) {
-        this.vertexIter = vertexIter;
+    public AllEdgesIterator(Iterator<? extends Vertex> vertexIterator) {
+        this.vertexIterator = vertexIterator;
         this.vertices = null;
         next = findNext();
     }
 
     /**
      * Returns an iterator over all edges contained in the subgraph spanned by the given vertices.
-     * <p/>
+     * <p>
      * This method will return all edges whose end points are contained in the given set of vertices.
      *
      * @param vertices Set of vertices
      */
     public AllEdgesIterator(Set<? extends Vertex> vertices) {
-        this.vertexIter = vertices.iterator();
+        this.vertexIterator = vertices.iterator();
         this.vertices = vertices;
         next = findNext();
     }
@@ -77,8 +76,8 @@ public class AllEdgesIterator implements Iterator<Edge> {
                 if (vertices != null && !vertices.contains(rel.vertex(Direction.IN)))
                     rel = null;
             } else {
-                if (vertexIter.hasNext()) {
-                    Vertex nextVertex = vertexIter.next();
+                if (vertexIterator.hasNext()) {
+                    Vertex nextVertex = vertexIterator.next();
                     currentEdges = nextVertex.edges(Direction.OUT);
                 } else break;
             }

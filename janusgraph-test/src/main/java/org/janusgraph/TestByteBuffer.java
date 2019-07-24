@@ -16,15 +16,12 @@ package org.janusgraph;
 
 import com.carrotsearch.hppc.LongObjectMap;
 import com.carrotsearch.hppc.LongObjectHashMap;
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 
-import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.stream.Collectors;
 
 /**
  * @author Matthias Broecheler (me@matthiasb.com)
@@ -36,8 +33,6 @@ public class TestByteBuffer {
     private static final double FRACTION = 0.2;
     private static final int ROUNDSIZE = 5;
     private static final int TRIALS = 5;
-    private static final boolean CHECK_VALUE = true;
-
     private static final Random random = new Random();
 
     public static void main(String[] args) {
@@ -60,8 +55,8 @@ public class TestByteBuffer {
             for (int j = 0; j < NUM; j++) {
                 if (i == j) continue;
                 if (Math.random() < FRACTION) {
-                    Edge e = new Edge(vertices[i], "connect", vertices[j]);
-                    e.setProperty("number", random.nextInt(ROUNDSIZE));
+                    Edge e = new Edge(vertices[i], vertices[j]);
+                    e.setProperty(random.nextInt(ROUNDSIZE));
                     vertices[i].addOutEdge(e);
                 }
             }
@@ -80,9 +75,9 @@ public class TestByteBuffer {
     }
 
     private static long testByte() {
-        LongObjectMap<ConcurrentSkipListSet<ByteEntry>> tx = new LongObjectHashMap<ConcurrentSkipListSet<ByteEntry>>(NUM);
+        final LongObjectMap<ConcurrentSkipListSet<ByteEntry>> tx = new LongObjectHashMap<>(NUM);
         for (int i = 0; i < NUM; i++) {
-            tx.put(i, new ConcurrentSkipListSet<ByteEntry>());
+            tx.put(i, new ConcurrentSkipListSet<>());
         }
         for (int i = 0; i < NUM; i++) {
             for (int j = 0; j < NUM; j++) {
@@ -119,7 +114,7 @@ public class TestByteBuffer {
 
         @Override
         public int compareTo(Vertex vertex) {
-            return Long.valueOf(id).compareTo(vertex.id);
+            return Long.compare(id, vertex.id);
         }
 
         public long getId() {
@@ -131,12 +126,7 @@ public class TestByteBuffer {
 
     static class EdgeVertex extends Vertex {
 
-        private SortedSet<Edge> outEdges = new ConcurrentSkipListSet<Edge>(new Comparator<Edge>() {
-            @Override
-            public int compare(Edge e1, Edge e2) {
-                return e1.getEnd().compareTo(e2.getEnd());
-            }
-        });
+        private final SortedSet<Edge> outEdges = new ConcurrentSkipListSet<>(Comparator.comparing(Edge::getEnd));
 
         EdgeVertex(long id) {
             super(id);
@@ -144,17 +134,10 @@ public class TestByteBuffer {
 
         @Override
         public Iterable<Vertex> getNeighbors(final int value) {
-            return Iterables.transform(Iterables.filter(outEdges, new Predicate<Edge>() {
-                @Override
-                public boolean apply(@Nullable Edge edge) {
-                    return !CHECK_VALUE || ((Integer) edge.getProperty("number")).intValue() == value;
-                }
-            }), new Function<Edge, Vertex>() {
-                @Override
-                public Vertex apply(@Nullable Edge edge) {
-                    return edge.getEnd();
-                }
-            });
+            return outEdges.stream()
+                .filter(edge -> (Integer) edge.getProperty("number") == value)
+                .map(Edge::getEnd)
+                .collect(Collectors.toSet());
         }
 
         void addOutEdge(Edge e) {
@@ -170,23 +153,16 @@ public class TestByteBuffer {
         ByteVertex(long id, LongObjectMap<ConcurrentSkipListSet<ByteEntry>> tx) {
             super(id);
             this.tx = tx;
-            this.set = (SortedSet<ByteEntry>) tx.get(id);
+            this.set = tx.get(id);
         }
 
         @Override
         public Iterable<Vertex> getNeighbors(final int value) {
 //            SortedSet<ByteEntry> set = (SortedSet<ByteEntry>) tx.get(id);
-            return Iterables.transform(Iterables.filter(set, new Predicate<ByteEntry>() {
-                @Override
-                public boolean apply(@Nullable ByteEntry entry) {
-                    return !CHECK_VALUE || entry.value.getInt(0) == value;
-                }
-            }), new Function<ByteEntry, Vertex>() {
-                @Override
-                public Vertex apply(@Nullable ByteEntry entry) {
-                    return new ByteVertex(entry.key.getLong(8), tx);
-                }
-            });
+            return set.stream()
+                .filter(entry -> entry.value.getInt(0) == value)
+                .map(entry -> new ByteVertex(entry.key.getLong(8), tx))
+                .collect(Collectors.toSet());
         }
     }
 
@@ -196,10 +172,10 @@ public class TestByteBuffer {
         private final Vertex start;
         private final Vertex end;
         private final String label;
-        private final Map<String, Object> properties = new HashMap<String, Object>();
+        private final Map<String, Object> properties = new HashMap<>();
 
-        Edge(Vertex start, String label, Vertex end) {
-            this.label = label;
+        Edge(Vertex start, Vertex end) {
+            this.label = "connect";
             this.end = end;
             this.start = start;
         }
@@ -208,8 +184,8 @@ public class TestByteBuffer {
             return label;
         }
 
-        void setProperty(String key, Object value) {
-            properties.put(key, value);
+        void setProperty(Object value) {
+            properties.put("number", value);
         }
 
         public Object getProperty(String key) {

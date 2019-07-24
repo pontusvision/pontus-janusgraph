@@ -1,15 +1,25 @@
+// Copyright 2019 JanusGraph Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package org.janusgraph.graphdb
 
 import org.janusgraph.diskstorage.configuration.WriteConfiguration
 import org.janusgraph.graphdb.query.QueryUtil
 import org.apache.tinkerpop.gremlin.util.Gremlin
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.AfterEach
 
-import static org.junit.Assert.*
-
-import org.junit.After
-import org.junit.Before
-import org.junit.Rule;
-import org.junit.rules.TestName;
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -26,9 +36,6 @@ import java.util.zip.GZIPInputStream
 abstract class GroovySpeedTestSupport {
 
     private static final Logger log = LoggerFactory.getLogger(GroovySpeedTestSupport)
-
-    @Rule
-    public TestName testName = new TestName()
 
     // Graph generation settings
     public static final int VERTEX_COUNT = SpeedTestSchema.VERTEX_COUNT
@@ -61,7 +68,7 @@ abstract class GroovySpeedTestSupport {
         this.conf = conf
     }
 
-    @Before
+    @BeforeEach
     void open() {
 //        Preconditions.checkArgument(TX_COUNT * DEFAULT_OPS_PER_TX <= VERTEX_COUNT);
 
@@ -77,7 +84,7 @@ abstract class GroovySpeedTestSupport {
         }
     }
 
-    @After
+    @AfterEach
     void rollback() {
         if (null != graph)
             graph.rollback()
@@ -88,9 +95,9 @@ abstract class GroovySpeedTestSupport {
             graph.shutdown()
     }
 
-    protected abstract StandardJanusGraph getGraph() throws BackendException;
+    protected abstract StandardJanusGraph getGraph() throws BackendException
 
-    protected abstract SpeedTestSchema getSchema();
+    protected abstract SpeedTestSchema getSchema()
 
     /*
      * Helper methods
@@ -190,16 +197,16 @@ abstract class GroovySpeedTestSupport {
     }
 
     protected void initializeGraph(JanusGraph g) throws BackendException {
-        log.info("Initializing graph...");
+        log.info("Initializing graph...")
         long before = System.currentTimeMillis()
-        SpeedTestSchema schema = getSchema();
+        SpeedTestSchema schema = getSchema()
 
         try {
-            InputStream data = new GZIPInputStream(new FileInputStream(RELATION_FILE));
-            schema.makeTypes(g);
-            GraphMLReader.inputGraph(g, data);
+            InputStream data = new GZIPInputStream(new FileInputStream(RELATION_FILE))
+            schema.makeTypes(g)
+            GraphMLReader.inputGraph(g, data)
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e)
         }
         long after = System.currentTimeMillis()
         long duration = after - before

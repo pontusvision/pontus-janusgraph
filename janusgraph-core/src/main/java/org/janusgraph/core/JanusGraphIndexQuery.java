@@ -14,7 +14,9 @@
 
 package org.janusgraph.core;
 
+import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.janusgraph.core.schema.Parameter;
+import java.util.stream.Stream;
 import org.apache.tinkerpop.gremlin.structure.Element;
 
 /**
@@ -29,19 +31,29 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 public interface JanusGraphIndexQuery {
 
     /**
-     * Specifies the maxium number of elements to return
+     * Specifies the maximum number of elements to return
      *
      * @param limit
      * @return
      */
-    public JanusGraphIndexQuery limit(int limit);
+    JanusGraphIndexQuery limit(int limit);
 
     /**
      * Specifies the offset of the query. Query results will be retrieved starting at the given offset.
      * @param offset
      * @return
      */
-    public JanusGraphIndexQuery offset(int offset);
+    JanusGraphIndexQuery offset(int offset);
+
+    /**
+     * Orders the element results of this query according
+     * to their property for the given key in the given order (increasing/decreasing).
+     *
+     * @param key   The key of the properties on which to order
+     * @param order the ordering direction
+     * @return
+     */
+    JanusGraphIndexQuery orderBy(String key, Order order);
 
     /**
      * Adds the given parameter to the list of parameters of this query.
@@ -49,7 +61,7 @@ public interface JanusGraphIndexQuery {
      * @param para
      * @return
      */
-    public JanusGraphIndexQuery addParameter(Parameter para);
+    JanusGraphIndexQuery addParameter(Parameter para);
 
     /**
      * Adds the given parameters to the list of parameters of this query.
@@ -57,7 +69,7 @@ public interface JanusGraphIndexQuery {
      * @param paras
      * @return
      */
-    public JanusGraphIndexQuery addParameters(Iterable<Parameter> paras);
+    JanusGraphIndexQuery addParameters(Iterable<Parameter> paras);
 
     /**
      * Adds the given parameters to the list of parameters of this query.
@@ -65,80 +77,110 @@ public interface JanusGraphIndexQuery {
      * @param paras
      * @return
      */
-    public JanusGraphIndexQuery addParameters(Parameter... paras);
+    JanusGraphIndexQuery addParameters(Parameter... paras);
 
     /**
      * Sets the element identifier string that is used by this query builder as the token to identifier key references
      * in the query string.
-     * <p/>
+     * <p>
      * For example, in the query 'v.name: Tom' the element identifier is 'v.'
      *
      *
      * @param identifier The element identifier which must not be blank
      * @return This query builder
      */
-    public JanusGraphIndexQuery setElementIdentifier(String identifier);
+    JanusGraphIndexQuery setElementIdentifier(String identifier);
+
+    /**
+     * Returns all vertices that match the query in the indexing backend.
+     *
+     * @deprecated use {@link #vertexStream()} instead.
+     *
+     * @return
+     */
+    @Deprecated
+    Iterable<Result<JanusGraphVertex>> vertices();
 
     /**
      * Returns all vertices that match the query in the indexing backend.
      *
      * @return
      */
-    public Iterable<Result<JanusGraphVertex>> vertices();
+    Stream<Result<JanusGraphVertex>> vertexStream();
+
+    /**
+     * Returns all edges that match the query in the indexing backend.
+     *
+     * @deprecated use {@link #edgeStream()} instead.
+     *
+     * @return
+     */
+    @Deprecated
+    Iterable<Result<JanusGraphEdge>> edges();
 
     /**
      * Returns all edges that match the query in the indexing backend.
      *
      * @return
      */
-    public Iterable<Result<JanusGraphEdge>> edges();
+    Stream<Result<JanusGraphEdge>> edgeStream();
 
     /**
      * Returns all properties that match the query in the indexing backend.
      *
+     * @deprecated use {@link #propertyStream()} instead.
+     *
      * @return
      */
-    public Iterable<Result<JanusGraphVertexProperty>> properties();
+    @Deprecated
+    Iterable<Result<JanusGraphVertexProperty>> properties();
+
+	/**
+     * Returns all properties that match the query in the indexing backend.
+     *
+     * @return
+     */
+    Stream<Result<JanusGraphVertexProperty>> propertyStream();
 
     /**
      * Returns total vertices that match the query in the indexing backend ignoring limit and offset.
      *
      * @return
      */
-    public Long vertexTotals();
+    Long vertexTotals();
 
     /**
      * Returns total edges that match the query in the indexing backend ignoring limit and offset.
      *
      * @return
      */
-    public Long edgeTotals();
+    Long edgeTotals();
 
     /**
      * Returns total properties that match the query in the indexing backend ignoring limit and offset.
      *
      * @return
      */
-    public Long propertyTotals();
+    Long propertyTotals();
     
     /**
      * Container of a query result with its score.
      * @param <V>
      */
-    public interface Result<V extends Element> {
+    interface Result<V extends Element> {
 
         /**
          * Returns the element that matches the query
          *
          * @return
          */
-        public V getElement();
+        V getElement();
 
         /**
          * Returns the score of the result with respect to the query (if available)
          * @return
          */
-        public double getScore();
+        double getScore();
 
     }
 

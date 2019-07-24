@@ -71,7 +71,7 @@ public class IndexMutation extends Mutation<IndexEntry,IndexEntry> {
     public static final Function<IndexEntry,String> ENTRY2FIELD_FCT = new Function<IndexEntry, String>() {
         @Nullable
         @Override
-        public String apply(@Nullable IndexEntry indexEntry) {
+        public String apply(final IndexEntry indexEntry) {
             return indexEntry.field;
         }
     };
@@ -94,7 +94,6 @@ public class IndexMutation extends Mutation<IndexEntry,IndexEntry> {
         if (additions == null || additions.isEmpty())
             return 0;
 
-        Preconditions.checkArgument(!additions.isEmpty());
         int ttl=-1;
         for (IndexEntry add : additions) {
             int ittl = 0;

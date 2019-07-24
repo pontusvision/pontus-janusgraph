@@ -20,9 +20,9 @@ import org.janusgraph.diskstorage.configuration.ConfigOption;
 import org.janusgraph.diskstorage.configuration.ModifiableConfiguration;
 import org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration;
 import org.janusgraph.graphdb.database.StandardJanusGraph;
-import org.junit.After;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Matthias Broecheler (me@matthiasb.com)
@@ -38,7 +38,7 @@ public class InMemoryConfigurationTest {
         graph = (StandardJanusGraph) JanusGraphFactory.open(config);
     }
 
-    @After
+    @AfterEach
     public void shutdown() {
         graph.close();
     }
@@ -52,7 +52,7 @@ public class InMemoryConfigurationTest {
         try {
             tx.addVertex();
             fail();
-        } catch (Exception e ) {
+        } catch (Exception ignored) {
         } finally {
             tx.rollback();
         }
@@ -60,7 +60,7 @@ public class InMemoryConfigurationTest {
         try {
             graph.addVertex();
             fail();
-        } catch (Exception e ) {
+        } catch (Exception ignored) {
         } finally {
             graph.tx().rollback();
         }

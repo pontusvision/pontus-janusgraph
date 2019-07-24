@@ -29,34 +29,34 @@ public interface TransactionBuilder {
      * Makes the transaction read only. Any writes will cause an exception.
      * Read-only transactions do not have to maintain certain data structures and can hence be more efficient.
      *
-     * @return
+     * @return Object containing read-only properties set to true
      */
-    public TransactionBuilder readOnly();
+    TransactionBuilder readOnly();
 
     /**
      * Enabling batch loading disables a number of consistency checks inside JanusGraph to speed up the ingestion of
      * data under the assumptions that inconsistencies are resolved prior to loading.
      *
-     * @return
+     * @return Object containting properties that will enable batch loading
      */
-    public TransactionBuilder enableBatchLoading();
+    TransactionBuilder enableBatchLoading();
 
     /**
      * Disables batch loading by ensuring that consistency checks are applied in this transaction. This allows
      * an individual transaction to use consistency checks when the graph as a whole is configured to not use them,
      * which is useful when defining schema elements in a graph with batch-loading enabled.
      *
-     * @return
+     * @return Object containting properties that will disable batch loading
      */
-    public TransactionBuilder disableBatchLoading();
+    TransactionBuilder disableBatchLoading();
 
     /**
      * Configures the size of the internal caches used in the transaction.
      *
-     * @param size
-     * @return
+     * @param size The size of the initial cache for the transaction
+     * @return Object containing the internal cache properties
      */
-    public TransactionBuilder vertexCacheSize(int size);
+    TransactionBuilder vertexCacheSize(int size);
 
     /**
      * Configures the initial size of the map of modified vertices held by this
@@ -64,23 +64,23 @@ public interface TransactionBuilder {
      * will grow if the transaction ends up modifying more vertices than
      * expected.
      *
-     * @param size initial size of the transaction's dirty vertex collection
-     * @return
+     * @param size The initial size of the transaction's dirty vertex collection
+     * @return Object containing properties that configure inital map size of modified vertices
      */
-    public TransactionBuilder dirtyVertexSize(int size);
+    TransactionBuilder dirtyVertexSize(int size);
 
     /**
      * Enables/disables checks that verify that each vertex actually exists in the underlying data store when it is retrieved.
      * This might be useful to address common data degradation issues but has adverse impacts on performance due to
      * repeated existence checks.
-     * <p/>
+     * <p>
      * Note, that these checks apply to vertex retrievals inside the query execution engine and not to vertex ids provided
      * by the user.
      *
-     * @param enabled
-     * @return
+     * @param enabled Enable or disable the internal vertex existence checks
+     * @return Object with the internal vertex existence check properties
      */
-    public TransactionBuilder checkInternalVertexExistence(boolean enabled);
+    TransactionBuilder checkInternalVertexExistence(boolean enabled);
 
     /**
      * Enables/disables checking whether the vertex with a user provided id indeed exists. If the user is absolutely sure
@@ -89,31 +89,30 @@ public interface TransactionBuilder {
      * However, if a provided vertex id does not exist in the database and checking is disabled, JanusGraph will assume it
      * exists which can lead to data and query inconsistencies.
      *
-     * @param enabled
-     * @return
+     * @param enabled Enable or disable the external vertex existence checks
+     * @return Object with the external vertex existence check properties
      */
-    public TransactionBuilder checkExternalVertexExistence(boolean enabled);
+    TransactionBuilder checkExternalVertexExistence(boolean enabled);
 
 
     /**
      * Enables/disables consistency checking and locking for this transaction. Disabling consistency checks improves
      * performance but requires that the user ensures consistency at the application level. Use with great care.
      *
-     * @param enabled
-     * @return
+     * @param enabled Enable or disable consistency check and locking
+     * @return Object with the consistency check settings
      */
-    public TransactionBuilder consistencyChecks(boolean enabled);
+    TransactionBuilder consistencyChecks(boolean enabled);
 
     /**
      * Sets the timestamp for this transaction. The transaction will be recorded
      * with this timestamp in those storage backends where the timestamp is
      * recorded.
      *
-     * @param instant
-     *            The instant at which the commit took place
-     * @return
+     * @param instant The instant at which the commit took place
+     * @return Object with the commit time property
      */
-    public TransactionBuilder commitTime(Instant instant);
+    TransactionBuilder commitTime(Instant instant);
 
 
     /**
@@ -146,43 +145,42 @@ public interface TransactionBuilder {
      * metrics is enabled via {@link GraphDatabaseConfiguration#BASIC_METRICS},
      * this string will be prepended to all JanusGraph metric names.
      *
-     * @param name
-     *            Metric name prefix for this transaction
-     * @return
+     * @param name Metric name prefix for this transaction
+     * @return Object containing transaction prefix name property
      */
-    public TransactionBuilder groupName(String name);
+    TransactionBuilder groupName(String name);
 
     /**
      * Name of the log to be used for logging the mutations in this transaction. If no log identifier is set,
      * then this transaction will not be logged.
      *
-     * @param logName
-     * @return
+     * @param logName name of transaction log
+     * @return Object containing log identifier property
      */
-    public TransactionBuilder logIdentifier(String logName);
+    TransactionBuilder logIdentifier(String logName);
 
     /**
      * Configures this transaction such that queries against partitioned vertices are
      * restricted to the given partitions.
      *
-     * @param partitions
-     * @return
+     * @param partitions Array of the int identifier of the partitions to be queried
+     * @return Object with restricted partitions
      */
-    public TransactionBuilder restrictedPartitions(int[] partitions);
+    TransactionBuilder restrictedPartitions(int[] partitions);
 
     /**
      * Configures a custom option on this transaction which will be passed through to the storage and indexing backends.
-     * @param k
-     * @param v
-     * @return
+     * @param k Name of the configuration element.
+     * @param v Object containing the custom options to be applied.
+     * @return Object containing the properties in param v
      */
-    public TransactionBuilder customOption(String k, Object v);
+    TransactionBuilder customOption(String k, Object v);
 
     /**
      * Starts and returns the transaction build by this builder
      *
      * @return A new transaction configured according to this builder
      */
-    public JanusGraphTransaction start();
+    JanusGraphTransaction start();
 
 }

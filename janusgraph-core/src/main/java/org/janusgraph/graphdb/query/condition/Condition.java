@@ -18,7 +18,7 @@ import org.janusgraph.core.JanusGraphElement;
 
 /**
  * A logical condition which evaluates against a provided element to true or false.
- * </p>
+ * <p>
  * A condition can be nested to form complex logical expressions with AND, OR and NOT.
  * A condition is either a literal, a negation of a condition, or a logical combination of conditions (AND, OR).
  * If a condition has sub-conditions we consider those to be children.
@@ -27,22 +27,22 @@ import org.janusgraph.core.JanusGraphElement;
  */
 public interface Condition<E extends JanusGraphElement> {
 
-    public enum Type { AND, OR, NOT, LITERAL}
+    enum Type { AND, OR, NOT, LITERAL}
 
-    public Type getType();
+    Type getType();
 
-    public Iterable<Condition<E>> getChildren();
+    Iterable<Condition<E>> getChildren();
 
-    public boolean hasChildren();
+    boolean hasChildren();
 
-    public int numChildren();
+    int numChildren();
 
-    public boolean evaluate(E element);
+    boolean evaluate(E element);
 
-    public int hashCode();
+    int hashCode();
 
-    public boolean equals(Object other);
+    boolean equals(Object other);
 
-    public String toString();
+    String toString();
 
 }

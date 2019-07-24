@@ -32,7 +32,7 @@ import java.util.List;
 /**
  * Queries for a slice of data identified by a start point (inclusive) and end point (exclusive).
  * Returns all {@link StaticBuffer}s that lie in this range up to the given limit.
- * <p/>
+ * <p>
  * If a SliceQuery is marked <i>static</i> it is expected that the result set does not change.
  *
  * @author Matthias Broecheler (me@matthiasb.com)
@@ -108,7 +108,7 @@ public class SliceQuery extends BaseQuery implements BackendQuery<SliceQuery> {
         int pos = Collections.binarySearch(otherResult, sliceStart);
         if (pos < 0) pos = -pos - 1;
 
-        List<Entry> result = new ArrayList<Entry>();
+        final List<Entry> result = new ArrayList<>();
         for (; pos < otherResult.size() && result.size() < getLimit(); pos++) {
             Entry e = otherResult.get(pos);
             if (e.getColumnAs(StaticBuffer.STATIC_FACTORY).compareTo(sliceEnd) < 0) result.add(e);

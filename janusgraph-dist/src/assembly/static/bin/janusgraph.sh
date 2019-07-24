@@ -1,8 +1,21 @@
 #!/bin/bash
+# Copyright 2019 JanusGraph Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License
 
 # Returns the absolute path of this script regardless of symlinks
 abs_path() {
-    # From: http://stackoverflow.com/a/246128
+    # From: https://stackoverflow.com/a/246128
     #   - To resolve finding the directory after symlinks
     SOURCE="${BASH_SOURCE[0]}"
     while [ -h "$SOURCE" ]; do
@@ -47,6 +60,13 @@ if [ -z "$JPS" ]; then
     echo "jps command not found.  Put the JDK's jps binary on the command path." >&2
     exit 1
 fi
+
+GREMLIN_FRIENDLY_NAME='Gremlin-Server'
+GREMLIN_CLASS_NAME=org.apache.tinkerpop.gremlin.server.GremlinServer
+ES_FRIENDLY_NAME=Elasticsearch
+ES_CLASS_NAME=org.elasticsearch.bootstrap.Elasticsearch
+CASSANDRA_FRIENDLY_NAME=Cassandra
+CASSANDRA_CLASS_NAME=org.apache.cassandra.service.CassandraDaemon
 
 wait_for_cassandra() {
     local now_s=`date '+%s'`
@@ -122,6 +142,7 @@ wait_for_shutdown() {
 }
 
 start() {
+    status_class $CASSANDRA_FRIENDLY_NAME $CASSANDRA_CLASS_NAME >/dev/null && status && echo "Stop services before starting" && exit 1
     echo "Forking Cassandra..."
     if [ -n "$VERBOSE" ]; then
         CASSANDRA_INCLUDE="$BIN"/cassandra.in.sh "$BIN"/cassandra || exit 1
@@ -132,6 +153,8 @@ start() {
         echo "See $BIN/../log/cassandra.log for Cassandra log output."    >&2
         return 1
     }
+
+    status_class $ES_FRIENDLY_NAME $ES_CLASS_NAME >/dev/null && status && echo "Stop services before starting" && exit 1
     echo "Forking Elasticsearch..."
     if [ -n "$VERBOSE" ]; then
         "$BIN"/../elasticsearch/bin/elasticsearch -d
@@ -142,6 +165,8 @@ start() {
         echo "See $BIN/../log/elasticsearch.log for Elasticsearch log output."  >&2
         return 1
     }
+
+    status_class $GREMLIN_FRIENDLY_NAME $GREMLIN_CLASS_NAME >/dev/null && status && echo "Stop services before starting" && exit 1
     echo "Forking Gremlin-Server..."
     if [ -n "$VERBOSE" ]; then
         "$BIN"/gremlin-server.sh conf/gremlin-server/gremlin-server.yaml &
@@ -153,16 +178,17 @@ start() {
         return 1
     }
     disown
+
     echo "Run gremlin.sh to connect." >&2
 }
 
 stop() {
-    kill_class        'Gremlin-Server' org.apache.tinkerpop.gremlin.server.GremlinServer 
-    wait_for_shutdown 'Gremlin-Server' org.apache.tinkerpop.gremlin.server.GremlinServer $GSRV_SHUTDOWN_TIMEOUT_S
-    kill_class        Elasticsearch org.elasticsearch.bootstrap.Elasticsearch
-    wait_for_shutdown Elasticsearch org.elasticsearch.bootstrap.Elasticsearch $ELASTICSEARCH_SHUTDOWN_TIMEOUT_S
-    kill_class        Cassandra org.apache.cassandra.service.CassandraDaemon
-    wait_for_shutdown Cassandra org.apache.cassandra.service.CassandraDaemon $CASSANDRA_SHUTDOWN_TIMEOUT_S
+    kill_class        $GREMLIN_FRIENDLY_NAME $GREMLIN_CLASS_NAME
+    wait_for_shutdown $GREMLIN_FRIENDLY_NAME $GREMLIN_CLASS_NAME $GSRV_SHUTDOWN_TIMEOUT_S
+    kill_class        $ES_FRIENDLY_NAME $ES_CLASS_NAME
+    wait_for_shutdown $ES_FRIENDLY_NAME $ES_CLASS_NAME $ELASTICSEARCH_SHUTDOWN_TIMEOUT_S
+    kill_class        $CASSANDRA_FRIENDLY_NAME $CASSANDRA_CLASS_NAME
+    wait_for_shutdown $CASSANDRA_FRIENDLY_NAME $CASSANDRA_CLASS_NAME $CASSANDRA_SHUTDOWN_TIMEOUT_S
 }
 
 kill_class() {
@@ -190,9 +216,9 @@ status_class() {
 }
 
 status() {
-    status_class 'Gremlin-Server' org.apache.tinkerpop.gremlin.server.GremlinServer
-    status_class Cassandra org.apache.cassandra.service.CassandraDaemon
-    status_class Elasticsearch org.elasticsearch.bootstrap.Elasticsearch
+    status_class $GREMLIN_FRIENDLY_NAME $GREMLIN_CLASS_NAME
+    status_class $ES_FRIENDLY_NAME $ES_CLASS_NAME
+    status_class $CASSANDRA_FRIENDLY_NAME $CASSANDRA_CLASS_NAME
 }
 
 clean() {
@@ -212,8 +238,9 @@ clean() {
     fi
 
     if cd "$BIN"/../log; then
-        rm -f cassandra.log
-        rm -f rexsjanusgraph.log
+        rm -f cassandra*.log
+        rm -f elasticsearch*.log
+        rm -f gremlin-server.log
         echo "Deleted logs in `pwd`" >&2
         cd - >/dev/null
     fi

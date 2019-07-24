@@ -16,6 +16,7 @@ package org.janusgraph.graphdb.olap.computer;
 
 import com.google.common.base.Preconditions;
 import org.janusgraph.core.JanusGraphEdge;
+import org.janusgraph.core.JanusGraphException;
 import org.janusgraph.core.JanusGraphVertex;
 import org.janusgraph.core.JanusGraphVertexProperty;
 import org.janusgraph.graphdb.vertices.PreloadedVertex;
@@ -57,7 +58,7 @@ class VertexMemoryHandler<M> implements PreloadedVertex.PropertyMixing, Messenge
 
     <V> JanusGraphVertexProperty<V> constructProperty(String key, V value) {
         assert key!=null && value!=null;
-        return new FulgoraVertexProperty<V>(this,vertex,key,value);
+        return new FulgoraVertexProperty<>(this, vertex, key, value);
     }
 
     @Override
@@ -84,7 +85,7 @@ class VertexMemoryHandler<M> implements PreloadedVertex.PropertyMixing, Messenge
     @Override
     public <V> JanusGraphVertexProperty<V> property(VertexProperty.Cardinality cardinality, String key, V value) {
         if (!supports(key)) throw GraphComputer.Exceptions.providedKeyIsNotAnElementComputeKey(key);
-        Preconditions.checkArgument(value != null);
+        Preconditions.checkNotNull(value);
         if (cardinality == VertexProperty.Cardinality.single) {
             vertexMemory.setProperty(vertexId, key, value);
         } else {
@@ -117,15 +118,20 @@ class VertexMemoryHandler<M> implements PreloadedVertex.PropertyMixing, Messenge
             else return Stream.of(message);
         } else {
             final MessageScope.Local<M> localMessageScope = (MessageScope.Local) messageScope;
-            final Traversal<Vertex, Edge> reverseIncident = FulgoraUtil.getReverseElementTraversal(localMessageScope,vertex,vertex.tx());
             final BiFunction<M,Edge,M> edgeFct = localMessageScope.getEdgeFunction();
+            final List<Edge> edges;
+            try (final Traversal<Vertex, Edge> reverseIncident = FulgoraUtil.getReverseElementTraversal(localMessageScope,vertex,vertex.tx())) {
+                edges = IteratorUtils.list(reverseIncident);
+            } catch (Exception e) {
+                throw new JanusGraphException("Unable to close traversal", e);
+            }
 
-            return IteratorUtils.stream(reverseIncident)
+            return edges.stream()
                     .map(e -> {
                         M msg = vertexMemory.getMessage(vertexMemory.getCanonicalId(((JanusGraphEdge) e).otherVertex(vertex).longId()), localMessageScope);
                         return msg == null ? null : edgeFct.apply(msg, e);
                     })
-                    .filter(m -> m != null);
+                    .filter(Objects::nonNull);
         }
     }
 

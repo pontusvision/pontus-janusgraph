@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.cassandra.auth.IAuthenticator;
+import org.apache.cassandra.auth.PasswordAuthenticator;
 import org.apache.cassandra.thrift.AuthenticationRequest;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.lang.StringUtils;
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * A factory compatible with Apache commons-pool for Cassandra Thrift API
  * connections.
  *
- * @author Dan LaRocque <dalaro@hopcount.org>
+ * @author Dan LaRocque &lt;dalaro@hopcount.org&gt;
  */
 public class CTConnectionFactory implements KeyedPoolableObjectFactory<String, CTConnection> {
 
@@ -49,7 +49,7 @@ public class CTConnectionFactory implements KeyedPoolableObjectFactory<String, C
     private final AtomicReference<Config> cfgRef;
 
     private CTConnectionFactory(Config config) {
-        this.cfgRef = new AtomicReference<Config>(config);
+        this.cfgRef = new AtomicReference<>(config);
     }
 
     @Override
@@ -112,8 +112,8 @@ public class CTConnectionFactory implements KeyedPoolableObjectFactory<String, C
 
         if (cfg.username != null) {
             Map<String, String> credentials = new HashMap<String, String>() {{
-                put(IAuthenticator.USERNAME_KEY, cfg.username);
-                put(IAuthenticator.PASSWORD_KEY, cfg.password);
+                put(PasswordAuthenticator.USERNAME_KEY, cfg.username);
+                put(PasswordAuthenticator.PASSWORD_KEY, cfg.password);
             }};
 
             try {

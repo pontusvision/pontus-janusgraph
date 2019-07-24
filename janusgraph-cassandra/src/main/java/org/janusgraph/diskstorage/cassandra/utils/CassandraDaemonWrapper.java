@@ -33,15 +33,15 @@ import org.slf4j.LoggerFactory;
  *
  * This class once supported consecutive, idempotent calls to start(String) so
  * long as the argument was the same in each invocation. It also once used
- * refcounting to kill Cassandra's non-daemon threads once stop() was called as
+ * reference counting to kill Cassandra's non-daemon threads once stop() was called as
  * many times as start(). Some of Cassandra's background threads and statics
  * can't be easily reset to allow a restart inside the same JVM, so this was
  * intended as a one-use thing. However, this interacts poorly with the new
  * KCVConfiguration system in janusgraph-core. When KCVConfiguration is in use, core
  * starts and stops each backend at least twice in the course of opening a
- * single database instance. So the old refcounting and killing approach is out.
+ * single database instance. So the old reference counting and killing approach is out.
  *
- * @author Dan LaRocque <dalaro@hopcount.org>
+ * @author Dan LaRocque &lt;dalaro@hopcount.org&gt;
  */
 public class CassandraDaemonWrapper {
 
@@ -88,9 +88,5 @@ public class CassandraDaemonWrapper {
 
     public static synchronized boolean isStarted() {
         return started;
-    }
-
-    public static void stop() {
-        // Do nothing
     }
 }

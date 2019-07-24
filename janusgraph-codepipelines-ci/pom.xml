@@ -1,16 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="https://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.janusgraph</groupId>
+        <groupId>com.pontusvision</groupId>
         <artifactId>janusgraph</artifactId>
-        <version>0.2.0-SNAPSHOT</version>
+        <version>100-3.2</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>janusgraph-codepipelines-ci</artifactId>
     <name>JanusGraph CodePipelines CI: Distributed release testing.</name>
-    <url>http://janusgraph.org</url>
+    <url>https://janusgraph.org</url>
     <properties>
         <top.level.basedir>${basedir}/..</top.level.basedir>
         <aws.sdk.version>2.0.0-preview-1</aws.sdk.version>
@@ -65,10 +64,10 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
             <version>1.7.12</version>
-            <scope>runtime</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.janusgraph</groupId>
+            <groupId>com.pontusvision</groupId>
             <artifactId>janusgraph-test</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
@@ -84,9 +83,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.0.0</version>
+                <version>3.1.0</version>
                 <executions>
                     <execution>
+                        <id>shade-codepipelines</id>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
@@ -130,4 +130,32 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+    <profiles>
+        <!-- This profile forces gpg-plugin to run after shade-plugin.
+             Otherwise, Maven will sign the unshaded jar, then shade the jar
+             (giving it completely different contents and breaking the sig) -->
+        <profile>
+            <id>janusgraph-release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>shade-codepipelines</id>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

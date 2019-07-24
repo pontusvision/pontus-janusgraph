@@ -30,8 +30,7 @@ public class KCVSManagerProxy implements KeyColumnValueStoreManager {
     protected final KeyColumnValueStoreManager manager;
 
     public KCVSManagerProxy(KeyColumnValueStoreManager manager) {
-        Preconditions.checkArgument(manager != null);
-        this.manager = manager;
+        this.manager = Preconditions.checkNotNull(manager);
     }
 
     @Override
@@ -47,6 +46,11 @@ public class KCVSManagerProxy implements KeyColumnValueStoreManager {
     @Override
     public void clearStorage() throws BackendException {
         manager.clearStorage();
+    }
+
+    @Override
+    public boolean exists() throws BackendException {
+        return manager.exists();
     }
 
     @Override

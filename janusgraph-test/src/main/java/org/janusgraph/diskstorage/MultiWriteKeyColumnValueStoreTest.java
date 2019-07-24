@@ -24,30 +24,29 @@ import org.janusgraph.diskstorage.keycolumnvalue.cache.KCVEntryMutation;
 import org.janusgraph.diskstorage.keycolumnvalue.cache.KCVSCache;
 import org.janusgraph.diskstorage.keycolumnvalue.cache.NoKCVSCache;
 import org.janusgraph.diskstorage.util.StaticArrayBuffer;
-
-import static org.janusgraph.diskstorage.keycolumnvalue.KeyColumnValueStore.*;
-
 import org.janusgraph.diskstorage.util.StaticArrayEntry;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.*;
 
+import static org.janusgraph.diskstorage.keycolumnvalue.KeyColumnValueStore.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 public abstract class MultiWriteKeyColumnValueStoreTest extends AbstractKCVSTest {
 
-    private Logger log = LoggerFactory.getLogger(MultiWriteKeyColumnValueStoreTest.class);
+    private final Logger log = LoggerFactory.getLogger(MultiWriteKeyColumnValueStoreTest.class);
 
-    int bufferSize = 20;
+    final int bufferSize = 20;
 
-    protected String storeName1 = "testStore1";
+    protected final String storeName1 = "testStore1";
     private KCVSCache store1;
-    protected String storeName2 = "testStore2";
+    protected final String storeName2 = "testStore2";
     private KCVSCache store2;
 
 
@@ -55,9 +54,9 @@ public abstract class MultiWriteKeyColumnValueStoreTest extends AbstractKCVSTest
     public StoreTransaction tx;
 
 
-    private Random rand = new Random(10);
+    private final Random rand = new Random(10);
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         StoreManager m = openStorageManager();
         m.clearStorage();
@@ -65,7 +64,7 @@ public abstract class MultiWriteKeyColumnValueStoreTest extends AbstractKCVSTest
         open();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         close();
     }
@@ -102,7 +101,7 @@ public abstract class MultiWriteKeyColumnValueStoreTest extends AbstractKCVSTest
 
         StaticBuffer b1 = KeyColumnValueStoreUtil.longToByteBuffer(1);
 
-        Assert.assertNull(KCVSUtil.get(store1, b1, b1, tx));
+        assertNull(KCVSUtil.get(store1, b1, b1, tx));
 
         List<Entry> additions = Lists.newArrayList(StaticArrayEntry.of(b1, b1));
 
@@ -121,20 +120,20 @@ public abstract class MultiWriteKeyColumnValueStoreTest extends AbstractKCVSTest
 
         StaticBuffer result = KCVSUtil.get(store1, b1, b1, tx);
 
-        Assert.assertEquals(b1, result);
+        assertEquals(b1, result);
 
         store1.mutateEntries(b1, NO_ADDITIONS, deletions, tx);
         newTx();
 
         for (int i = 0; i < 100; i++) {
             StaticBuffer n = KCVSUtil.get(store1, b1, b1, tx);
-            Assert.assertNull(n);
+            assertNull(n);
             store1.mutateEntries(b1, additions, KCVSCache.NO_DELETIONS, tx);
             newTx();
             store1.mutateEntries(b1, NO_ADDITIONS, deletions, tx);
             newTx();
             n = KCVSUtil.get(store1, b1, b1, tx);
-            Assert.assertNull(n);
+            assertNull(n);
         }
 
         for (int i = 0; i < 100; i++) {
@@ -142,21 +141,20 @@ public abstract class MultiWriteKeyColumnValueStoreTest extends AbstractKCVSTest
             newTx();
             store1.mutateEntries(b1, additions, KCVSCache.NO_DELETIONS, tx);
             newTx();
-            Assert.assertEquals(b1, KCVSUtil.get(store1, b1, b1, tx));
+            assertEquals(b1, KCVSUtil.get(store1, b1, b1, tx));
         }
 
         for (int i = 0; i < 100; i++) {
             store1.mutateEntries(b1, additions, deletions, tx);
             newTx();
-            Assert.assertEquals(b1, KCVSUtil.get(store1, b1, b1, tx));
+            assertEquals(b1, KCVSUtil.get(store1, b1, b1, tx));
         }
     }
 
     @Test
     public void mutateManyWritesSameKeyOnMultipleCFs() throws BackendException {
 
-        final long arbitraryLong = 42;
-        assert 0 < arbitraryLong;
+        final long arbitraryLong = 42; //must be greater than 0
 
         final StaticBuffer key = KeyColumnValueStoreUtil.longToByteBuffer(arbitraryLong * arbitraryLong);
         final StaticBuffer val = KeyColumnValueStoreUtil.longToByteBuffer(arbitraryLong * arbitraryLong * arbitraryLong);
@@ -183,39 +181,39 @@ public abstract class MultiWriteKeyColumnValueStoreTest extends AbstractKCVSTest
         KeySliceQuery query = new KeySliceQuery(key, col, nextCol);
         List<Entry> expected = ImmutableList.of(StaticArrayEntry.of(col, val));
 
-        Assert.assertEquals(expected, store1.getSlice(query, tx));
-        Assert.assertEquals(expected, store2.getSlice(query, tx));
+        assertEquals(expected, store1.getSlice(query, tx));
+        assertEquals(expected, store2.getSlice(query, tx));
 
     }
 
     @Test
     public void mutateManyStressTest() throws BackendException {
 
-        mutateManyStressTestWithVariableRounds(5);
+        mutateManyStressTestWithVariableRounds();
     }
 
-    protected void mutateManyStressTestWithVariableRounds(int rounds) throws BackendException {
+    protected void mutateManyStressTestWithVariableRounds() throws BackendException {
         Map<StaticBuffer, Map<StaticBuffer, StaticBuffer>> state = new HashMap<>();
 
-        int dels = 1024;
-        int adds = 4096;
+        int deletions = 1024;
+        int additions = 4096;
 
-        for (int round = 0; round < rounds; round++) {
-            Map<StaticBuffer, KCVEntryMutation> changes = mutateState(state, dels, adds);
+        for (int round = 0; round < 5; round++) {
+            Map<StaticBuffer, KCVEntryMutation> changes = mutateState(state, deletions, additions);
 
             applyChanges(changes, store1, tx);
             applyChanges(changes, store2, tx);
             newTx();
 
-            int deletesExpected = 0 == round ? 0 : dels;
+            int deletesExpected = 0 == round ? 0 : deletions;
 
-            int stateSizeExpected = adds + (adds - dels) * round;
+            int stateSizeExpected = additions + (additions - deletions) * round;
 
-            Assert.assertEquals(stateSizeExpected, checkThatStateExistsInStore(state, store1, round));
-            Assert.assertEquals(deletesExpected, checkThatDeletionsApplied(changes, store1, round));
+            assertEquals(stateSizeExpected, checkThatStateExistsInStore(state, store1, round));
+            assertEquals(deletesExpected, checkThatDeletionsApplied(changes, store1, round));
 
-            Assert.assertEquals(stateSizeExpected, checkThatStateExistsInStore(state, store2, round));
-            Assert.assertEquals(deletesExpected, checkThatDeletionsApplied(changes, store2, round));
+            assertEquals(stateSizeExpected, checkThatStateExistsInStore(state, store2, round));
+            assertEquals(deletesExpected, checkThatDeletionsApplied(changes, store2, round));
         }
     }
 
@@ -232,7 +230,7 @@ public abstract class MultiWriteKeyColumnValueStoreTest extends AbstractKCVSTest
             for (StaticBuffer col : state.get(key).keySet()) {
                 StaticBuffer val = state.get(key).get(col);
 
-                Assert.assertEquals(val, KCVSUtil.get(store, key, col, tx));
+                assertEquals(val, KCVSUtil.get(store, key, col, tx));
 
                 checked++;
             }
@@ -265,29 +263,29 @@ public abstract class MultiWriteKeyColumnValueStoreTest extends AbstractKCVSTest
                     continue;
                 }
 
-                Assert.assertNull(KCVSUtil.get(store, key, col, tx));
+                assertNull(KCVSUtil.get(store, key, col, tx));
 
                 checked++;
             }
         }
 
-        log.debug("Checked absence of {} key-column-value deletions on round {} (skipped {})", new Object[]{checked, round, skipped});
+        log.debug("Checked absence of {} key-column-value deletions on round {} (skipped {})", checked, round, skipped);
 
         return checked;
     }
 
     /**
-     * Pseudorandomly change the supplied {@code state}.
-     * <p/>
+     * Change the supplied {@code state} with a pseudorandom number generator.
+     * <p>
      * This method removes {@code min(maxDeletionCount, S)} entries from the
      * maps in {@code state.values()}, where {@code S} is the sum of the sizes
      * of the maps in {@code state.values()}; this method then adds
-     * {@code additionCount} pseudorandomly generated entries spread across
+     * {@code additionCount} pseudorandom entries spread across
      * {@code state.values()}, potentially adding new keys to {@code state}
      * since they are randomly generated. This method then returns a map of keys
      * to Mutations representing the changes it has made to {@code state}.
      *
-     * @param state            Maps keys -> columns -> values
+     * @param state            Maps keys -&gt; columns -&gt; values
      * @param maxDeletionCount Remove at most this many entries from state
      * @param additionCount    Add exactly this many entries to state
      * @return A KCVMutation map
@@ -299,24 +297,24 @@ public abstract class MultiWriteKeyColumnValueStoreTest extends AbstractKCVSTest
         final int keyLength = 8;
         final int colLength = 16;
 
-        Map<StaticBuffer, KCVEntryMutation> result = new HashMap<StaticBuffer, KCVEntryMutation>();
+        final Map<StaticBuffer, KCVEntryMutation> result = new HashMap<>();
 
         // deletion pass
-        int dels = 0;
+        int deletions = 0;
 
         StaticBuffer key = null, col = null;
         Entry entry = null;
 
-        Iterator<StaticBuffer> keyIter = state.keySet().iterator();
+        Iterator<StaticBuffer> iterator = state.keySet().iterator();
 
-        while (keyIter.hasNext() && dels < maxDeletionCount) {
-            key = keyIter.next();
+        while (iterator.hasNext() && deletions < maxDeletionCount) {
+            key = iterator.next();
 
-            Iterator<Map.Entry<StaticBuffer,StaticBuffer>> colIter =
+            Iterator<Map.Entry<StaticBuffer,StaticBuffer>> columnIterator =
                     state.get(key).entrySet().iterator();
 
-            while (colIter.hasNext() && dels < maxDeletionCount) {
-                Map.Entry<StaticBuffer,StaticBuffer> colEntry = colIter.next();
+            while (columnIterator.hasNext() && deletions < maxDeletionCount) {
+                Map.Entry<StaticBuffer,StaticBuffer> colEntry = columnIterator.next();
                 entry = StaticArrayEntry.of(colEntry.getKey(),colEntry.getValue());
 
                 if (!result.containsKey(key)) {
@@ -326,13 +324,13 @@ public abstract class MultiWriteKeyColumnValueStoreTest extends AbstractKCVSTest
 
                 result.get(key).deletion(entry);
 
-                dels++;
+                deletions++;
 
-                colIter.remove();
+                columnIterator.remove();
 
                 if (state.get(key).isEmpty()) {
-                    assert !colIter.hasNext();
-                    keyIter.remove();
+                    assertFalse(columnIterator.hasNext());
+                    iterator.remove();
                 }
             }
         }

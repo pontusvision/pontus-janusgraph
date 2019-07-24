@@ -108,17 +108,13 @@ public class CassandraEmbeddedKeyColumnValueStore implements KeyColumnValueStore
      * To match the behavior of the standard Cassandra thrift API endpoint, the
      * {@code nowMillis} argument should be the number of milliseconds since the
      * UNIX Epoch (e.g. System.currentTimeMillis() or equivalent obtained
-     * through a {@link TimestampProvider}). This is per
-     * {@link org.apache.cassandra.thrift.CassandraServer#get_range_slices(ColumnParent, SlicePredicate, KeyRange, ConsistencyLevel)},
-     * which passes the server's System.currentTimeMillis() to the
-     * {@code RangeSliceCommand} constructor.
+     * through a {@link TimestampProvider}).
      */
     private List<Row> getKeySlice(Token start,
                                   Token end,
                                   @Nullable SliceQuery sliceQuery,
                                   int pageSize,
                                   long nowMillis) throws BackendException {
-        IPartitioner partitioner = StorageService.getPartitioner();
 
         SliceRange columnSlice = new SliceRange();
         if (sliceQuery == null) {
@@ -133,8 +129,8 @@ public class CassandraEmbeddedKeyColumnValueStore implements KeyColumnValueStore
         /* Note: we need to fetch columns for each row as well to remove "range ghosts" */
         SlicePredicate predicate = new SlicePredicate().setSlice_range(columnSlice);
 
-        RowPosition startPosition = start.minKeyBound(partitioner);
-        RowPosition endPosition = end.minKeyBound(partitioner);
+        RowPosition startPosition = start.minKeyBound();
+        RowPosition endPosition = end.minKeyBound();
 
         List<Row> rows;
 
@@ -142,7 +138,8 @@ public class CassandraEmbeddedKeyColumnValueStore implements KeyColumnValueStore
             CFMetaData cfm = Schema.instance.getCFMetaData(keyspace, columnFamily);
             IDiskAtomFilter filter = ThriftValidation.asIFilter(predicate, cfm, null);
 
-            RangeSliceCommand cmd = new RangeSliceCommand(keyspace, columnFamily, nowMillis, filter, new Bounds<RowPosition>(startPosition, endPosition), pageSize);
+            final RangeSliceCommand cmd = new RangeSliceCommand(keyspace, columnFamily, nowMillis, filter,
+                    new Bounds<>(startPosition, endPosition), pageSize);
 
             rows = StorageProxy.getRangeSlice(cmd, ConsistencyLevel.QUORUM);
         } catch (Exception e) {
@@ -209,7 +206,7 @@ public class CassandraEmbeddedKeyColumnValueStore implements KeyColumnValueStore
 
     }
 
-    private class FilterDeletedColumns implements Predicate<Cell> {
+    private static class FilterDeletedColumns implements Predicate<Cell> {
 
         private final long tsMillis;
         private final int tsSeconds;
@@ -221,16 +218,7 @@ public class CassandraEmbeddedKeyColumnValueStore implements KeyColumnValueStore
 
         @Override
         public boolean apply(Cell input) {
-            if (!input.isLive(tsMillis))
-                return false;
-
-            // Don't do this.  getTimeToLive() is a duration divorced from any particular clock.
-            // For instance, if TTL=10 seconds, getTimeToLive() will have value 10 (not 10 + epoch seconds), and
-            // this will always return false.
-            //if (input instanceof ExpiringCell)
-            //    return tsSeconds < ((ExpiringCell)input).getTimeToLive();
-
-            return true;
+            return input.isLive(tsMillis);
         }
     }
 
@@ -253,22 +241,18 @@ public class CassandraEmbeddedKeyColumnValueStore implements KeyColumnValueStore
         storeManager.mutateMany(ImmutableMap.of(columnFamily, mutations), txh);
     }
 
-    private static List<Row> read(ReadCommand cmd, org.apache.cassandra.db.ConsistencyLevel clvl) throws BackendException {
-        ArrayList<ReadCommand> cmdHolder = new ArrayList<ReadCommand>(1);
+    private static List<Row> read(ReadCommand cmd, org.apache.cassandra.db.ConsistencyLevel consistencyLevel) throws BackendException {
+        final ArrayList<ReadCommand> cmdHolder = new ArrayList<>(1);
         cmdHolder.add(cmd);
-        return read(cmdHolder, clvl);
+        return read(cmdHolder, consistencyLevel);
     }
 
-    private static List<Row> read(List<ReadCommand> cmds, org.apache.cassandra.db.ConsistencyLevel clvl) throws BackendException {
+    private static List<Row> read(List<ReadCommand> commands, org.apache.cassandra.db.ConsistencyLevel consistencyLevel) throws BackendException {
         try {
-            return StorageProxy.read(cmds, clvl);
-        } catch (UnavailableException e) {
+            return StorageProxy.read(commands, consistencyLevel);
+        } catch (UnavailableException | IsBootstrappingException e) {
             throw new TemporaryBackendException(e);
-        } catch (RequestTimeoutException e) {
-            throw new PermanentBackendException(e);
-        } catch (IsBootstrappingException e) {
-            throw new TemporaryBackendException(e);
-        } catch (InvalidRequestException e) {
+        } catch (RequestTimeoutException | InvalidRequestException e) {
             throw new PermanentBackendException(e);
         }
     }
@@ -323,35 +307,15 @@ public class CassandraEmbeddedKeyColumnValueStore implements KeyColumnValueStore
          * even if the iterator runs more than one distinct slice query while
          * paging. <b>This field must be in units of milliseconds since
          * the UNIX Epoch</b>.
-         * <p>
-         * This timestamp is passed to three methods/constructors:
-         * <ul>
-         *  <li>{@link org.apache.cassandra.db.Column#isMarkedForDelete(long now)}</li>
-         *  <li>{@link org.apache.cassandra.db.ColumnFamily#hasOnlyTombstones(long)}</li>
-         *  <li>
-         *   the {@link RangeSliceCommand} constructor via the last argument
-         *   to {@link CassandraEmbeddedKeyColumnValueStore#getKeySlice(Token, Token, SliceQuery, int, long)}
-         *  </li>
-         * </ul>
-         * The second list entry just calls the first and almost doesn't deserve
-         * a mention at present, but maybe the implementation will change in the future.
-         * <p>
          * When this value needs to be compared to TTL seconds expressed in seconds,
          * Cassandra internals do the conversion.
-         * Consider {@link ExpiringColumn#isMarkedForDelete(long)}, which is implemented,
-         * as of 2.0.6, by the following one-liner:
-         * <p>
-         * {@code return (int) (now / 1000) >= getLocalDeletionTime()}
-         * <p>
-         * The {@code now / 1000} does the conversion from milliseconds to seconds
-         * (the units of getLocalDeletionTime()).
          */
         private final long nowMillis;
 
         private Iterator<Row> keys;
         private ByteBuffer lastSeenKey = null;
         private Row currentRow;
-        private int pageSize;
+        private final int pageSize;
 
         private boolean isClosed;
 
@@ -449,7 +413,7 @@ public class CassandraEmbeddedKeyColumnValueStore implements KeyColumnValueStore
 
         }
 
-        private final boolean hasNextInternal() throws BackendException {
+        private boolean hasNextInternal() throws BackendException {
             ensureOpen();
 
             if (keys == null)
@@ -483,12 +447,10 @@ public class CassandraEmbeddedKeyColumnValueStore implements KeyColumnValueStore
             if (rows == null)
                 return null;
 
-            return Iterators.filter(rows.iterator(), new Predicate<Row>() {
-                @Override
-                public boolean apply(@Nullable Row row) {
-                    // The hasOnlyTombstones(x) call below ultimately calls Column.isMarkedForDelete(x)
-                    return !(row == null || row.cf == null || row.cf.isMarkedForDelete() || row.cf.hasOnlyTombstones(nowMillis));
-                }
+            return Iterators.filter(rows.iterator(), row -> {
+                // The hasOnlyTombstones(x) call below ultimately calls Column.isMarkedForDelete(x)
+                return !(row == null || row.cf == null || row.cf.isMarkedForDelete()
+                    || row.cf.hasOnlyTombstones(nowMillis));
             });
         }
 
@@ -498,12 +460,7 @@ public class CassandraEmbeddedKeyColumnValueStore implements KeyColumnValueStore
             if (rowIterator == null)
                 return null;
 
-            return Iterators.filter(rowIterator, new Predicate<Row>() {
-                @Override
-                public boolean apply(@Nullable Row row) {
-                    return row != null && !row.key.getKey().equals(exceptKey);
-                }
-            });
+            return Iterators.filter(rowIterator, row -> row != null && !row.key.getKey().equals(exceptKey));
         }
     }
 
@@ -516,7 +473,7 @@ public class CassandraEmbeddedKeyColumnValueStore implements KeyColumnValueStore
             return ((Murmur3Partitioner) partitioner).getMinimumToken();
         } else if (partitioner instanceof ByteOrderedPartitioner) {
             //TODO: This makes the assumption that its an EdgeStore (i.e. 8 byte keys)
-            return new BytesToken(org.janusgraph.diskstorage.util.ByteBufferUtil.zeroByteBuffer(8));
+            return new ByteOrderedPartitioner.BytesToken(org.janusgraph.diskstorage.util.ByteBufferUtil.zeroByteBuffer(8));
         } else {
             throw new PermanentBackendException("Unsupported partitioner: " + partitioner);
         }
@@ -526,12 +483,12 @@ public class CassandraEmbeddedKeyColumnValueStore implements KeyColumnValueStore
         IPartitioner partitioner = StorageService.getPartitioner();
 
         if (partitioner instanceof RandomPartitioner) {
-            return new BigIntegerToken(RandomPartitioner.MAXIMUM);
+            return new RandomPartitioner.BigIntegerToken(RandomPartitioner.MAXIMUM);
         } else if (partitioner instanceof Murmur3Partitioner) {
-            return new LongToken(Murmur3Partitioner.MAXIMUM);
+            return new Murmur3Partitioner.LongToken(Murmur3Partitioner.MAXIMUM);
         } else if (partitioner instanceof ByteOrderedPartitioner) {
             //TODO: This makes the assumption that its an EdgeStore (i.e. 8 byte keys)
-            return new BytesToken(org.janusgraph.diskstorage.util.ByteBufferUtil.oneByteBuffer(8));
+            return new ByteOrderedPartitioner.BytesToken(org.janusgraph.diskstorage.util.ByteBufferUtil.oneByteBuffer(8));
         } else {
             throw new PermanentBackendException("Unsupported partitioner: " + partitioner);
         }

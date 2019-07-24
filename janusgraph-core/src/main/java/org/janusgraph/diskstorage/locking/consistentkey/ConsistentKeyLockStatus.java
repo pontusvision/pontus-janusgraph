@@ -23,7 +23,6 @@ import java.time.Instant;
  * The timestamps of a lock held by a {@link ConsistentKeyLocker}
  * and whether the held lock has or has not been checked.
  *
- * {@see ConsistentKeyLockStore}
  */
 public class ConsistentKeyLockStatus implements LockStatus {
 
@@ -76,10 +75,9 @@ public class ConsistentKeyLockStatus implements LockStatus {
         if (checked != other.checked)
             return false;
         if (expire == null) {
-            if (other.expire != null)
-                return false;
-        } else if (!expire.equals(other.expire))
-            return false;
-        return true;
+            return other.expire == null;
+        } else {
+            return expire.equals(other.expire);
+        }
     }
 }

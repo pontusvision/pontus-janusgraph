@@ -25,7 +25,7 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
  * for edge labels and
  * {@link JanusGraphManagement#buildPropertyIndex(org.janusgraph.core.PropertyKey, String, org.apache.tinkerpop.gremlin.process.traversal.Order, org.janusgraph.core.PropertyKey...)}
  * for property keys.
- * <p/>
+ * <p>
  * This interface allows the inspection of already defined RelationTypeIndex'es. An existing index on a RelationType
  * can be retrieved via {@link JanusGraphManagement#getRelationIndex(org.janusgraph.core.RelationType, String)}.
  *
@@ -38,7 +38,7 @@ public interface RelationTypeIndex extends Index {
      *
      * @return
      */
-    public RelationType getType();
+    RelationType getType();
 
     /**
      * Returns the sort order of this index. Index entries are sorted in this order and queries
@@ -46,28 +46,28 @@ public interface RelationTypeIndex extends Index {
      *
      * @return
      */
-    public Order getSortOrder();
+    Order getSortOrder();
 
     /**
      * Returns the (composite) sort key for this index. The composite sort key is an ordered list of {@link RelationType}s
      *
      * @return
      */
-    public RelationType[] getSortKey();
+    RelationType[] getSortKey();
 
     /**
      * Returns the direction on which this index is installed. An index may cover only one or both directions.
      *
      * @return
      */
-    public Direction getDirection();
+    Direction getDirection();
 
     /**
      * Returns the status of this index
      *
      * @return
      */
-    public SchemaStatus getIndexStatus();
+    SchemaStatus getIndexStatus();
 
 
 }

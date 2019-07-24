@@ -16,10 +16,10 @@ package org.janusgraph.diskstorage.solr;
 
 import com.google.common.base.Joiner;
 import org.janusgraph.CassandraStorageSetup;
-import org.janusgraph.diskstorage.BackendException;
 import org.janusgraph.diskstorage.configuration.ModifiableConfiguration;
 import org.janusgraph.diskstorage.configuration.WriteConfiguration;
-import org.junit.BeforeClass;
+import org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration;
+import org.junit.jupiter.api.BeforeAll;
 import java.io.File;
 
 import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.INDEX_BACKEND;
@@ -34,11 +34,12 @@ public class ThriftSolrTest extends SolrJanusGraphIndexTest {
         config.set(SolrIndex.ZOOKEEPER_URL, SolrRunner.getZookeeperUrls(), INDEX);
         config.set(SolrIndex.WAIT_SEARCHER, true, INDEX);
         config.set(INDEX_BACKEND,"solr",INDEX);
+        config.set(GraphDatabaseConfiguration.INDEX_MAX_RESULT_SET_SIZE, 3, INDEX);
         //TODO: set SOLR specific config options
         return config.getConfiguration();
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() {
         String userDir = System.getProperty("user.dir");
         String cassandraDirFormat = Joiner.on(File.separator).join(userDir, userDir.contains("janusgraph-solr")
@@ -48,23 +49,6 @@ public class ThriftSolrTest extends SolrJanusGraphIndexTest {
         System.setProperty("test.cassandra.datadir", String.format(cassandraDirFormat, "data"));
 
         CassandraStorageSetup.startCleanEmbedded();
-    }
-
-
-    /*
-    The following two test cases do not pass for Solr since there is no (performant) way of checking
-    whether the document has been deleted before doing an update which will re-create the document.
-     */
-
-    @Override
-    public void testDeleteVertexThenAddProperty() throws BackendException {
-
-    }
-
-
-    @Override
-    public void testDeleteVertexThenModifyProperty() throws BackendException {
-
     }
 
     @Override

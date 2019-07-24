@@ -18,10 +18,10 @@ import com.carrotsearch.hppc.LongArrayList;
 
 /**
  * List of {@link JanusGraphVertex}s.
- * <p/>
+ * <p>
  * Basic interface for a list of vertices which supports retrieving individuals vertices or iterating over all of them,
  * but does not support modification.
- * <p/>
+ * <p>
  * VertexList is returned by {@link JanusGraphVertexQuery}. Depending on how the query was executed that returned this VertexList,
  * getting vertex ids might be significantly faster than retrieving vertex objects.
  *
@@ -35,7 +35,7 @@ public interface VertexList extends Iterable<JanusGraphVertex> {
      *
      * @return Number of vertices in the list.
      */
-    public int size();
+    int size();
 
     /**
      * Returns the vertex at a given position in the list.
@@ -43,7 +43,7 @@ public interface VertexList extends Iterable<JanusGraphVertex> {
      * @param pos Position for which to retrieve the vertex.
      * @return JanusGraphVertex at the given position
      */
-    public JanusGraphVertex get(int pos);
+    JanusGraphVertex get(int pos);
 
     /**
      * Sorts this list according to vertex ids in increasing order.
@@ -51,14 +51,14 @@ public interface VertexList extends Iterable<JanusGraphVertex> {
      *
      * @throws UnsupportedOperationException If not all vertices in this list have an id
      */
-    public void sort();
+    void sort();
 
     /**
      * Whether this list of vertices is sorted by id in increasing order.
      *
      * @return
      */
-    public boolean isSorted();
+    boolean isSorted();
 
     /**
      * Returns a sub list of this list of vertices from the given position with the given number of vertices.
@@ -67,17 +67,17 @@ public interface VertexList extends Iterable<JanusGraphVertex> {
      * @param length
      * @return
      */
-    public VertexList subList(int fromPosition, int length);
+    VertexList subList(int fromPosition, int length);
 
     /**
      * Returns a list of ids of all vertices in this list of vertices in the same order of the original vertex list.
-     * <p/>
+     * <p>
      * Uses an efficient primitive variable-sized array.
      *
      * @return A list of idAuthorities of all vertices in this list of vertices in the same order of the original vertex list.
      * @see LongArrayList
      */
-    public LongArrayList getIDs();
+    LongArrayList getIDs();
 
     /**
      * Returns the id of the vertex at the specified position
@@ -85,6 +85,6 @@ public interface VertexList extends Iterable<JanusGraphVertex> {
      * @param pos The position of the vertex in the list
      * @return The id of that vertex
      */
-    public long getID(int pos);
+    long getID(int pos);
 
 }

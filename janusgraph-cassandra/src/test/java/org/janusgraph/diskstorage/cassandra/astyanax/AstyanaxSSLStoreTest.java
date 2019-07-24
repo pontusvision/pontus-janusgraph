@@ -15,21 +15,26 @@
 package org.janusgraph.diskstorage.cassandra.astyanax;
 
 import org.janusgraph.CassandraStorageSetup;
+import org.janusgraph.CassandraTestCategory;
 import org.janusgraph.diskstorage.configuration.ModifiableConfiguration;
-import org.janusgraph.testcategory.CassandraSSLTests;
-import org.junit.BeforeClass;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 
-@Category({ CassandraSSLTests.class })
+@Tag(CassandraTestCategory.CASSANDRA_SSL_TESTS)
 public class AstyanaxSSLStoreTest extends AstyanaxStoreTest {
 
-    @BeforeClass
+    @BeforeAll
     public static void startCassandra() {
         CassandraStorageSetup.startCleanEmbedded();
     }
 
     @Override
     public ModifiableConfiguration getBaseStorageConfiguration() {
-        return CassandraStorageSetup.getAstyanaxSSLConfiguration(getClass().getSimpleName());
+        return getBaseStorageConfiguration(getClass().getSimpleName());
+    }
+
+    @Override
+    public ModifiableConfiguration getBaseStorageConfiguration(String keyspace) {
+        return CassandraStorageSetup.getAstyanaxSSLConfiguration(keyspace);
     }
 }

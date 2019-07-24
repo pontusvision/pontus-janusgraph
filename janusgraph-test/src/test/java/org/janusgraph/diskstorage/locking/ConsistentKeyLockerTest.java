@@ -16,19 +16,17 @@ package org.janusgraph.diskstorage.locking;
 
 import static org.janusgraph.diskstorage.locking.consistentkey.ConsistentKeyLocker.LOCK_COL_END;
 import static org.janusgraph.diskstorage.locking.consistentkey.ConsistentKeyLocker.LOCK_COL_START;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,9 +40,9 @@ import org.janusgraph.diskstorage.util.KeyColumn;
 
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -55,11 +53,8 @@ import org.janusgraph.diskstorage.keycolumnvalue.KeyColumnValueStore;
 import org.janusgraph.diskstorage.keycolumnvalue.KeySliceQuery;
 import org.janusgraph.diskstorage.keycolumnvalue.StoreManager;
 import org.janusgraph.diskstorage.keycolumnvalue.StoreTransaction;
-import org.janusgraph.diskstorage.util.BufferUtil;
 
 import org.easymock.LogicalOperator;
-
-import java.util.Comparator;
 
 import static org.easymock.EasyMock.*;
 
@@ -83,17 +78,13 @@ public class ConsistentKeyLockerTest {
     private final StaticBuffer defaultLockVal = BufferUtil.getIntBuffer(0); // maybe refactor...
 
     private StoreTransaction defaultTx;
-    private BaseTransactionConfig defaultTxCfg;
     private Configuration defaultTxCustomOpts;
 
     private StoreTransaction otherTx;
-    private BaseTransactionConfig otherTxCfg;
     private Configuration otherTxCustomOpts;
 
     private final Duration defaultWaitNS = Duration.ofNanos(100 * 1000 * 1000);
     private final Duration defaultExpireNS = Duration.ofNanos(30L * 1000 * 1000 * 1000);
-
-    private final int maxTemporaryStorageExceptions = 3;
 
     private IMocksControl ctrl;
     private IMocksControl relaxedCtrl;
@@ -106,7 +97,7 @@ public class ConsistentKeyLockerTest {
     private ConsistentKeyLocker locker;
 
     @SuppressWarnings("unchecked")
-    @Before
+    @BeforeEach
     public void setupMocks() throws BackendException, NoSuchMethodException, SecurityException {
         currentTimeNS = Instant.EPOCH;
 
@@ -119,32 +110,26 @@ public class ConsistentKeyLockerTest {
         manager = relaxedCtrl.createMock(StoreManager.class);
 
         defaultTx = relaxedCtrl.createMock(StoreTransaction.class);
-        defaultTxCfg = relaxedCtrl.createMock(BaseTransactionConfig.class);
+        BaseTransactionConfig defaultTxCfg = relaxedCtrl.createMock(BaseTransactionConfig.class);
         defaultTxCustomOpts = relaxedCtrl.createMock(Configuration.class);
         expect(defaultTx.getConfiguration()).andReturn(defaultTxCfg).anyTimes();
         expect(defaultTxCfg.getGroupName()).andReturn("default").anyTimes();
         expect(defaultTxCfg.getCustomOptions()).andReturn(defaultTxCustomOpts).anyTimes();
-        Comparator<BaseTransactionConfig> defaultTxCfgChecker = new Comparator<BaseTransactionConfig>() {
-            @Override
-            public int compare(BaseTransactionConfig actual, BaseTransactionConfig ignored) {
-                return actual.getCustomOptions() == defaultTxCustomOpts ? 0 : -1;
-            }
-        };
-        expect(manager.beginTransaction(cmp(null, defaultTxCfgChecker, LogicalOperator.EQUAL))).andReturn(defaultTx).anyTimes();
+        final Comparator<BaseTransactionConfig> defaultTxCfgChecker
+            = (actual, ignored) -> actual.getCustomOptions() == defaultTxCustomOpts ? 0 : -1;
+        expect(manager.beginTransaction(cmp(null, defaultTxCfgChecker, LogicalOperator.EQUAL)))
+                .andReturn(defaultTx).anyTimes();
 
         otherTx = relaxedCtrl.createMock(StoreTransaction.class);
-        otherTxCfg = relaxedCtrl.createMock(BaseTransactionConfig.class);
+        BaseTransactionConfig otherTxCfg = relaxedCtrl.createMock(BaseTransactionConfig.class);
         otherTxCustomOpts = relaxedCtrl.createMock(Configuration.class);
         expect(otherTx.getConfiguration()).andReturn(otherTxCfg).anyTimes();
         expect(otherTxCfg.getGroupName()).andReturn("other").anyTimes();
         expect(otherTxCfg.getCustomOptions()).andReturn(otherTxCustomOpts).anyTimes();
-        Comparator<BaseTransactionConfig> otherTxCfgChecker = new Comparator<BaseTransactionConfig>() {
-            @Override
-            public int compare(BaseTransactionConfig actual, BaseTransactionConfig ignored) {
-                return actual.getCustomOptions() == otherTxCustomOpts ? 0 : -1;
-            }
-        };
-        expect(manager.beginTransaction(cmp(null, otherTxCfgChecker, LogicalOperator.EQUAL))).andReturn(otherTx).anyTimes();
+        final Comparator<BaseTransactionConfig> otherTxCfgChecker
+            = (actual, ignored) -> actual.getCustomOptions() == otherTxCustomOpts ? 0 : -1;
+        expect(manager.beginTransaction(cmp(null, otherTxCfgChecker, LogicalOperator.EQUAL)))
+                .andReturn(otherTx).anyTimes();
 
 
         /*
@@ -159,7 +144,8 @@ public class ConsistentKeyLockerTest {
 
         Method sleepPast = FakeTimestampProvider.class.getMethod("sleepPast", Instant.class);
 
-        times = EasyMock.createMockBuilder(FakeTimestampProvider.class).addMockedMethod(timeInNativeUnit).addMockedMethod(sleepPast).createMock(ctrl);
+        times = EasyMock.createMockBuilder(FakeTimestampProvider.class).addMockedMethod(timeInNativeUnit)
+                .addMockedMethod(sleepPast).createMock(ctrl);
         store = ctrl.createMock(KeyColumnValueStore.class);
         mediator = ctrl.createMock(LocalLockMediator.class);
         lockState = ctrl.createMock(LockerState.class);
@@ -174,7 +160,7 @@ public class ConsistentKeyLockerTest {
         relaxedCtrl.replay();
     }
 
-    @After
+    @AfterEach
     public void verifyMocks() {
         ctrl.verify();
         relaxedCtrl.verify();
@@ -241,7 +227,7 @@ public class ConsistentKeyLockerTest {
         StaticBuffer firstCol = recordSuccessfulLockWrite(5, ChronoUnit.SECONDS, null).col;
         StaticBuffer secondCol = recordSuccessfulLockWrite(5, ChronoUnit.SECONDS, firstCol).col;
         StaticBuffer thirdCol = recordSuccessfulLockWrite(5, ChronoUnit.SECONDS, secondCol).col;
-        recordSuccessfulLockDelete(1, ChronoUnit.NANOS, thirdCol);
+        recordSuccessfulLockDelete(thirdCol);
         recordSuccessfulLocalUnlock();
         ctrl.replay();
 
@@ -267,8 +253,8 @@ public class ConsistentKeyLockerTest {
 
         expect(lockState.has(defaultTx, defaultLockID)).andReturn(false);
         recordSuccessfulLocalLock();
-        StaticBuffer lockCol = recordExceptionLockWrite(1, ChronoUnit.NANOS, null, errOnFire);
-        recordSuccessfulLockDelete(1, ChronoUnit.NANOS, lockCol);
+        StaticBuffer lockCol = recordExceptionLockWrite(errOnFire);
+        recordSuccessfulLockDelete(lockCol);
         recordSuccessfulLocalUnlock();
         ctrl.replay();
 
@@ -295,7 +281,7 @@ public class ConsistentKeyLockerTest {
 
         expect(lockState.has(defaultTx, defaultLockID)).andReturn(false);
         recordSuccessfulLocalLock();
-        StaticBuffer firstCol = recordExceptionLockWrite(1, ChronoUnit.NANOS, null, tse);
+        StaticBuffer firstCol = recordExceptionLockWrite(tse);
         LockInfo secondLI = recordSuccessfulLockWrite(1, ChronoUnit.NANOS, firstCol);
         recordSuccessfulLocalLock(secondLI.tsNS);
         lockState.take(eq(defaultTx), eq(defaultLockID), eq(secondLI.stat));
@@ -434,7 +420,8 @@ public class ConsistentKeyLockerTest {
         // Fake a pre-existing lock that's long since expired
         final ConsistentKeyLockStatus expired = makeStatusNow();
         expect(lockState.getLocksForTx(defaultTx)).andReturn(ImmutableMap.of(defaultLockID, expired));
-        currentTimeNS = currentTimeNS.plus(100, ChronoUnit.DAYS); // pretend a huge multiple of the expiration time has passed
+        // pretend a huge multiple of the expiration time has passed
+        currentTimeNS = currentTimeNS.plus(100, ChronoUnit.DAYS);
 
         // Checker should compare the fake lock's timestamp to the current time
         expectSleepAfterWritingLock(expired);
@@ -472,7 +459,8 @@ public class ConsistentKeyLockerTest {
         // Fake a pre-existing lock from our tx
         final ConsistentKeyLockStatus ownExpired = makeStatusNow();
 
-        currentTimeNS = currentTimeNS.plus(100, ChronoUnit.DAYS); // pretend a huge multiple of the expiration time has passed
+        // pretend a huge multiple of the expiration time has passed
+        currentTimeNS = currentTimeNS.plus(100, ChronoUnit.DAYS);
 
         // Create a still-valid lock belonging to the default tx
         final ConsistentKeyLockStatus recent = makeStatusNow();
@@ -534,13 +522,13 @@ public class ConsistentKeyLockerTest {
     }
 
     /**
-     * If the checker reads its own lock column preceeded by a lock column from
+     * If the checker reads its own lock column preceded by a lock column from
      * another rid with an earlier timestamp and the timestamps on both columns
      * are unexpired, then the checker must throw a TemporaryLockingException.
      *
      * @throws InterruptedException shouldn't happen
-     * @throws org.janusgraph.diskstorage.BackendException     shouldn't happen (we expect a TemporaryLockingException but
-     *                              we catch and swallow it)
+     * @throws org.janusgraph.diskstorage.BackendException
+     *         shouldn't happen (we expect a TemporaryLockingException but we catch and swallow it)
      */
     @Test
     public void testCheckLocksFailsWithSeniorClaimsByOthers() throws InterruptedException, BackendException {
@@ -737,7 +725,8 @@ public class ConsistentKeyLockerTest {
         expectSleepAfterWritingLock(lockStatus);
 
         // First and only getSlice call throws a PSE
-        recordExceptionalLockGetSlice(new PermanentBackendException("Connection to storage cluster failed: peer is an IPv6 toaster"));
+        recordExceptionalLockGetSlice(
+                new PermanentBackendException("Connection to storage cluster failed: peer is an IPv6 toaster"));
 
         ctrl.replay();
 
@@ -758,7 +747,7 @@ public class ConsistentKeyLockerTest {
      */
     @Test
     public void testCheckLocksDoesNothingForUnrecognizedTransaction() throws BackendException {
-        expect(lockState.getLocksForTx(defaultTx)).andReturn(ImmutableMap.<KeyColumn, ConsistentKeyLockStatus>of());
+        expect(lockState.getLocksForTx(defaultTx)).andReturn(ImmutableMap.of());
         ctrl.replay();
         locker.checkLocks(defaultTx);
     }
@@ -780,9 +769,10 @@ public class ConsistentKeyLockerTest {
         }};
         expect(lockState.getLocksForTx(defaultTx)).andReturn(expectedMap);
 
-        List<StaticBuffer> dels = ImmutableList.of(codec.toLockCol(lockStatus.getWriteTimestamp(), defaultLockRid, times));
+        List<StaticBuffer> deletions
+                = ImmutableList.of(codec.toLockCol(lockStatus.getWriteTimestamp(), defaultLockRid, times));
         expect(times.getTime()).andReturn(currentTimeNS);
-        store.mutate(eq(defaultLockKey), eq(ImmutableList.<Entry>of()), eq(dels), eq(defaultTx));
+        store.mutate(eq(defaultLockKey), eq(ImmutableList.of()), eq(deletions), eq(defaultTx));
         expect(mediator.unlock(defaultLockID, defaultTx)).andReturn(true);
 
         ctrl.replay();
@@ -817,14 +807,16 @@ public class ConsistentKeyLockerTest {
         locker.deleteLocks(defaultTx);
     }
 
-    private void expectLockDeleteSuccessfully(KeyColumn lockID, StaticBuffer lockKey, ConsistentKeyLockStatus lockStatus) throws BackendException {
+    private void expectLockDeleteSuccessfully(KeyColumn lockID, StaticBuffer lockKey,
+                                              ConsistentKeyLockStatus lockStatus) throws BackendException {
         expectDeleteLock(lockID, lockKey, lockStatus);
     }
 
-    private void expectDeleteLock(KeyColumn lockID, StaticBuffer lockKey, ConsistentKeyLockStatus lockStatus, BackendException... backendFailures) throws BackendException {
-        List<StaticBuffer> dels = ImmutableList.of(codec.toLockCol(lockStatus.getWriteTimestamp(), defaultLockRid, times));
+    private void expectDeleteLock(KeyColumn lockID, StaticBuffer lockKey, ConsistentKeyLockStatus lockStatus,
+                                  BackendException... backendFailures) throws BackendException {
+        List<StaticBuffer> deletions = ImmutableList.of(codec.toLockCol(lockStatus.getWriteTimestamp(), defaultLockRid, times));
         expect(times.getTime()).andReturn(currentTimeNS);
-        store.mutate(eq(lockKey), eq(ImmutableList.<Entry>of()), eq(dels), eq(defaultTx));
+        store.mutate(eq(lockKey), eq(ImmutableList.of()), eq(deletions), eq(defaultTx));
         int backendExceptionsThrown = 0;
         for (BackendException e : backendFailures) {
             expectLastCall().andThrow(e);
@@ -832,9 +824,10 @@ public class ConsistentKeyLockerTest {
                 break;
             }
             backendExceptionsThrown++;
+            int maxTemporaryStorageExceptions = 3;
             if (backendExceptionsThrown < maxTemporaryStorageExceptions) {
                 expect(times.getTime()).andReturn(currentTimeNS);
-                store.mutate(eq(lockKey), eq(ImmutableList.<Entry>of()), eq(dels), eq(defaultTx));
+                store.mutate(eq(lockKey), eq(ImmutableList.of()), eq(deletions), eq(defaultTx));
             }
         }
         expect(mediator.unlock(lockID, defaultTx)).andReturn(true);
@@ -850,8 +843,10 @@ public class ConsistentKeyLockerTest {
     public void testDeleteLocksRetriesOnTemporaryStorageException() throws BackendException {
         ConsistentKeyLockStatus defaultLS = makeStatusNow();
         currentTimeNS = currentTimeNS.plusNanos(1);
-        expect(lockState.getLocksForTx(defaultTx)).andReturn(Maps.newLinkedHashMap(ImmutableMap.of(defaultLockID, defaultLS)));
-        expectDeleteLock(defaultLockID, defaultLockKey, defaultLS, new TemporaryBackendException("Storage cluster is backlogged"));
+        expect(lockState.getLocksForTx(defaultTx))
+                .andReturn(Maps.newLinkedHashMap(ImmutableMap.of(defaultLockID, defaultLS)));
+        expectDeleteLock(defaultLockID, defaultLockKey, defaultLS,
+                new TemporaryBackendException("Storage cluster is backlogged"));
         ctrl.replay();
 
         locker.deleteLocks(defaultTx);
@@ -860,7 +855,7 @@ public class ConsistentKeyLockerTest {
     /**
      * If lock deletion exceeds the temporary exception retry count when trying
      * to delete a lock, it should move onto the next lock rather than returning
-     * and potentially leaving the remaining locks undeleted.
+     * and potentially leaving the remaining locks alone (not deleted).
      *
      * @throws org.janusgraph.diskstorage.BackendException shouldn't happen
      */
@@ -868,7 +863,8 @@ public class ConsistentKeyLockerTest {
     public void testDeleteLocksSkipsToNextLockAfterMaxTemporaryStorageExceptions() throws BackendException {
         ConsistentKeyLockStatus defaultLS = makeStatusNow();
         currentTimeNS = currentTimeNS.plusNanos(1);
-        expect(lockState.getLocksForTx(defaultTx)).andReturn(Maps.newLinkedHashMap(ImmutableMap.of(defaultLockID, defaultLS)));
+        expect(lockState.getLocksForTx(defaultTx))
+                .andReturn(Maps.newLinkedHashMap(ImmutableMap.of(defaultLockID, defaultLS)));
 
         expectDeleteLock(defaultLockID, defaultLockKey, defaultLS,
                 new TemporaryBackendException("Storage cluster is busy"),
@@ -886,15 +882,17 @@ public class ConsistentKeyLockerTest {
      * , except instead of exceeding the temporary exception retry count on a
      * lock, that lock throws a single permanent exception.
      *
-     * @throws org.janusgraph.diskstorage.BackendException shoudn't happen
+     * @throws org.janusgraph.diskstorage.BackendException should not happen
      */
     @Test
     public void testDeleteLocksSkipsToNextLockOnPermanentStorageException() throws BackendException {
         ConsistentKeyLockStatus defaultLS = makeStatusNow();
         currentTimeNS = currentTimeNS.plusNanos(1);
-        expect(lockState.getLocksForTx(defaultTx)).andReturn(Maps.newLinkedHashMap(ImmutableMap.of(defaultLockID, defaultLS)));
+        expect(lockState.getLocksForTx(defaultTx))
+                .andReturn(Maps.newLinkedHashMap(ImmutableMap.of(defaultLockID, defaultLS)));
 
-        expectDeleteLock(defaultLockID, defaultLockKey, defaultLS, new PermanentBackendException("Storage cluster has been destroyed by a tornado"));
+        expectDeleteLock(defaultLockID, defaultLockKey, defaultLS,
+                new PermanentBackendException("Storage cluster has been destroyed by a tornado"));
 
         ctrl.replay();
 
@@ -915,7 +913,8 @@ public class ConsistentKeyLockerTest {
         currentTimeNS = currentTimeNS.plusNanos(1);
 
         // Expect a call for defaultTx's locks and the checked one
-        expect(lockState.getLocksForTx(defaultTx)).andReturn(Maps.newLinkedHashMap(ImmutableMap.of(defaultLockID, defaultLS)));
+        expect(lockState.getLocksForTx(defaultTx))
+                .andReturn(Maps.newLinkedHashMap(ImmutableMap.of(defaultLockID, defaultLS)));
 
         expectLockDeleteSuccessfully(defaultLockID, defaultLockKey, defaultLS);
 
@@ -936,7 +935,8 @@ public class ConsistentKeyLockerTest {
         ConsistentKeyLockStatus lockStatus = makeStatusNow();
         currentTimeNS = currentTimeNS.plusNanos(1);
 
-        expect(lockState.getLocksForTx(defaultTx)).andReturn(Maps.newLinkedHashMap(ImmutableMap.of(defaultLockID, lockStatus)));
+        expect(lockState.getLocksForTx(defaultTx))
+                .andReturn(Maps.newLinkedHashMap(ImmutableMap.of(defaultLockID, lockStatus)));
 
         expectLockDeleteSuccessfully(defaultLockID, defaultLockKey, lockStatus);
 
@@ -946,7 +946,7 @@ public class ConsistentKeyLockerTest {
 
         ctrl.verify();
         ctrl.reset();
-        expect(lockState.getLocksForTx(defaultTx)).andReturn(Maps.newLinkedHashMap(ImmutableMap.<KeyColumn, ConsistentKeyLockStatus>of()));
+        expect(lockState.getLocksForTx(defaultTx)).andReturn(Maps.newLinkedHashMap(ImmutableMap.of()));
         ctrl.replay();
         locker.deleteLocks(defaultTx);
     }
@@ -959,7 +959,7 @@ public class ConsistentKeyLockerTest {
      */
     @Test
     public void testDeleteLocksDoesNothingForUnrecognizedTransaction() throws BackendException {
-        expect(lockState.getLocksForTx(defaultTx)).andReturn(ImmutableMap.<KeyColumn, ConsistentKeyLockStatus>of());
+        expect(lockState.getLocksForTx(defaultTx)).andReturn(ImmutableMap.of());
         ctrl.replay();
         locker.deleteLocks(defaultTx);
     }
@@ -980,7 +980,8 @@ public class ConsistentKeyLockerTest {
 
         final ConsistentKeyLockStatus expired = makeStatusNow();
         expect(lockState.getLocksForTx(defaultTx)).andReturn(ImmutableMap.of(defaultLockID, expired));
-        currentTimeNS = currentTimeNS.plus(100, ChronoUnit.DAYS); // pretend a huge multiple of the expiration time has passed
+        // pretend a huge multiple of the expiration time has passed
+        currentTimeNS = currentTimeNS.plus(100, ChronoUnit.DAYS);
 
         // Checker should compare the fake lock's timestamp to the current time
         expect(times.sleepPast(expired.getWriteTimestamp().plus(defaultWaitNS))).andReturn(currentTimeNS);
@@ -1037,7 +1038,8 @@ public class ConsistentKeyLockerTest {
         return recordSuccessfulLockWrite(defaultTx, duration, tu, del);
     }
 
-    private LockInfo recordSuccessfulLockWrite(StoreTransaction tx, long duration, TemporalUnit tu, StaticBuffer del) throws BackendException {
+    private LockInfo recordSuccessfulLockWrite(StoreTransaction tx, long duration, TemporalUnit tu,
+                                               StaticBuffer del) throws BackendException {
         currentTimeNS = currentTimeNS.plusNanos(1);
         expect(times.getTime()).andReturn(currentTimeNS);
 
@@ -1047,15 +1049,15 @@ public class ConsistentKeyLockerTest {
         Entry add = StaticArrayEntry.of(lockCol, defaultLockVal);
 
         StaticBuffer k = eq(defaultLockKey);
-        final List<Entry> adds = eq(Arrays.<Entry>asList(add));
-        final List<StaticBuffer> dels;
+        final List<Entry> adds = eq(Collections.singletonList(add));
+        final List<StaticBuffer> deletions;
         if (null != del) {
-            dels = eq(Arrays.<StaticBuffer>asList(del));
+            deletions = eq(Collections.singletonList(del));
         } else {
-            dels = eq(ImmutableList.<StaticBuffer>of());
+            deletions = eq(ImmutableList.<StaticBuffer>of());
         }
 
-        store.mutate(k, adds, dels, eq(tx));
+        store.mutate(k, adds, deletions, eq(tx));
         expectLastCall().once();
 
         currentTimeNS = currentTimeNS.plus(duration, tu);
@@ -1070,7 +1072,7 @@ public class ConsistentKeyLockerTest {
         return new LockInfo(lockNS, status, lockCol);
     }
 
-    private StaticBuffer recordExceptionLockWrite(long duration, TemporalUnit tu, StaticBuffer del, Throwable t) throws BackendException {
+    private StaticBuffer recordExceptionLockWrite(Throwable t) throws BackendException {
         currentTimeNS = currentTimeNS.plusNanos(1);
         expect(times.getTime()).andReturn(currentTimeNS);
         StaticBuffer lockCol = codec.toLockCol(currentTimeNS, defaultLockRid, times);
@@ -1078,28 +1080,24 @@ public class ConsistentKeyLockerTest {
         Entry add = StaticArrayEntry.of(lockCol, defaultLockVal);
 
         StaticBuffer k = eq(defaultLockKey);
-        final List<Entry> adds = eq(Arrays.<Entry>asList(add));
-        final List<StaticBuffer> dels;
-        if (null != del) {
-            dels = eq(Arrays.<StaticBuffer>asList(del));
-        } else {
-            dels = eq(ImmutableList.<StaticBuffer>of());
-        }
-        store.mutate(k, adds, dels, eq(defaultTx));
+        final List<Entry> adds = eq(Collections.singletonList(add));
+        final List<StaticBuffer> deletions;
+        deletions = eq(ImmutableList.<StaticBuffer>of());
+        store.mutate(k, adds, deletions, eq(defaultTx));
         expectLastCall().andThrow(t);
 
-        currentTimeNS = currentTimeNS.plus(duration, tu);
+        currentTimeNS = currentTimeNS.plus((long) 1, ChronoUnit.NANOS);
         expect(times.getTime()).andReturn(currentTimeNS);
 
         return lockCol;
     }
 
-    private void recordSuccessfulLockDelete(long duration, TemporalUnit tu, StaticBuffer del) throws BackendException {
+    private void recordSuccessfulLockDelete(StaticBuffer del) throws BackendException {
         currentTimeNS = currentTimeNS.plusNanos(1);
         expect(times.getTime()).andReturn(currentTimeNS);
-        store.mutate(eq(defaultLockKey), eq(ImmutableList.<Entry>of()), eq(Arrays.asList(del)), eq(defaultTx));
+        store.mutate(eq(defaultLockKey), eq(ImmutableList.of()), eq(Collections.singletonList(del)), eq(defaultTx));
 
-        currentTimeNS = currentTimeNS.plus(duration, tu);
+        currentTimeNS = currentTimeNS.plus((long) 1, ChronoUnit.NANOS);
         expect(times.getTime()).andReturn(currentTimeNS);
     }
 
@@ -1185,13 +1183,12 @@ public class ConsistentKeyLockerTest {
         }
 
         @Override
-        public Instant sleepPast(Instant futureTime)
-                throws InterruptedException {
+        public Instant sleepPast(Instant futureTime) {
             throw new IllegalStateException();
         }
 
         @Override
-        public void sleepFor(Duration duration) throws InterruptedException {
+        public void sleepFor(Duration duration) {
             throw new IllegalStateException();
         }
 

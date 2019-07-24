@@ -42,7 +42,7 @@ public class TransactionLogHeader {
 
     private final long transactionId;
     private final Instant txTimestamp;
-    private TimestampProvider times;
+    private final TimestampProvider times;
     private final StaticBuffer logKey;
 
     public TransactionLogHeader(long transactionId, Instant txTimestamp, TimestampProvider times) {
@@ -91,7 +91,7 @@ public class TransactionLogHeader {
                 && sourceTxEntry.header.transactionId==sourceTxId.getTransactionId());
         StaticBuffer sourceContent = sourceTxEntry.content;
         Preconditions.checkArgument(sourceContent!=null && sourceContent.length()>0);
-        EnumMap<LogTxMeta, Object> meta =  new EnumMap<LogTxMeta, Object>(LogTxMeta.class);
+        final EnumMap<LogTxMeta, Object> meta = new EnumMap<>(LogTxMeta.class);
         meta.put(LogTxMeta.SOURCE_TRANSACTION,sourceTxId);
         DataOutput out = serializeHeader(serializer, 50 + sourceContent.length(), LogTxStatus.USER_LOG, meta);
         out.putBytes(sourceContent);
@@ -100,14 +100,14 @@ public class TransactionLogHeader {
 
     public StaticBuffer serializePrimary(Serializer serializer, LogTxStatus status) {
         Preconditions.checkArgument(status==LogTxStatus.PRIMARY_SUCCESS || status==LogTxStatus.COMPLETE_SUCCESS);
-        DataOutput out = serializeHeader(serializer, 30, status);
+        final DataOutput out = serializeHeader(serializer, status);
         return out.getStaticBuffer();
     }
 
     public StaticBuffer serializeSecondary(Serializer serializer, LogTxStatus status,
                                            Map<String,Throwable> indexFailures, boolean userLogSuccess) {
         Preconditions.checkArgument(status==LogTxStatus.SECONDARY_SUCCESS || status==LogTxStatus.SECONDARY_FAILURE);
-        DataOutput out = serializeHeader(serializer,30,status);
+        final DataOutput out = serializeHeader(serializer, status);
         if (status==LogTxStatus.SECONDARY_FAILURE) {
             out.putBoolean(userLogSuccess);
             out.putInt(indexFailures.size());
@@ -119,12 +119,12 @@ public class TransactionLogHeader {
         return out.getStaticBuffer();
     }
 
-    private DataOutput serializeHeader(Serializer serializer, int capacity, LogTxStatus status) {
-        return serializeHeader(serializer, capacity, status, new EnumMap<LogTxMeta, Object>(LogTxMeta.class));
+    private DataOutput serializeHeader(Serializer serializer, LogTxStatus status) {
+        return serializeHeader(serializer, 30, status, new EnumMap<>(LogTxMeta.class));
     }
 
     private DataOutput serializeHeader(Serializer serializer, int capacity, LogTxStatus status, TransactionConfiguration txConfig) {
-        EnumMap<LogTxMeta,Object> metaMap = new EnumMap<LogTxMeta, Object>(LogTxMeta.class);
+        final EnumMap<LogTxMeta,Object> metaMap = new EnumMap<>(LogTxMeta.class);
         if (txConfig!=null) {
             for (LogTxMeta meta : LogTxMeta.values()) {
                 Object value = meta.getValue(txConfig);
@@ -146,10 +146,10 @@ public class TransactionLogHeader {
 
         Preconditions.checkArgument(meta.size()<Byte.MAX_VALUE,"Too much meta data: %s",meta.size());
         out.putByte(VariableLong.unsignedByte(meta.size()));
-        for (Map.Entry<LogTxMeta,Object> metaentry : meta.entrySet()) {
-            assert metaentry.getValue()!=null;
-            out.putByte(VariableLong.unsignedByte(metaentry.getKey().ordinal()));
-            out.writeObjectNotNull(metaentry.getValue());
+        for (Map.Entry<LogTxMeta,Object> metaEntry : meta.entrySet()) {
+            assert metaEntry.getValue()!=null;
+            out.putByte(VariableLong.unsignedByte(metaEntry.getKey().ordinal()));
+            out.writeObjectNotNull(metaEntry.getValue());
         }
         return out;
     }
@@ -160,7 +160,7 @@ public class TransactionLogHeader {
         TransactionLogHeader header = new TransactionLogHeader(VariableLong.readPositive(read),
                 txTimestamp, times);
         LogTxStatus status = serializer.readObjectNotNull(read,LogTxStatus.class);
-        EnumMap<LogTxMeta,Object> metadata = new EnumMap<LogTxMeta, Object>(LogTxMeta.class);
+        final EnumMap<LogTxMeta,Object> metadata = new EnumMap<>(LogTxMeta.class);
         int metaSize = VariableLong.unsignedByte(read.getByte());
         for (int i=0;i<metaSize;i++) {
             LogTxMeta meta = LogTxMeta.values()[VariableLong.unsignedByte(read.getByte())];

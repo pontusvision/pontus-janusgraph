@@ -2,15 +2,15 @@ Source: janusgraph
 Section: misc
 Priority: extra
 Maintainer: Dan LaRocque <dalaro@hopcount.org>
-Build-Depends: debhelper (>= 7), openjdk-7-jdk | java7-sdk, maven
-Homepage: http://janusgraph.org
+Build-Depends: debhelper (>= 7), openjdk-8-jdk | java8-sdk, maven
+Homepage: https://janusgraph.org
 Vcs-Git: https://github.com/JanusGraph/janusgraph.git
 Vcs-Browser: https://github.com/JanusGraph/janusgraph
 Standards-Version: 3.9.4
 
 Package: janusgraph
 Architecture: all
-Depends: openjdk-7-jre-headless | openjdk-7-jre | java7-runtime, adduser, ${misc:Depends}
+Depends: openjdk-8-jre-headless | openjdk-8-jre | java8-runtime, adduser, ${misc:Depends}
 Recommends: ntp
 Description: JanusGraph is a scalable, distributed, concurrent graph database 
  JanusGraph is a scalable graph database optimized for storing

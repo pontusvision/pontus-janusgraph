@@ -31,7 +31,7 @@ import java.util.*;
  * Implementation of {@link JanusGraphMultiVertexQuery} that extends {@link BasicVertexCentricQueryBuilder}
  * for all the query building and optimization and adds only the execution logic in
  * {@link #execute(org.janusgraph.graphdb.internal.RelationCategory, BasicVertexCentricQueryBuilder.ResultConstructor)}.
- * </p>
+ * <p>
  * All other methods just prepare or transform that result set to fit the particular method semantics.
  *
  * @author Matthias Broecheler (me@matthiasb.com)
@@ -94,7 +94,7 @@ public class MultiVertexCentricQueryBuilder extends BasicVertexCentricQueryBuild
      */
     protected<Q> Map<JanusGraphVertex,Q> execute(RelationCategory returnType, ResultConstructor<Q> resultConstructor) {
         Preconditions.checkArgument(!vertices.isEmpty(), "Need to add at least one vertex to query");
-        Map<JanusGraphVertex, Q> result = new HashMap<JanusGraphVertex, Q>(vertices.size());
+        final Map<JanusGraphVertex, Q> result = new HashMap<>(vertices.size());
         BaseVertexCentricQuery bq = super.constructQuery(returnType);
         profiler.setAnnotation(QueryProfiler.MULTIQUERY_ANNOTATION,true);
         profiler.setAnnotation(QueryProfiler.NUMVERTICES_ANNOTATION,vertices.size());
@@ -138,6 +138,12 @@ public class MultiVertexCentricQueryBuilder extends BasicVertexCentricQueryBuild
         return (Map)(isImplicitKeyQuery(RelationCategory.PROPERTY)?
                 executeImplicitKeyQuery():
                 execute(RelationCategory.PROPERTY, new RelationConstructor()));
+    }
+
+    @Override
+    public void preFetch() {
+        profiler.setAnnotation(QueryProfiler.MULTIPREFETCH_ANNOTATION, true);
+        properties();
     }
 
     @Override

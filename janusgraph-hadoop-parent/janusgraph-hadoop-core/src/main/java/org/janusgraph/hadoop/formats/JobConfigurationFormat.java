@@ -21,9 +21,9 @@ import java.io.IOException;
 /**
  * If an Input- or OutputFormat requires a dynamic configuration of the job at execution time, then a JobConfigurationFormat can be implemented.
  *
- * @author Marko A. Rodriguez (http://markorodriguez.com)
+ * @author Marko A. Rodriguez (https://markorodriguez.com)
  */
 public interface JobConfigurationFormat {
 
-    public void updateJob(Job job) throws InterruptedException, IOException;
+    void updateJob(Job job) throws InterruptedException, IOException;
 }

@@ -36,7 +36,6 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
  * This implementation is only intended for testing.
  * <p>
  * Limitations:
- * <p>
  * <ul>
  * <li>Ignores edge labels</li>
  * <li>Assumes there is at most one edge (of any label) between any vertex pair</li>
@@ -57,8 +56,8 @@ public class PageRankVertexProgram extends StaticVertexProgram<Double> {
     private int maxIterations;
     private long vertexCount;
 
-    private MessageScope.Local<Double> outE = MessageScope.Local.of(__::outE);
-    private MessageScope.Local<Double> inE = MessageScope.Local.of(__::inE);
+    private final MessageScope.Local<Double> outE = MessageScope.Local.of(__::outE);
+    private final MessageScope.Local<Double> inE = MessageScope.Local.of(__::inE);
 
     private static final Set<VertexComputeKey> COMPUTE_KEYS = ImmutableSet.of(VertexComputeKey.of(PAGE_RANK, false), VertexComputeKey.of(OUTGOING_EDGE_COUNT, false));
 

@@ -20,33 +20,47 @@ import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_LANG_KEY;
 import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_SCRIPT_KEY;
 import static org.janusgraph.diskstorage.es.ElasticSearchConstants.ES_TYPE_KEY;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
+import org.apache.tinkerpop.shaded.jackson.databind.ObjectWriter;
+import org.apache.tinkerpop.shaded.jackson.databind.SerializationFeature;
 import org.janusgraph.core.Cardinality;
 import org.janusgraph.core.attribute.Geo;
+import org.janusgraph.core.attribute.Geoshape;
 import org.janusgraph.core.schema.Mapping;
 import org.janusgraph.core.schema.Parameter;
+import org.janusgraph.diskstorage.PermanentBackendException;
 import org.janusgraph.diskstorage.es.ElasticSearchRequest;
+import org.janusgraph.diskstorage.indexing.IndexEntry;
 import org.janusgraph.diskstorage.indexing.IndexFeatures;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.janusgraph.diskstorage.indexing.IndexMutation;
+import org.janusgraph.diskstorage.indexing.KeyInformation;
+import org.janusgraph.graphdb.database.serialize.AttributeUtil;
+import org.locationtech.spatial4j.shape.Rectangle;
 
 /**
  * Base class for building Elasticsearch mapping and query objects.
  */
 public abstract class AbstractESCompat {
 
+    public static final ObjectWriter mapWriter;
+    static {
+        final ObjectMapper mapper = new ObjectMapper();
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        mapWriter = mapper.writerWithView(Map.class);
+    }
+
     static final Map<String,Object> MATCH_ALL = ImmutableMap.of("match_all", Collections.EMPTY_MAP);
 
-    static final IndexFeatures.Builder coreFeatures() {
+    static IndexFeatures.Builder coreFeatures() {
         return new IndexFeatures.Builder()
             .setDefaultStringMapping(Mapping.TEXT)
             .supportedStringMappings(Mapping.TEXT, Mapping.TEXTSTRING, Mapping.STRING)
@@ -56,6 +70,7 @@ public abstract class AbstractESCompat {
             .supportsCardinality(Cardinality.SET)
             .supportsNanoseconds()
             .supportsCustomAnalyzer()
+            .supportNotQueryNormalForm()
         ;
     }
 
@@ -175,16 +190,22 @@ public abstract class AbstractESCompat {
     public Map<String,Object> createRequestBody(ElasticSearchRequest request, Parameter[] parameters) {
         final Map<String,Object> requestBody = new HashMap<>();
 
-        Optional.ofNullable(request.getSize()).ifPresent(parm -> requestBody.put("size", parm));
-        Optional.ofNullable(request.getFrom()).ifPresent(parm -> requestBody.put("from", parm));
+        Optional.ofNullable(request.getSize()).ifPresent(parameter -> requestBody.put("size", parameter));
+        Optional.ofNullable(request.getFrom()).ifPresent(parameter -> requestBody.put("from", parameter));
 
         if (!request.getSorts().isEmpty()) {
             requestBody.put("sort", request.getSorts());
         }
-        
-        Optional.ofNullable(request.getQuery()).ifPresent(parm -> requestBody.put("query", parm));
-        Optional.ofNullable(parameters).ifPresent(parms -> Arrays.stream(parms).forEachOrdered(parm -> requestBody.put(parm.key(), parm.value())));
+
+        Optional.ofNullable(request.getQuery()).ifPresent(parameter -> requestBody.put("query", parameter));
+        Optional.ofNullable(parameters).ifPresent(p -> Arrays.stream(p).forEachOrdered(parameter -> requestBody.put(parameter.key(), parameter.value())));
         return requestBody;
+    }
+
+    // LPPM added new entries to check whether a script with parameters can be sent (this reduces the burden on Elastic
+    public boolean scriptWithParameters()
+    {
+        return false;
     }
 
 }

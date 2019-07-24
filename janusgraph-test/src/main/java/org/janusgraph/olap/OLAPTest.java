@@ -14,36 +14,73 @@
 
 package org.janusgraph.olap;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import org.janusgraph.core.*;
+import org.janusgraph.core.Cardinality;
+import org.janusgraph.core.JanusGraphComputer;
+import org.janusgraph.core.JanusGraphTransaction;
+import org.janusgraph.core.JanusGraphVertex;
+import org.janusgraph.core.Multiplicity;
+import org.janusgraph.core.PropertyKey;
+import org.janusgraph.core.Transaction;
 import org.janusgraph.diskstorage.keycolumnvalue.scan.ScanJob;
 import org.janusgraph.diskstorage.keycolumnvalue.scan.ScanMetrics;
 import org.janusgraph.graphdb.JanusGraphBaseTest;
-import org.janusgraph.graphdb.olap.*;
+import org.janusgraph.graphdb.olap.QueryContainer;
+import org.janusgraph.graphdb.olap.VertexJobConverter;
+import org.janusgraph.graphdb.olap.VertexScanJob;
 import org.janusgraph.graphdb.olap.computer.FulgoraGraphComputer;
 import org.janusgraph.graphdb.olap.job.GhostVertexRemover;
-import org.apache.tinkerpop.gremlin.process.computer.*;
+
+import org.apache.tinkerpop.gremlin.process.computer.ComputerResult;
+import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
+import org.apache.tinkerpop.gremlin.process.computer.KeyValue;
+import org.apache.tinkerpop.gremlin.process.computer.Memory;
+import org.apache.tinkerpop.gremlin.process.computer.MemoryComputeKey;
+import org.apache.tinkerpop.gremlin.process.computer.MessageCombiner;
+import org.apache.tinkerpop.gremlin.process.computer.MessageScope;
+import org.apache.tinkerpop.gremlin.process.computer.Messenger;
+import org.apache.tinkerpop.gremlin.process.computer.VertexComputeKey;
+import org.apache.tinkerpop.gremlin.process.computer.traversal.step.map.ConnectedComponent;
+import org.apache.tinkerpop.gremlin.process.computer.traversal.step.map.ShortestPath;
 import org.apache.tinkerpop.gremlin.process.computer.util.StaticMapReduce;
 import org.apache.tinkerpop.gremlin.process.computer.util.StaticVertexProgram;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.Operator;
+import org.apache.tinkerpop.gremlin.process.traversal.Path;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.junit.Before;
-import org.junit.Test;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import static org.janusgraph.testutil.JanusGraphAssert.assertCount;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * @author Matthias Broecheler (me@matthiasb.com)
@@ -56,9 +93,9 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
             LoggerFactory.getLogger(OLAPTest.class);
 
     @Override
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
+    @BeforeEach
+    public void setUp(TestInfo testInfo) throws Exception {
+        super.setUp(testInfo);
     }
 
     private ScanMetrics executeScanJob(VertexScanJob job) throws Exception {
@@ -83,9 +120,9 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
         JanusGraphVertex[] vs = new JanusGraphVertex[numV];
         for (int i=0;i<numV;i++) {
             vs[i] = tx.addVertex("uid",i+1);
-            int numVals = random.nextInt(5)+1;
-            vs[i].property(VertexProperty.Cardinality.single, "numvals", numVals);
-            for (int j=0;j<numVals;j++) {
+            int numberOfValues = random.nextInt(5)+1;
+            vs[i].property(VertexProperty.Cardinality.single, "numvals", numberOfValues);
+            for (int j=0;j<numberOfValues;j++) {
                 vs[i].property("values",random.nextInt(100));
             }
         }
@@ -189,7 +226,7 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
         assertNull(getV(tx,v3id));
         v1 = getV(tx, v1id);
         assertNotNull(v1);
-        assertEquals(v3id,((JanusGraphVertex) v1.query().direction(Direction.IN).labels("knows").vertices().iterator().next()).longId());
+        assertEquals(v3id, v1.query().direction(Direction.IN).labels("knows").vertices().iterator().next().longId());
         tx.commit();
         mgmt.commit();
 
@@ -200,7 +237,7 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
     }
 
     @Test
-    public void testBasicComputeJob() throws Exception {
+    public void testBasicComputeJob() {
         GraphTraversalSource g = graph.traversal().withComputer(FulgoraGraphComputer.class);
         System.out.println(g.V().count().next());
     }
@@ -225,7 +262,7 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
         int totalCount = 0;
         for (Map.Entry<Long,Integer> entry : degrees.entrySet()) {
             int degree = entry.getValue();
-            JanusGraphVertex v = getV(tx, entry.getKey().longValue());
+            final JanusGraphVertex v = getV(tx, entry.getKey());
             int count = v.value("uid");
             assertEquals(count,degree);
             totalCount+= degree;
@@ -249,7 +286,7 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
         try {
             computer.submit().get();
             fail();
-        } catch (ExecutionException ee) {
+        } catch (ExecutionException ignored) {
         }
     }
 
@@ -365,7 +402,6 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
 
         @Override
         public void setup(Memory memory) {
-            return;
         }
 
         @Override
@@ -386,12 +422,12 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
 
         @Override
         public Set<VertexComputeKey> getVertexComputeKeys() {
-            return new HashSet<>(Arrays.asList(VertexComputeKey.of(DEGREE, false)));
+            return new HashSet<>(Collections.singletonList(VertexComputeKey.of(DEGREE, false)));
         }
 
         @Override
         public Set<MemoryComputeKey> getMemoryComputeKeys() {
-            return new HashSet<>(Arrays.asList(MemoryComputeKey.of(DEGREE, Operator.assign, true, false)));
+            return new HashSet<>(Collections.singletonList(MemoryComputeKey.of(DEGREE, Operator.assign, true, false)));
         }
 
         @Override
@@ -401,7 +437,7 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
 
         @Override
         public Set<MessageScope> getMessageScopes(Memory memory) {
-            if (memory.getIteration()<length) return ImmutableSet.of((MessageScope)DEG_MSG);
+            if (memory.getIteration()<length) return ImmutableSet.of(DEG_MSG);
             else return Collections.emptySet();
         }
 
@@ -496,7 +532,7 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
     private void expand(Vertex v, final int distance, final int diameter, final int branch) {
         v.property(VertexProperty.Cardinality.single, "distance", distance);
         if (distance<diameter) {
-            JanusGraphVertex previous = null;
+//          JanusGraphVertex previous = null;
             for (int i=0;i<branch;i++) {
                 JanusGraphVertex u = tx.addVertex();
                 u.addEdge("likes",v);
@@ -506,7 +542,7 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
 //                    u.addEdge("knows",previous);
 //                    log.error("knows {}->{}", u.id(), v.id());
 //                }
-                previous=u;
+//              previous=u;
                 expand(u,distance+1,diameter,branch);
             }
         }
@@ -539,9 +575,8 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
         }
 
         double correctPRSum = 0;
-        Iterator<JanusGraphVertex> iv = tx.query().vertices().iterator();
-        while (iv.hasNext()) {
-            correctPRSum += correctPR[iv.next().<Integer>value("distance")];
+        for (final JanusGraphVertex janusGraphVertex : tx.query().vertices()) {
+            correctPRSum += correctPR[janusGraphVertex.<Integer>value("distance")];
         }
 
         final JanusGraphComputer computer = graph.compute();
@@ -556,7 +591,7 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
         int vertexCounter = 0;
         double computedPRSum = 0;
         correctPRSum = 0;
-        Set<Long> vertexIDs = new HashSet<Long>(numV);
+        final Set<Long> vertexIDs = new HashSet<>(numV);
         while (ranks.hasNext()) {
             final KeyValue<Long, Double> rank = ranks.next();
             final Long vertexID = rank.getKey();
@@ -616,7 +651,7 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
         while (distances.hasNext()) {
             final KeyValue<Long, Long> kv = distances.next();
             final long dist = kv.getValue();
-            assertTrue("Invalid distance: " + dist,dist >= 0 && dist < Integer.MAX_VALUE);
+            assertTrue(dist >= 0 && dist < Integer.MAX_VALUE, "Invalid distance: " + dist);
             JanusGraphVertex v = getV(tx, kv.getKey());
             assertEquals(v.<Integer>value("distance").intValue(), dist);
             vertexCount++;
@@ -640,5 +675,62 @@ public abstract class OLAPTest extends JanusGraphBaseTest {
         return total;
     }
 
+    @Test
+    public void testShortestPath() {
+        GraphTraversalSource g = graph.traversal();
+        Vertex v1 = g.addV().next();
+        Vertex v2 = g.addV().next();
+        g.V(v1).addE("connect").to(v2).iterate();
+        g.tx().commit();
 
+        g = graph.traversal().withComputer();
+        List<Path> paths = g.V(v1).shortestPath().with(ShortestPath.target, __.is(v2)).toList();
+
+        assertCount(1, paths);
+        assertEquals(2, paths.get(0).size());
+    }
+
+    @Test
+    public void testConnectedComponent() {
+        createComponentWithThreeVertices();
+        newTx();
+        GraphTraversalSource g = graph.traversal();
+        Vertex isolatedVertex = g.addV().property("id", -1).next();
+        g.tx().commit();
+        g = graph.traversal().withComputer(FulgoraGraphComputer.class);
+
+        GraphTraversal<Vertex, Map<String, Object>> traversal =
+            g.V().connectedComponent().project("id", "component").by("id").by(ConnectedComponent.component);
+
+        boolean foundIsolatedVertex = false;
+        List<String> nonIsolatedComponents = new ArrayList<>();
+        while (traversal.hasNext()) {
+            Map<String, Object> m = traversal.next();
+            if (m.get("component").equals(isolatedVertex.id().toString())) {
+                foundIsolatedVertex = true;
+            } else {
+                nonIsolatedComponents.add((String) m.get("component"));
+            }
+        }
+        assertTrue(foundIsolatedVertex);
+        assertEquals(3, nonIsolatedComponents.size());
+        assertEquals(nonIsolatedComponents.get(0), nonIsolatedComponents.get(1));
+        assertEquals(nonIsolatedComponents.get(1), nonIsolatedComponents.get(2));
+    }
+
+    private void createComponentWithThreeVertices() {
+        mgmt.makePropertyKey("id").dataType(Integer.class).cardinality(Cardinality.SINGLE).make();
+        mgmt.makeEdgeLabel("knows").make();
+        finishSchema();
+
+        GraphTraversalSource g = graph.traversal();
+        Vertex v1 = g.addV().property("id", 0).next();
+        Vertex v2 = g.addV().property("id", 1).next();
+        Vertex v3 = g.addV().property("id", 2).next();
+
+        g.V(v1).addE("knows").to(v2).iterate();
+        g.V(v2).addE("knows").to(v3).iterate();
+
+        tx.commit();
+    }
 }

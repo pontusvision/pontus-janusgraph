@@ -28,15 +28,8 @@ import org.apache.tinkerpop.gremlin.util.Gremlin;
  * @see JanusGraphTransaction
  */
 @Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
-//@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_PERFORMANCE)
 @Graph.OptIn(Graph.OptIn.SUITE_PROCESS_STANDARD)
 @Graph.OptIn(Graph.OptIn.SUITE_PROCESS_COMPUTER)
-//@Graph.OptIn(Graph.OptIn.SUITE_PROCESS_PERFORMANCE)
-//@Graph.OptIn(Graph.OptIn.SUITE_GROOVY_PROCESS_STANDARD)
-//@Graph.OptIn(Graph.OptIn.SUITE_GROOVY_PROCESS_COMPUTER)
-//@Graph.OptIn(Graph.OptIn.SUITE_GROOVY_ENVIRONMENT)
-//@Graph.OptIn(Graph.OptIn.SUITE_GROOVY_ENVIRONMENT_INTEGRATE)
-//@Graph.OptIn(Graph.OptIn.SUITE_GROOVY_ENVIRONMENT_PERFORMANCE)
 @Graph.OptIn("org.janusgraph.blueprints.process.traversal.strategy.JanusGraphStrategySuite")
 //------------------------
 @Graph.OptOut(
@@ -65,6 +58,37 @@ import org.apache.tinkerpop.gremlin.util.Gremlin;
         reason = "JanusGraph test graph computer (FulgoraGraphComputer) " +
             "currently does not support graph filters but does not throw proper exception because doing so breaks numerous " +
             "tests in gremlin-test ProcessComputerSuite.")
+@Graph.OptOut(
+        test = "org.apache.tinkerpop.gremlin.process.computer.search.path.ShortestPathVertexProgramTest",
+        method = "*",
+        reason = "ShortestPathVertexProgram currently has two bugs that prevent us from using it correctly. See " +
+            "https://issues.apache.org/jira/browse/TINKERPOP-2187 for more information.")
+@Graph.OptOut(
+        test = "org.apache.tinkerpop.gremlin.process.traversal.step.map.ShortestPathTest$Traversals",
+        method = "*",
+        reason = "ShortestPathVertexProgram currently has two bugs that prevent us from using it correctly. See " +
+            "https://issues.apache.org/jira/browse/TINKERPOP-2187 for more information.")
+@Graph.OptOut(
+        test = "org.apache.tinkerpop.gremlin.process.traversal.step.map.ConnectedComponentTest",
+        method = "g_V_hasLabelXsoftwareX_connectedComponent_project_byXnameX_byXcomponentX",
+        reason = "The test assumes that a certain vertex has always the lowest id which is not the case for " +
+            "JanusGraph. See https://issues.apache.org/jira/browse/TINKERPOP-2189 for more information.")
+@Graph.OptOut(
+        test = "org.apache.tinkerpop.gremlin.process.traversal.step.map.ConnectedComponentTest",
+        method = "g_V_connectedComponent_withXEDGES_bothEXknowsXX_withXPROPERTY_NAME_clusterX_project_byXnameX_byXclusterX",
+        reason = "The test assumes that a certain vertex has always the lowest id which is not the case for " +
+            "JanusGraph. See https://issues.apache.org/jira/browse/TINKERPOP-2189 for more information.")
+@Graph.OptOut(
+    test = "org.apache.tinkerpop.gremlin.process.traversal.step.branch.RepeatTest",
+    method = "g_VX3X_repeatXbothX_createdXX_untilXloops_is_40XXemit_repeatXin_knowsXX_emit_loopsXisX1Xdedup_values",
+    reason = "The test assumes that a certain vertex has always the lowest id which is not the case for " +
+        "JanusGraph. See https://issues.apache.org/jira/browse/TINKERPOP-2189 for more information.")
+@Graph.OptOut(
+        test = "org.apache.tinkerpop.gremlin.process.traversal.step.map.ConnectedComponentTest",
+        method = "g_V_dedup_connectedComponent_hasXcomponentX",
+        reason = "The test involves serializing and deserializing of vertices, especially of CacheVertex. This class" +
+            "is however not serializable and it is non-trivial to enable serialization as the class is tied to a" +
+            "transaction. See #1519 for more information.")
 public interface JanusGraph extends Transaction {
 
    /* ---------------------------------------------------------------
@@ -74,17 +98,17 @@ public interface JanusGraph extends Transaction {
 
     /**
      * Opens a new thread-independent {@link JanusGraphTransaction}.
-     * <p/>
+     * <p>
      * The transaction is open when it is returned but MUST be explicitly closed by calling {@link org.janusgraph.core.JanusGraphTransaction#commit()}
      * or {@link org.janusgraph.core.JanusGraphTransaction#rollback()} when it is no longer needed.
-     * <p/>
+     * <p>
      * Note, that this returns a thread independent transaction object. It is not necessary to call this method
      * to use Blueprint's standard transaction framework which will automatically start a transaction with the first
      * operation on the graph.
      *
      * @return Transaction object representing a transactional context.
      */
-    public JanusGraphTransaction newTransaction();
+    JanusGraphTransaction newTransaction();
 
     /**
      * Returns a {@link TransactionBuilder} to construct a new thread-independent {@link JanusGraphTransaction}.
@@ -93,17 +117,17 @@ public interface JanusGraph extends Transaction {
      * @see TransactionBuilder
      * @see #newTransaction()
      */
-    public TransactionBuilder buildTransaction();
+    TransactionBuilder buildTransaction();
 
     /**
      * Returns the management system for this graph instance. The management system provides functionality
      * to change global configuration options, install indexes and inspect the graph schema.
-     * <p />
+     * <p>
      * The management system operates in its own transactional context which must be explicitly closed.
      *
      * @return
      */
-    public JanusGraphManagement openManagement();
+    JanusGraphManagement openManagement();
 
     /**
      * Checks whether the graph is open.
@@ -111,18 +135,18 @@ public interface JanusGraph extends Transaction {
      * @return true, if the graph is open, else false.
      * @see #close()
      */
-    public boolean isOpen();
+    boolean isOpen();
 
     /**
      * Checks whether the graph is closed.
      *
      * @return true, if the graph has been closed, else false
      */
-    public boolean isClosed();
+    boolean isClosed();
 
     /**
      * Closes the graph database.
-     * <p/>
+     * <p>
      * Closing the graph database causes a disconnect and possible closing of the underlying storage backend
      * and a release of all occupied resources by this graph database.
      * Closing a graph database requires that all open thread-independent transactions have been closed -
@@ -131,18 +155,18 @@ public interface JanusGraph extends Transaction {
      * @throws JanusGraphException if closing the graph database caused errors in the storage backend
      */
     @Override
-    public void close() throws JanusGraphException;
+    void close() throws JanusGraphException;
 
     /**
      * The version of this JanusGraph graph database
      *
      * @return
      */
-    public static String version() {
+    static String version() {
         return JanusGraphConstants.VERSION;
     }
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         System.out.println("JanusGraph " + JanusGraph.version() + ", Apache TinkerPop " + Gremlin.version());
     }
 }

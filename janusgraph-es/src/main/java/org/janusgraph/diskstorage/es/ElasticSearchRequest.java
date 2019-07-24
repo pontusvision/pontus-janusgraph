@@ -29,10 +29,13 @@ public class ElasticSearchRequest {
 
     private Integer from;
 
-    private List<Map<String,RestSortInfo>> sorts;
+    private final List<Map<String,RestSortInfo>> sorts;
+
+    private List<String> fields;
 
     public ElasticSearchRequest() {
         this.sorts = new ArrayList<>();
+        this.fields = new ArrayList<>();
     }
 
     public Map<String,Object> getQuery() {
@@ -61,6 +64,14 @@ public class ElasticSearchRequest {
 
     public List<Map<String,RestSortInfo>> getSorts() {
         return sorts;
+    }
+
+    public List<String> getFields() {
+        return fields;
+    }
+
+    public void setFields(List<String> fields) {
+        this.fields = fields;
     }
 
     public void addSort(String key, String order, String unmappedType) {

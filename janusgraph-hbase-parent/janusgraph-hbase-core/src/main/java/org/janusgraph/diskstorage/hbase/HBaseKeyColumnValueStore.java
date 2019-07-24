@@ -14,9 +14,11 @@
 
 package org.janusgraph.diskstorage.hbase;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.janusgraph.diskstorage.*;
 import org.janusgraph.diskstorage.keycolumnvalue.*;
 import org.janusgraph.diskstorage.util.RecordIterator;
@@ -42,7 +44,7 @@ import java.util.*;
 
 /**
  * Here are some areas that might need work:
- * <p/>
+ * <p>
  * - batching? (consider HTable#batch, HTable#setAutoFlush(false)
  * - tuning HTable#setWriteBufferSize (?)
  * - writing a server-side filter to replace ColumnCountGetFilter, which drops
@@ -51,7 +53,7 @@ import java.util.*;
  * scale.
  * - RowMutations for combining Puts+Deletes (need a newer HBase than 0.92 for this)
  * - (maybe) fiddle with HTable#setRegionCachePrefetch and/or #prewarmRegionCache
- * <p/>
+ * <p>
  * There may be other problem areas.  These are just the ones of which I'm aware.
  */
 public class HBaseKeyColumnValueStore implements KeyColumnValueStore {
@@ -77,7 +79,7 @@ public class HBaseKeyColumnValueStore implements KeyColumnValueStore {
         this.tableName = tableName;
         //this.columnFamily = columnFamily;
         this.storeName = storeName;
-        this.columnFamilyBytes = columnFamily.getBytes();
+        this.columnFamilyBytes = Bytes.toBytes(columnFamily);
         this.entryGetter = new HBaseGetter(storeManager.getMetaDataSchema(storeName));
     }
 
@@ -87,7 +89,7 @@ public class HBaseKeyColumnValueStore implements KeyColumnValueStore {
 
     @Override
     public EntryList getSlice(KeySliceQuery query, StoreTransaction txh) throws BackendException {
-        Map<StaticBuffer, EntryList> result = getHelper(Arrays.asList(query.getKey()), getFilter(query));
+        Map<StaticBuffer, EntryList> result = getHelper(Collections.singletonList(query.getKey()), getFilter(query));
         return Iterables.getOnlyElement(result.values(), EntryList.EMPTY_LIST);
     }
 
@@ -137,7 +139,7 @@ public class HBaseKeyColumnValueStore implements KeyColumnValueStore {
         if (query.hasLimit()) {
             filter = new FilterList(FilterList.Operator.MUST_PASS_ALL,
                     filter,
-                    new ColumnPaginationFilter(query.getLimit(), 0));
+                    new ColumnPaginationFilter(query.getLimit(), colStartBytes));
         }
 
         logger.debug("Generated HBase Filter {}", filter);
@@ -146,7 +148,7 @@ public class HBaseKeyColumnValueStore implements KeyColumnValueStore {
     }
 
     private Map<StaticBuffer,EntryList> getHelper(List<StaticBuffer> keys, Filter getFilter) throws BackendException {
-        List<Get> requests = new ArrayList<Get>(keys.size());
+        List<Get> requests = new ArrayList<>(keys.size());
         {
             for (StaticBuffer key : keys) {
                 Get g = new Get(key.as(StaticBuffer.ARRAY_FACTORY)).addFamily(columnFamilyBytes).setFilter(getFilter);
@@ -159,11 +161,11 @@ public class HBaseKeyColumnValueStore implements KeyColumnValueStore {
             }
         }
 
-        Map<StaticBuffer,EntryList> resultMap = new HashMap<StaticBuffer,EntryList>(keys.size());
+        final Map<StaticBuffer,EntryList> resultMap = new HashMap<>(keys.size());
 
         try {
             TableMask table = null;
-            Result[] results = null;
+            final Result[] results;
 
             try {
                 table = cnx.getTable(tableName);
@@ -178,7 +180,7 @@ public class HBaseKeyColumnValueStore implements KeyColumnValueStore {
             assert results.length==keys.size();
 
             for (int i = 0; i < results.length; i++) {
-                Result result = results[i];
+                final Result result = results[i];
                 NavigableMap<byte[], NavigableMap<byte[], NavigableMap<Long, byte[]>>> f = result.getMap();
 
                 if (f == null) { // no result for this key
@@ -263,7 +265,12 @@ public class HBaseKeyColumnValueStore implements KeyColumnValueStore {
             ensureOpen();
 
             return new RecordIterator<Entry>() {
-                private final Iterator<Map.Entry<byte[], NavigableMap<Long, byte[]>>> kv = currentRow.getMap().get(columnFamilyBytes).entrySet().iterator();
+                private final Iterator<Map.Entry<byte[], NavigableMap<Long, byte[]>>> kv;
+                {
+                    final Map<byte[], NavigableMap<byte[], NavigableMap<Long, byte[]>>> map = currentRow.getMap();
+                    Preconditions.checkNotNull(map);
+                    kv = map.get(columnFamilyBytes).entrySet().iterator();
+                }
 
                 @Override
                 public boolean hasNext() {

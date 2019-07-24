@@ -82,7 +82,7 @@ public abstract class AbstractLocker<S extends LockStatus> implements Locker {
 
     /**
      * Stores all information about all locks this implementation has taken on
-     * behalf of any {@link StoreTransaction}. It is parameterized in a type
+     * behalf of any {@link StoreTransaction}. It is parametrized in a type
      * specific to the concrete subclass, so that concrete implementations can
      * store information specific to their locking primitives.
      */
@@ -108,9 +108,9 @@ public abstract class AbstractLocker<S extends LockStatus> implements Locker {
      * Abstract builder for this Locker implementation. See
      * {@link ConsistentKeyLocker} for an example of how to subclass this
      * abstract builder into a concrete builder.
-     * <p/>
+     * <p>
      * If you're wondering why the bounds for the type parameter {@code B} looks so hideous, see:
-     * <p/>
+     * <p>
      * <a href="https://weblogs.java.net/blog/emcmanus/archive/2010/10/25/using-builder-pattern-subclasses">Using the builder pattern with subclasses by Eamonn McManus</a>
      *
      * @param <S> The concrete type of {@link LockStatus}
@@ -131,7 +131,7 @@ public abstract class AbstractLocker<S extends LockStatus> implements Locker {
             this.times = TimestampProviders.NANO;
             this.serializer = new ConsistentKeyLockerSerializer();
             this.llm = null; // redundant, but it preserves this constructor's overall pattern
-            this.lockState = new LockerState<S>();
+            this.lockState = new LockerState<>();
             this.lockExpire = GraphDatabaseConfiguration.LOCK_EXPIRE.getDefaultValue();
             this.log = LoggerFactory.getLogger(AbstractLocker.class);
         }
@@ -164,7 +164,7 @@ public abstract class AbstractLocker<S extends LockStatus> implements Locker {
         }
 
         /**
-         * Retrieve the mediator associated with {@code name} via {@link LocalLockMediators#get(String)}.
+         * Retrieve the mediator associated with {@code name} via {@link LocalLockMediators#get(String, TimestampProvider)}.
          *
          * @param name the mediator name
          * @return this builder
@@ -172,7 +172,7 @@ public abstract class AbstractLocker<S extends LockStatus> implements Locker {
         public B mediatorName(String name) {
             Preconditions.checkNotNull(name);
             Preconditions.checkNotNull(times, "Timestamp provider must be set before initializing local lock mediator");
-            mediator(LocalLockMediators.INSTANCE.<StoreTransaction>get(name, times));
+            mediator(LocalLockMediators.INSTANCE.get(name, times));
             return self();
         }
 
@@ -239,7 +239,7 @@ public abstract class AbstractLocker<S extends LockStatus> implements Locker {
      *
      * @param lockID identifies the lock
      * @param tx     identifies the process claiming this lock
-     * @return a {@code LockStatus} implementation on successful lock aquisition
+     * @return a {@code LockStatus} implementation on successful lock acquisition
      * @throws Throwable if the lock could not be taken/acquired/written/claimed or
      *                   the attempted write encountered an error
      */
@@ -253,7 +253,7 @@ public abstract class AbstractLocker<S extends LockStatus> implements Locker {
      * read-only operation: return if the lock is already held, but this method
      * finds that it is not held, then throw an exception instead of trying to
      * acquire it.
-     * <p/>
+     * <p>
      * This method is only useful with nonblocking locking implementations try
      * to lock and then check the outcome of the attempt in two separate stages.
      * For implementations that build {@code writeSingleLock(...)} on a
@@ -347,20 +347,14 @@ public abstract class AbstractLocker<S extends LockStatus> implements Locker {
         // interrupt
         boolean ok = false;
         try {
-            for (KeyColumn kc : m.keySet()) {
-                checkSingleLock(kc, m.get(kc), tx);
+            for (final Map.Entry<KeyColumn, S> entry : m.entrySet()) {
+                checkSingleLock(entry.getKey(), entry.getValue(), tx);
             }
             ok = true;
-        } catch (TemporaryLockingException tle) {
+        } catch (TemporaryLockingException | PermanentLockingException | AssertionError tle) {
             throw tle;
-        } catch (PermanentLockingException ple) {
-            throw ple;
-        } catch (AssertionError ae) {
-            throw ae; // Concession to ease testing with mocks & behavior verification
-        } catch (InterruptedException e) {
+        } catch (InterruptedException | TemporaryBackendException e) {
             throw new TemporaryLockingException(e);
-        } catch (TemporaryBackendException tse) {
-            throw new TemporaryLockingException(tse);
         } catch (Throwable t) {
             throw new PermanentLockingException(t);
         } finally {
@@ -378,10 +372,11 @@ public abstract class AbstractLocker<S extends LockStatus> implements Locker {
 
         Map<KeyColumn, S> m = lockState.getLocksForTx(tx);
 
-        Iterator<KeyColumn> iter = m.keySet().iterator();
-        while (iter.hasNext()) {
-            KeyColumn kc = iter.next();
-            S ls = m.get(kc);
+        final Iterator<Map.Entry<KeyColumn, S>> iterator = m.entrySet().iterator();
+        while (iterator.hasNext()) {
+            final Map.Entry<KeyColumn, S> entry = iterator.next();
+            final KeyColumn kc = entry.getKey();
+            final S ls = entry.getValue();
             try {
                 deleteSingleLock(kc, ls, tx);
             } catch (AssertionError ae) {
@@ -394,7 +389,7 @@ public abstract class AbstractLocker<S extends LockStatus> implements Locker {
             }
             // Regardless of whether we successfully deleted the lock from storage, take it out of the local mediator
             llm.unlock(kc, tx);
-            iter.remove();
+            iterator.remove();
         }
     }
 

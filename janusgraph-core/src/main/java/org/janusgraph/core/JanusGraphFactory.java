@@ -15,21 +15,23 @@
 package org.janusgraph.core;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 
 import org.janusgraph.core.log.LogProcessorFramework;
 import org.janusgraph.core.log.TransactionRecovery;
 import org.janusgraph.diskstorage.Backend;
+import org.janusgraph.diskstorage.BackendException;
 import org.janusgraph.diskstorage.StandardStoreManager;
 import org.janusgraph.diskstorage.configuration.*;
 import org.janusgraph.diskstorage.configuration.backend.CommonsConfiguration;
+import org.janusgraph.graphdb.configuration.builder.GraphDatabaseConfigurationBuilder;
+import org.janusgraph.graphdb.management.JanusGraphManager;
 import org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration;
-
 import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.*;
+import static org.janusgraph.util.system.LoggerUtil.sanitizeAndLaunder;
+import static org.janusgraph.graphdb.management.JanusGraphManager.JANUS_GRAPH_MANAGER_EXPECTED_STATE_MSG;
 
 import org.janusgraph.graphdb.database.StandardJanusGraph;
-
 import org.janusgraph.graphdb.log.StandardLogProcessorFramework;
 import org.janusgraph.graphdb.log.StandardTransactionLogProcessor;
 import org.apache.commons.configuration.BaseConfiguration;
@@ -37,12 +39,15 @@ import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.lang.StringUtils;
+import org.janusgraph.util.system.IOUtils;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.time.Instant;
-import java.util.Iterator;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -56,23 +61,43 @@ public class JanusGraphFactory {
 
     private static final Logger log =
             LoggerFactory.getLogger(JanusGraphFactory.class);
-
     /**
      * Opens a {@link JanusGraph} database.
-     * <p/>
+     * <p>
      * If the argument points to a configuration file, the configuration file is loaded to configure the JanusGraph graph
      * If the string argument is a configuration short-cut, then the short-cut is parsed and used to configure the returned JanusGraph graph.
-     * <p />
+     * <p>
      * A configuration short-cut is of the form:
      * [STORAGE_BACKEND_NAME]:[DIRECTORY_OR_HOST]
      *
      * @param shortcutOrFile Configuration file name or configuration short-cut
      * @return JanusGraph graph database configured according to the provided configuration
-     * @see <a href="http://docs.janusgraph.org/latest/configuration.html">"Configuration" manual chapter</a>
-     * @see <a href="http://docs.janusgraph.org/latest/config-ref.html">Configuration Reference</a>
+     * @see <a href="https://docs.janusgraph.org/latest/configuration.html">"Configuration" manual chapter</a>
+     * @see <a href="https://docs.janusgraph.org/latest/config-ref.html">Configuration Reference</a>
      */
     public static JanusGraph open(String shortcutOrFile) {
         return open(getLocalConfiguration(shortcutOrFile));
+    }
+
+    /**
+     * Opens a {@link JanusGraph} database.
+     * <p>
+     * If the argument points to a configuration file, the configuration file is loaded to configure the JanusGraph graph
+     * If the string argument is a configuration short-cut, then the short-cut is parsed and used to configure the returned JanusGraph graph.
+     * This method shouldn't be called by end users; it is used by internal server processes to
+     * open graphs defined at server start that do not include the graphname property.
+     * <p>
+     * A configuration short-cut is of the form:
+     * [STORAGE_BACKEND_NAME]:[DIRECTORY_OR_HOST]
+     *
+     * @param shortcutOrFile Configuration file name or configuration short-cut
+     * @param backupName Backup name for graph
+     * @return JanusGraph graph database configured according to the provided configuration
+     * @see <a href="https://docs.janusgraph.org/latest/configuration.html">"Configuration" manual chapter</a>
+     * @see <a href="https://docs.janusgraph.org/latest/config-ref.html">Configuration Reference</a>
+     */
+    public static JanusGraph open(String shortcutOrFile, String backupName) {
+        return open(getLocalConfiguration(shortcutOrFile), backupName);
     }
 
     /**
@@ -80,8 +105,8 @@ public class JanusGraphFactory {
      *
      * @param configuration Configuration for the graph database
      * @return JanusGraph graph database
-     * @see <a href="http://docs.janusgraph.org/latest/configuration.html">"Configuration" manual chapter</a>
-     * @see <a href="http://docs.janusgraph.org/latest/config-ref.html">Configuration Reference</a>
+     * @see <a href="https://docs.janusgraph.org/latest/configuration.html">"Configuration" manual chapter</a>
+     * @see <a href="https://docs.janusgraph.org/latest/config-ref.html">Configuration Reference</a>
      */
     public static JanusGraph open(Configuration configuration) {
         return open(new CommonsConfiguration(configuration));
@@ -104,12 +129,96 @@ public class JanusGraphFactory {
      * @return JanusGraph graph database
      */
     public static JanusGraph open(ReadConfiguration configuration) {
-        return new StandardJanusGraph(new GraphDatabaseConfiguration(configuration));
+        return open(configuration, null);
+    }
+
+    /**
+     * Opens a {@link JanusGraph} database configured according to the provided configuration.
+     * This method shouldn't be called by end users; it is used by internal server processes to
+     * open graphs defined at server start that do not include the graphname property.
+     *
+     * @param configuration Configuration for the graph database
+     * @param backupName Backup name for graph
+     * @return JanusGraph graph database
+     */
+    public static JanusGraph open(ReadConfiguration configuration, String backupName) {
+        final ModifiableConfiguration config = new ModifiableConfiguration(ROOT_NS, (WriteConfiguration) configuration, BasicConfiguration.Restriction.NONE);
+        final String graphName = config.has(GRAPH_NAME) ? config.get(GRAPH_NAME) : backupName;
+        final JanusGraphManager jgm = JanusGraphManagerUtility.getInstance();
+        if (null != graphName) {
+            Preconditions.checkNotNull(jgm, JANUS_GRAPH_MANAGER_EXPECTED_STATE_MSG);
+            return (JanusGraph) jgm.openGraph(graphName, gName -> new StandardJanusGraph(new GraphDatabaseConfigurationBuilder().build(configuration)));
+        } else {
+            if (jgm != null) {
+                log.warn("You should supply \"graph.graphname\" in your .properties file configuration if you are opening " +
+                         "a graph that has not already been opened at server start, i.e. it was " +
+                         "defined in your YAML file. This will ensure the graph is tracked by the JanusGraphManager, " +
+                         "which will enable autocommit and rollback functionality upon all gremlin script executions. " +
+                         "Note that JanusGraphFactory#open(String === shortcut notation) does not support consuming the property " +
+                         "\"graph.graphname\" so these graphs should be accessed dynamically by supplying a .properties file here " +
+                         "or by using the ConfiguredGraphFactory.");
+            }
+            return new StandardJanusGraph(new GraphDatabaseConfigurationBuilder().build(configuration));
+        }
+    }
+
+    /**
+     *  Return a Set of graph names stored in the {@link JanusGraphManager}
+     *
+     *  @return Set&lt;String&gt;
+     */
+    public static Set<String> getGraphNames() {
+       final JanusGraphManager jgm = JanusGraphManagerUtility.getInstance();
+       Preconditions.checkNotNull(jgm, JANUS_GRAPH_MANAGER_EXPECTED_STATE_MSG);
+       return jgm.getGraphNames();
+    }
+
+    /**
+     * Removes {@link Graph} from {@link JanusGraphManager} graph reference tracker, if exists
+     * there.
+     *
+     * @param graph Graph
+     */
+    public static void close(Graph graph) throws Exception {
+        final JanusGraphManager jgm = JanusGraphManagerUtility.getInstance();
+        if (jgm != null) {
+            jgm.removeGraph(((StandardJanusGraph) graph).getGraphName());
+        }
+        graph.close();
+    }
+
+    /**
+     * Drop graph database, deleting all data in storage and indexing backends. Graph can be open or closed (will be
+     * closed as part of the drop operation). The graph is also removed from the {@link JanusGraphManager}
+     * graph reference tracker, if there.
+     *
+     * <p><b>WARNING: This is an irreversible operation that will delete all graph and index data.</b></p>
+     * @param graph JanusGraph graph database. Can be open or closed.
+     * @throws BackendException If an error occurs during deletion
+     */
+    public static void drop(JanusGraph graph) throws BackendException {
+        Preconditions.checkNotNull(graph);
+        Preconditions.checkArgument(graph instanceof StandardJanusGraph,"Invalid graph instance detected: %s",graph.getClass());
+        final StandardJanusGraph g = (StandardJanusGraph) graph;
+        final JanusGraphManager jgm = JanusGraphManagerUtility.getInstance();
+        if (jgm != null) {
+            jgm.removeGraph(g.getGraphName());
+        }
+        if (graph.isOpen()) {
+            graph.close();
+        }
+        final GraphDatabaseConfiguration config = g.getConfiguration();
+        final Backend backend = config.getBackend();
+        try {
+            backend.clearStorage();
+        } finally {
+            IOUtils.closeQuietly(backend);
+        }
     }
 
     /**
      * Returns a {@link Builder} that allows to set the configuration options for opening a JanusGraph graph database.
-     * <p />
+     * <p>
      * In the builder, the configuration options for the graph can be set individually. Once all options are configured,
      * the graph can be opened with {@link org.janusgraph.core.JanusGraphFactory.Builder#open()}.
      *
@@ -211,7 +320,7 @@ public class JanusGraphFactory {
 
     /**
      * Load a properties file containing a JanusGraph graph configuration.
-     * <p/>
+     * <p>
      * <ol>
      * <li>Load the file contents into a {@link org.apache.commons.configuration.PropertiesConfiguration}</li>
      * <li>For each key that points to a configuration object that is either a directory
@@ -223,7 +332,7 @@ public class JanusGraphFactory {
      * working directory.
      * <li>Return the {@link ReadConfiguration} for the prepared configuration file</li>
      * </ol>
-     * <p/>
+     * <p>
      *
      * @param file A properties file to load
      * @return A configuration derived from {@code file}
@@ -263,19 +372,12 @@ public class JanusGraphFactory {
                                   Pattern.quote(INDEX_CONF_FILE.getName()) +  ")"
             + ")");
 
-            final Iterator<String> keysToMangle = Iterators.filter(configuration.getKeys(), new Predicate<String>() {
-                @Override
-                public boolean apply(String key) {
-                    if (null == key)
-                        return false;
-                    return p.matcher(key).matches();
-                }
-            });
+            final Iterator<String> keysToMangle = Iterators.filter(configuration.getKeys(), key -> null != key && p.matcher(key).matches());
 
             while (keysToMangle.hasNext()) {
                 String k = keysToMangle.next();
                 Preconditions.checkNotNull(k);
-                String s = configuration.getString(k);
+                final String s = configuration.getString(k);
                 Preconditions.checkArgument(StringUtils.isNotBlank(s),"Invalid Configuration: key %s has null empty value",k);
                 configuration.setProperty(k,getAbsolutePath(configParent,s));
             }
@@ -285,18 +387,18 @@ public class JanusGraphFactory {
         }
     }
 
-    private static final String getAbsolutePath(String file) {
+    private static String getAbsolutePath(String file) {
         return getAbsolutePath(new File(System.getProperty("user.dir")), file);
     }
 
-    private static final String getAbsolutePath(final File configParent, String file) {
-        File storedir = new File(file);
-        if (!storedir.isAbsolute()) {
+    private static String getAbsolutePath(final File configParent, final String file) {
+        final File storeDirectory = new File(file);
+        if (!storeDirectory.isAbsolute()) {
             String newFile = configParent.getAbsolutePath() + File.separator + file;
-            log.debug("Overwrote relative path: was {}, now {}", file, newFile);
+            log.debug("Overwrote relative path: was {}, now {}", sanitizeAndLaunder(file), sanitizeAndLaunder(newFile));
             return newFile;
         } else {
-            log.debug("Loaded absolute path for key: {}", file);
+            log.debug("Loaded absolute path for key: {}", sanitizeAndLaunder(file));
             return file;
         }
     }

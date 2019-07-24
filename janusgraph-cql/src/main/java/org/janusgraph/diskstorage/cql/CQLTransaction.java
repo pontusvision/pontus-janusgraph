@@ -46,21 +46,14 @@ public class CQLTransaction extends AbstractStoreTransaction {
     }
 
     static CQLTransaction getTransaction(final StoreTransaction storeTransaction) {
-        Preconditions.checkArgument(storeTransaction != null);
+        Preconditions.checkNotNull(storeTransaction);
         Preconditions.checkArgument(storeTransaction instanceof CQLTransaction, "Unexpected transaction type %s", storeTransaction.getClass().getName());
         return (CQLTransaction) storeTransaction;
     }
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder(64);
-        sb.append("CQLTransaction@");
-        sb.append(Integer.toHexString(hashCode()));
-        sb.append("[read=");
-        sb.append(this.readConsistencyLevel);
-        sb.append(",write=");
-        sb.append(this.writeConsistencyLevel);
-        sb.append("]");
-        return sb.toString();
+        return "CQLTransaction@" + Integer.toHexString(hashCode()) + "[read=" + this.readConsistencyLevel
+            + ",write=" + this.writeConsistencyLevel + "]";
     }
 }

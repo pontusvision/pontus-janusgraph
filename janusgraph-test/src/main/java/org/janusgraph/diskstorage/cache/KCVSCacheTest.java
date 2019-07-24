@@ -29,9 +29,9 @@ import org.janusgraph.diskstorage.util.WriteByteBuffer;
 
 import org.janusgraph.diskstorage.util.time.TimestampProvider;
 import org.janusgraph.diskstorage.util.time.TimestampProviders;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Matthias Broecheler (me@matthiasb.com)
@@ -54,7 +54,7 @@ public abstract class KCVSCacheTest {
     public CounterKCVS store;
     public KCVSCache cache;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         storeManager = new InMemoryStoreManager();
         store = new CounterKCVS(storeManager.openDatabase(STORE_NAME));
@@ -72,11 +72,10 @@ public abstract class KCVSCacheTest {
     }
 
     public CacheTransaction getCacheTx() {
-        CacheTransaction cacheTx = new CacheTransaction(getStoreTx(), storeManager, 1024, MAX_WRITE_TIME, false);
-        return cacheTx;
+        return new CacheTransaction(getStoreTx(), storeManager, 1024, MAX_WRITE_TIME, false);
     }
 
-    @After
+    @AfterEach
     public void shutdown() throws Exception {
         cache.close();
         storeManager.close();
@@ -86,7 +85,7 @@ public abstract class KCVSCacheTest {
         StoreTransaction tx = getStoreTx();
         try {
             for (int i=1;i<=numKeys;i++) {
-                List<Entry> adds = new ArrayList<Entry>(numCols);
+                final List<Entry> adds = new ArrayList<>(numCols);
                 for (int j=1;j<=numCols;j++) adds.add(getEntry(j,j));
                 store.mutate(BufferUtil.getIntBuffer(i),adds,KeyColumnValueStore.NO_DELETIONS,tx);
             }
@@ -98,9 +97,8 @@ public abstract class KCVSCacheTest {
 
     @Test
     public void testSmallCache() throws Exception {
-        final int numKeys = 100, numCols = 10;
+        final int numKeys = 100, numCols = 10; //numCols must be greater than or equal to 10 as it is assummed below
         final int repeats = 100, clearEvery = 20, numMulti = 10;
-        assertTrue(numCols>=10); //Assumed below
         loadStore(numKeys,numCols);
 
         //Repeatedly read from cache and clear in between
@@ -117,7 +115,7 @@ public abstract class KCVSCacheTest {
                 assertEquals(3,cache.getSlice(getQuery(i,2,5),tx).size());
             }
             //Multi-query
-            List<StaticBuffer> keys = new ArrayList<StaticBuffer>();
+            final List<StaticBuffer> keys = new ArrayList<>();
             for (int i=10;i<10+numMulti;i++) keys.add(BufferUtil.getIntBuffer(i));
             Map<StaticBuffer,EntryList> result = cache.getSlice(keys,getQuery(4,9),tx);
             assertEquals(keys.size(),result.size());
@@ -132,7 +130,7 @@ public abstract class KCVSCacheTest {
 
         //Check invalidation
         StaticBuffer key = BufferUtil.getIntBuffer(23);
-        List<StaticBuffer> keys = new ArrayList<StaticBuffer>();
+        final List<StaticBuffer> keys = new ArrayList<>();
         keys.add(key);
         keys.add(BufferUtil.getIntBuffer(12));
         keys.add(BufferUtil.getIntBuffer(5));
@@ -144,9 +142,9 @@ public abstract class KCVSCacheTest {
         assertEquals(keys.size(),result.size());
         assertEquals(6,result.get(key).size());
         //Update
-        List<Entry> dels = new ArrayList<Entry>(numCols/2);
-        for (int j=1;j<=numCols;j=j+2) dels.add(getEntry(j,j));
-        cache.mutateEntries(key, KeyColumnValueStore.NO_ADDITIONS, dels, tx);
+        final List<Entry> deletions = new ArrayList<>(numCols/2);
+        for (int j=1;j<=numCols;j=j+2) deletions.add(getEntry(j,j));
+        cache.mutateEntries(key, KeyColumnValueStore.NO_ADDITIONS, deletions, tx);
         tx.commit();
         assertEquals(2,store.getSliceCalls());
 

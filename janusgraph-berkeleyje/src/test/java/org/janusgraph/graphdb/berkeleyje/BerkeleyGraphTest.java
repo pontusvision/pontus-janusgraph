@@ -15,11 +15,12 @@
 package org.janusgraph.graphdb.berkeleyje;
 
 import org.janusgraph.core.JanusGraphException;
-import org.janusgraph.core.util.JanusGraphCleanup;
+import org.janusgraph.core.JanusGraphFactory;
+import org.janusgraph.diskstorage.Backend;
+import org.janusgraph.diskstorage.BackendException;
 import org.janusgraph.diskstorage.configuration.ConfigOption;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,32 +35,42 @@ import org.janusgraph.graphdb.JanusGraphTest;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class BerkeleyGraphTest extends JanusGraphTest {
-
-    @Rule
-    public TestName methodNameRule = new TestName();
 
     private static final Logger log =
             LoggerFactory.getLogger(BerkeleyGraphTest.class);
 
     @Override
     public WriteConfiguration getConfiguration() {
-        ModifiableConfiguration mcfg = BerkeleyStorageSetup.getBerkeleyJEConfiguration();
-        String methodName = methodNameRule.getMethodName();
+        ModifiableConfiguration modifiableConfiguration = BerkeleyStorageSetup.getBerkeleyJEConfiguration();
+        String methodName = testInfo.getTestMethod().toString();
         if (methodName.equals("testConsistencyEnforcement")) {
             IsolationLevel iso = IsolationLevel.SERIALIZABLE;
             log.debug("Forcing isolation level {} for test method {}", iso, methodName);
-            mcfg.set(BerkeleyJEStoreManager.ISOLATION_LEVEL, iso.toString());
+            modifiableConfiguration.set(BerkeleyJEStoreManager.ISOLATION_LEVEL, iso.toString());
         } else {
             IsolationLevel iso = null;
-            if (mcfg.has(BerkeleyJEStoreManager.ISOLATION_LEVEL)) {
-                iso = ConfigOption.getEnumValue(mcfg.get(BerkeleyJEStoreManager.ISOLATION_LEVEL),IsolationLevel.class);
+            if (modifiableConfiguration.has(BerkeleyJEStoreManager.ISOLATION_LEVEL)) {
+                iso = ConfigOption.getEnumValue(modifiableConfiguration.get(BerkeleyJEStoreManager.ISOLATION_LEVEL),IsolationLevel.class);
             }
             log.debug("Using isolation level {} (null means adapter default) for test method {}", iso, methodName);
         }
-        return mcfg.getConfiguration();
+        return modifiableConfiguration.getConfiguration();
+    }
+
+    @Override
+    public void testClearStorage() throws Exception {
+        tearDown();
+        config.set(ConfigElement.getPath(GraphDatabaseConfiguration.DROP_ON_CLEAR), true);
+        Backend backend = getBackend(config, false);
+        assertTrue(backend.getStoreManager().exists(), "graph should exist before clearing storage");
+        clearGraph(config);
+        backend.close();
+        backend = getBackend(config, false);
+        assertFalse(backend.getStoreManager().exists(), "graph should not exist after clearing storage");
+        backend.close();
     }
 
     @Test
@@ -84,17 +95,16 @@ public class BerkeleyGraphTest extends JanusGraphTest {
     }
 
     @Test
-    public void testIDBlockAllocationTimeout()
-    {
+    public void testIDBlockAllocationTimeout() throws BackendException {
         config.set("ids.authority.wait-time", Duration.of(0L, ChronoUnit.NANOS));
         config.set("ids.renew-timeout", Duration.of(1L, ChronoUnit.MILLIS));
         close();
-        JanusGraphCleanup.clear(graph);
+        JanusGraphFactory.drop(graph);
         open(config);
         try {
             graph.addVertex();
             fail();
-        } catch (JanusGraphException e) {
+        } catch (JanusGraphException ignored) {
 
         }
 

@@ -32,31 +32,31 @@ public interface EdgeLabelMaker extends RelationTypeMaker {
      * @return this EdgeLabelMaker
      * @see Multiplicity
      */
-    public EdgeLabelMaker multiplicity(Multiplicity multiplicity);
+    EdgeLabelMaker multiplicity(Multiplicity multiplicity);
 
     /**
      * Configures the label to be directed.
-     * <p/>
+     * <p>
      * By default, the label is directed.
      *
      * @return this EdgeLabelMaker
      * @see org.janusgraph.core.EdgeLabel#isDirected()
      */
-    public EdgeLabelMaker directed();
+    EdgeLabelMaker directed();
 
     /**
      * Configures the label to be unidirected.
-     * <p/>
+     * <p>
      * By default, the type is directed.
      *
      * @return this EdgeLabelMaker
      * @see org.janusgraph.core.EdgeLabel#isUnidirected()
      */
-    public EdgeLabelMaker unidirected();
+    EdgeLabelMaker unidirected();
 
 
     @Override
-    public EdgeLabelMaker signature(PropertyKey... types);
+    EdgeLabelMaker signature(PropertyKey... types);
 
 
     /**
@@ -65,6 +65,6 @@ public interface EdgeLabelMaker extends RelationTypeMaker {
      * @return the created {@link EdgeLabel}
      */
     @Override
-    public EdgeLabel make();
+    EdgeLabel make();
 
 }

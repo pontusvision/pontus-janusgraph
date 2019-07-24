@@ -20,10 +20,7 @@ import org.janusgraph.diskstorage.BackendException;
 import org.janusgraph.diskstorage.KeyColumnValueStoreTest;
 import org.janusgraph.diskstorage.keycolumnvalue.KeyColumnValueStoreManager;
 import org.janusgraph.diskstorage.keycolumnvalue.keyvalue.OrderedKeyValueStoreManagerAdapter;
-import org.junit.Test;
-
-import java.util.concurrent.ExecutionException;
-
+import org.junit.jupiter.api.Test;
 
 public class BerkeleyFixedLengthKCVSTest extends KeyColumnValueStoreTest {
 
@@ -32,18 +29,13 @@ public class BerkeleyFixedLengthKCVSTest extends KeyColumnValueStoreTest {
         return new OrderedKeyValueStoreManagerAdapter(sm, ImmutableMap.of(storeName, 8));
     }
 
-    @Test
-    public void testGetKeysWithKeyRange() throws Exception {
-        super.testGetKeysWithKeyRange();
-    }
-
     @Test @Override
-    public void testConcurrentGetSlice() throws ExecutionException, InterruptedException, BackendException {
+    public void testConcurrentGetSlice() {
 
     }
 
     @Test @Override
-    public void testConcurrentGetSliceAndMutate() throws BackendException, ExecutionException, InterruptedException {
+    public void testConcurrentGetSliceAndMutate() {
 
     }
 }

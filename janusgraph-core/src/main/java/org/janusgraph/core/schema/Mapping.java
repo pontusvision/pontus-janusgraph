@@ -21,7 +21,7 @@ import org.janusgraph.graphdb.types.ParameterType;
 /**
  * Used to change the default mapping of an indexed key by providing the mapping explicitly as a parameter to
  * {@link JanusGraphManagement#addIndexKey(JanusGraphIndex, org.janusgraph.core.PropertyKey, Parameter[])}.
- * <p/>
+ * <p>
  * This applies mostly to string data types of keys, where the mapping specifies whether the string value is tokenized
  * ({@link #TEXT}) or indexed as a whole ({@link #STRING}), or both ({@link #TEXTSTRING}).
  *
@@ -57,9 +57,9 @@ public enum Mapping {
         }
     }
 
-    public static Mapping getMapping(String store, String key, KeyInformation.IndexRetriever informations) {
-        KeyInformation ki = informations.get(store, key);
-        Preconditions.checkArgument(ki!=null,"Could not find key information for: %s",key);
+    public static Mapping getMapping(String store, String key, KeyInformation.IndexRetriever information) {
+        KeyInformation ki = information.get(store, key);
+        Preconditions.checkNotNull(ki, "Could not find key information for: %s",key);
         return getMapping(ki);
     }
 

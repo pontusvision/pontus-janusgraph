@@ -14,12 +14,12 @@
 
 package org.janusgraph.graphdb.serializer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import org.janusgraph.graphdb.serializer.attributes.*;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,19 +36,19 @@ public class SerializerTestCommon {
     protected Serializer serialize;
     protected boolean printStats;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    public void setUp() {
         serialize = new StandardSerializer();
         printStats = false;
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         serialize.close();
     }
 
     protected void objectWriteRead() {
-        TClass1 t1 = new TClass1(3245234223423433123l,0.333f);
+        TClass1 t1 = new TClass1(3245234223423433123L,0.333f);
         TClass2 t2 = new TClass2("This is a test",4234234);
         TEnum t3 = TEnum.THREE;
         TEnum t4 = TEnum.TWO;
@@ -61,7 +61,7 @@ public class SerializerTestCommon {
 
         ReadBuffer b = out.getStaticBuffer().asReadBuffer();
         assertEquals(t1, serialize.readObjectNotNull(b, TClass1.class));
-        assertEquals(t2, (TClass2)serialize.readClassAndObject(b));
+        assertEquals(t2, serialize.readClassAndObject(b));
         assertEquals(t3, serialize.readObject(b,TEnum.class));
         assertEquals(t4, serialize.readClassAndObject(b));
 
